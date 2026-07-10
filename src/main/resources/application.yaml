@@ -15,16 +15,14 @@ logging:
 
 rule-engine:
   mqtt:
-    inbound:
-      enabled: true
+    external:
       broker-url: tcp://10.116.64.13:1883
-      client-id: rule-engine-subscriber
+      client-id-prefix: rule-engine-subscriber
       topic: application/+/device/+/event/up
       qos: 1
 
-    outbound:
-      enabled: true
+    internal:
       broker-url: tcp://localhost:1883
-      client-id: rule-engine-internal-publisher
+      client-id-prefix: rule-engine-internal-publisher
       topic-prefix: iot
       qos: 1

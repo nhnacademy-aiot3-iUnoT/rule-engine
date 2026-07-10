@@ -17,22 +17,9 @@ public class RuleEngineStartupRunner implements CommandLineRunner {
 
     private final FlowEngine flowEngine;
     private final MqttRuleFlowFactory mqttRuleFlowFactory;
-    private final RuleEngineProperties properties;
 
     @Override
     public void run(String... args) {
-        // inbound 또는 outbound가 비활성화되면 Flow를 시작하지 않는다.
-        RuleEngineProperties.Mqtt mqtt = properties.mqtt();
-        if (!mqtt.inbound().enabled()) {
-            log.info("[RuleEngine] MQTT inbound flow is disabled.");
-            return;
-        }
-
-        if (!mqtt.outbound().enabled()) {
-            log.info("[RuleEngine] MQTT outbound flow is disabled.");
-            return;
-        }
-
         try {
             Flow flow = mqttRuleFlowFactory.create();
             flowEngine.registerAndStart(flow);

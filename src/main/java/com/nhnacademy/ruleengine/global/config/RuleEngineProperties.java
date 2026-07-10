@@ -3,29 +3,27 @@ package com.nhnacademy.ruleengine.global.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "rule-engine")
-// application.yaml의 Rule Engine 설정을 타입 안전하게 바인딩한다.
 public record RuleEngineProperties(
         Mqtt mqtt
 ) {
+
     public record Mqtt(
-            MqttInbound inbound,
-            MqttOutbound outbound
+            ExternalConfig external,
+            InternalConfig internal
     ) {
     }
 
-    public record MqttInbound(
-            boolean enabled,
+    public record ExternalConfig(
             String brokerUrl,
-            String clientId,
+            String clientIdPrefix,
             String topic,
             int qos
     ) {
     }
 
-    public record MqttOutbound(
-            boolean enabled,
+    public record InternalConfig(
             String brokerUrl,
-            String clientId,
+            String clientIdPrefix,
             String topicPrefix,
             int qos
     ) {
