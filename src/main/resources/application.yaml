@@ -1,3 +1,30 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  profiles:
+    active: influx
+
   application:
     name: rule-engine
+
+logging:
+  level:
+    com.nhnacademy.ruleengine: DEBUG
+
+
+rule-engine:
+  mqtt:
+    inbound:
+      enabled: true
+      broker-url: tcp://10.116.64.13:1883
+      client-id: rule-engine-subscriber
+      topic: application/+/device/+/event/up
+      qos: 1
+
+    outbound:
+      enabled: true
+      broker-url: tcp://localhost:1883
+      client-id: rule-engine-internal-publisher
+      topic-prefix: iot
+      qos: 1

@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.config;
+package com.nhnacademy.ruleengine.global.config;
 
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
@@ -10,10 +10,12 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(InfluxDbProperties.class)
+// 설정값을 이용해 공유 InfluxDB 클라이언트를 생성한다.
 public class InfluxDbConfig {
 
     @Bean
     public InfluxDBClient influxDBClient(InfluxDbProperties properties) {
+        // 토큰 원문은 노출하지 않고 길이만 로그로 확인한다.
         log.info("Influx URL = {}", properties.url());
         log.info("Influx ORG = {}", properties.org());
         log.info("Influx BUCKET = {}", properties.bucket());

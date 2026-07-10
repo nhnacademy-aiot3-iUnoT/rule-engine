@@ -1,4 +1,4 @@
-influxdb:
+influx-db:
   url: ${INFLUX_URL}
   token: ${INFLUX_TOKEN}
   org: ${INFLUX_ORG}
@@ -7,4 +7,4 @@ influxdb:
 
 logging:
   level:
-    com.influxdb: INFO
+    com.influx-db: INFO
