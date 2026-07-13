@@ -2,12 +2,13 @@ package com.nhnacademy.ruleengine.global.bootstrap;
 
 import com.nhnacademy.ruleengine.engine.Flow;
 import com.nhnacademy.ruleengine.engine.FlowEngine;
-import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
-import com.nhnacademy.ruleengine.mqtt.flow.MqttRuleFlowFactory;
+import com.nhnacademy.ruleengine.mqtt.flow.FlowFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Slf4j
 @Component
@@ -16,34 +17,26 @@ import org.springframework.stereotype.Component;
 public class RuleEngineStartupRunner implements CommandLineRunner {
 
     private final FlowEngine flowEngine;
-    private final MqttRuleFlowFactory mqttRuleFlowFactory;
-    private final RuleEngineProperties properties;
+    private final List<FlowFactory> flowFactories;
 
     @Override
     public void run(String... args) {
-        // inbound 또는 outbound가 비활성화되면 Flow를 시작하지 않는다.
-        RuleEngineProperties.Mqtt mqtt = properties.mqtt();
-        if (!mqtt.inbound().enabled()) {
-            log.info("[RuleEngine] MQTT inbound flow is disabled.");
-            return;
+        for (FlowFactory flowFactory : flowFactories) {
+            start(flowFactory);
         }
+    }
 
-        if (!mqtt.outbound().enabled()) {
-            log.info("[RuleEngine] MQTT outbound flow is disabled.");
-            return;
-        }
-
+    private void start(FlowFactory flowFactory) {
         try {
-            Flow flow = mqttRuleFlowFactory.create();
+            Flow flow = flowFactory.create();
             flowEngine.registerAndStart(flow);
-
-            log.info(
-                    "[RuleEngine] MQTT flow started. flowId={}",
-                    flow.getId()
-            );
-
+            log.info("[RuleEngine] flow started. flowId={}", flow.getId());
         } catch (Exception e) {
-            log.error("[RuleEngine] MQTT flow start failed", e);
+            log.error(
+                    "[RuleEngine] flow start failed. factory={}",
+                    flowFactory.getClass().getSimpleName(),
+                    e
+            );
         }
     }
 }

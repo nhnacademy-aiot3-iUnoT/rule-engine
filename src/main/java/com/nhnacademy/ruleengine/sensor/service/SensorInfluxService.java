@@ -1,8 +1,11 @@
 package com.nhnacademy.ruleengine.sensor.service;
 
+import com.nhnacademy.ruleengine.sensor.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.sensor.repository.SensorInfluxRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -11,21 +14,28 @@ public class SensorInfluxService {
 
     private final SensorInfluxRepository sensorInfluxRepository;
 
-    public void save(
-            String storage,
-            String sensorType,
-            double value,
-            String unit,
-            String deviceName,
-            String deviceEui
-    ) {
+    public void save(SensorPayloadDto sensorPayload) {
         sensorInfluxRepository.save(
-                storage,
-                sensorType,
-                value,
-                unit,
-                deviceName,
-                deviceEui
+                sensorPayload.applicationName(),
+                sensorPayload.location(),
+                sensorPayload.sensorType(),
+                sensorPayload.value(),
+                sensorPayload.unit(),
+                sensorPayload.deviceName(),
+                sensorPayload.deviceEui(),
+                parseTimestamp(sensorPayload.time())
         );
+    }
+
+    private Instant parseTimestamp(String time) {
+        if (time == null || time.isBlank()) {
+            return Instant.now();
+        }
+
+        try {
+            return Instant.parse(time);
+        } catch (RuntimeException ignored) {
+            return Instant.now();
+        }
     }
 }

@@ -47,6 +47,7 @@ public class MqttPublisherNode extends ProtocolNode {
         client.connect(options);
 
         log.info("[{}] MQTT client connected status : {}", getId(), getConnectionState());
+        log.info("MQTT client-id : {}", clientId);
 
     }
 
