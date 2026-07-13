@@ -1,0 +1,5 @@
+### 사무실 최신 센서 데이터 조회
+@location = 실습실
+
+GET http://localhost:8080/api/rule-engine/latest?location={{location}}
+Accept: application/json
