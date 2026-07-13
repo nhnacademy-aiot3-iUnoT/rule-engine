@@ -23,22 +23,25 @@ public class SensorInfluxRepository {
     private final InfluxDbProperties influxDbProperties;
 
     public void save(
-            String storage,
+            String applicationName,
+            String location,
             String sensorType,
             double value,
             String unit,
             String deviceName,
-            String deviceEui
+            String deviceEui,
+            Instant timestamp
     ) {
         // 조회 조건은 tag로, 실제 측정값은 field로 구성한다.
         Point point = Point.measurement(influxDbProperties.measurement())
-                .addTag("storage", storage)
+                .addTag("application_name", applicationName)
+                .addTag("location", location)
                 .addTag("sensor_type", sensorType)
                 .addTag("device_name", deviceName)
                 .addTag("device_eui", deviceEui)
                 .addTag("unit", unit)
                 .addField("value", value)
-                .time(Instant.now(), WritePrecision.NS);
+                .time(timestamp, WritePrecision.NS);
         try {
             // 즉시 결과를 확인할 수 있도록 blocking write API를 사용한다.
             influxDBClient.getWriteApiBlocking()

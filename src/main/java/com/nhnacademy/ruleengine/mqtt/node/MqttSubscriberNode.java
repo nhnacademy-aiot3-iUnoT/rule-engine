@@ -1,10 +1,12 @@
 package com.nhnacademy.ruleengine.mqtt.node;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
 import com.nhnacademy.ruleengine.mqtt.dto.MqttInboundMessageDto;
+import com.nhnacademy.ruleengine.sensor.dto.SensorPayloadDto;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
@@ -16,13 +18,16 @@ import java.util.Map;
 @Slf4j
 // 외부 MQTT topic을 구독해 Rule Engine 메시지로 변환한다.
 public class MqttSubscriberNode extends ProtocolNode {
+    private static final String STANDARD_SENSOR_PAYLOAD = "sensorPayload";
+
     private MqttClient client;
     private final ObjectMapper objectMapper;
     private String targetTopic;
 
     public MqttSubscriberNode(String id, Map<String, Object> config) {
         super(id, config);
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         addOutputPort("out");
     }
 
@@ -48,8 +53,7 @@ public class MqttSubscriberNode extends ProtocolNode {
                 }
 
                 Map<String, Object> payloadMap = processPayload(receivedTopic, msg.getPayload());
-                MqttInboundMessageDto mqttInbound = MqttInboundMessageDto.from(payloadMap);
-                send("out", new Message(Map.of("mqttInbound", mqttInbound)));
+                sendPayload(payloadMap);
 
                 log.info("[{}] 메시지 수집 완료", getId());
             }
@@ -86,6 +90,22 @@ public class MqttSubscriberNode extends ProtocolNode {
         client.subscribe(targetTopic, qos);
 
         log.info("[{}] 구독 성공: {}", getId(), targetTopic);
+    }
+
+    private void sendPayload(Map<String, Object> payloadMap) {
+        String payloadType = (String) getConfig("payloadType");
+
+        if (STANDARD_SENSOR_PAYLOAD.equals(payloadType)) {
+            SensorPayloadDto sensorPayload = objectMapper.convertValue(
+                    payloadMap,
+                    SensorPayloadDto.class
+            );
+            send("out", new Message(Map.of(STANDARD_SENSOR_PAYLOAD, sensorPayload)));
+            return;
+        }
+
+        MqttInboundMessageDto mqttInbound = MqttInboundMessageDto.from(payloadMap);
+        send("out", new Message(Map.of("mqttInbound", mqttInbound)));
     }
 
     private int resolveQos(Object objectQos) {
