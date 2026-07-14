@@ -1,14 +1,15 @@
-package com.nhnacademy.ruleengine.mqtt.flow;
+package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.Flow;
+import com.nhnacademy.ruleengine.engine.node.impl.LocationResolveNode;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.ExternalConfig;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;
-import com.nhnacademy.ruleengine.mqtt.node.MqttNodeConfigFactory;
-import com.nhnacademy.ruleengine.mqtt.node.MqttPublisherNode;
-import com.nhnacademy.ruleengine.mqtt.node.MqttSubscriberNode;
-import com.nhnacademy.ruleengine.sensor.command.SensorCommand;
-import com.nhnacademy.ruleengine.sensor.node.SensorFilterTransformNode;
+import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
+import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
+import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;
+import com.nhnacademy.ruleengine.engine.command.SensorCommand;
+import com.nhnacademy.ruleengine.engine.node.impl.SensorTransformNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,13 +18,14 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 // 외부 MQTT 데이터 전처리후 내부 MQTT로 전송하는 Flow
-public class SensorProcessingFlow implements FlowFactory {
+public class ExternalSensorFlow implements FlowFactory {
 
     public static final String FLOW_ID = "sensor-processing-flow";
 
     static final String SUBSCRIBER_NODE_ID = "external-mqtt-in";
     static final String TRANSFORM_NODE_ID = "sensor-filter";
     static final String PUBLISHER_NODE_ID = "internal-mqtt-out";
+    static final String LOCATION_RESOLVE_NODE_ID = "location-resolve";
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
@@ -42,9 +44,13 @@ public class SensorProcessingFlow implements FlowFactory {
                         SUBSCRIBER_NODE_ID,
                         mqttNodeConfigFactory.createExternalSubscriberConfig(external)
                 ))
-                .addNode(new SensorFilterTransformNode(
+                .addNode(new SensorTransformNode(
                         TRANSFORM_NODE_ID,
                         sensorCommands
+                ))
+                .addNode(new LocationResolveNode(
+                        LOCATION_RESOLVE_NODE_ID
+
                 ))
                 .addNode(new MqttPublisherNode(
                         PUBLISHER_NODE_ID,
@@ -58,6 +64,12 @@ public class SensorProcessingFlow implements FlowFactory {
                 )
                 .connect(
                         TRANSFORM_NODE_ID,
+                        OUTPUT_PORT,
+                        LOCATION_RESOLVE_NODE_ID,
+                        INPUT_PORT
+                )
+                .connect(
+                        LOCATION_RESOLVE_NODE_ID,
                         OUTPUT_PORT,
                         PUBLISHER_NODE_ID,
                         INPUT_PORT

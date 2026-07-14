@@ -1,11 +1,11 @@
-package com.nhnacademy.ruleengine.sensor.node;
+package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
-import com.nhnacademy.ruleengine.mqtt.dto.MqttInboundMessageDto;
-import com.nhnacademy.ruleengine.sensor.command.SensorCommand;
-import com.nhnacademy.ruleengine.sensor.dto.SensorContext;
-import com.nhnacademy.ruleengine.sensor.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
+import com.nhnacademy.ruleengine.engine.command.SensorCommand;
+import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 // MQTT 측정값을 센서 타입별 표준 payload로 변환한다.
-public class SensorFilterTransformNode extends AbstractNode {
+public class SensorTransformNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
@@ -24,7 +24,7 @@ public class SensorFilterTransformNode extends AbstractNode {
 
     private final Map<String, SensorCommand> sensorCommands;
 
-    public SensorFilterTransformNode(
+    public SensorTransformNode(
             String id,
             List<SensorCommand> sensorCommands
     ) {
@@ -51,7 +51,7 @@ public class SensorFilterTransformNode extends AbstractNode {
 
     @Override
     public void onProcess(Message message) {
-        MqttInboundMessageDto mqttInbound = message.get(MQTT_INBOUND_KEY);
+        ExternalSensorMessageDto mqttInbound = message.get(MQTT_INBOUND_KEY);
 
         if (mqttInbound == null) {
             // 변환할 MQTT DTO가 없으면 메시지를 건너뛴다.
@@ -74,14 +74,14 @@ public class SensorFilterTransformNode extends AbstractNode {
             return;
         }
 
-        SensorContext sensorContext = SensorContext.from(mqttInbound);
+        SensorContextDto sensorContextDto = SensorContextDto.from(mqttInbound);
 
         measurements.forEach(
                 (sensorType, value) ->
                         executeSensorCommand(
                                 sensorType,
                                 value,
-                                sensorContext
+                                sensorContextDto
                         )
         );
     }
@@ -89,7 +89,7 @@ public class SensorFilterTransformNode extends AbstractNode {
     private void executeSensorCommand(
             String sensorType,
             Object value,
-            SensorContext sensorContext
+            SensorContextDto sensorContextDto
     ) {
         SensorCommand command = sensorCommands.get(sensorType);
 
@@ -105,7 +105,7 @@ public class SensorFilterTransformNode extends AbstractNode {
 
         try {
             // 측정값을 표준 센서 payload로 변환해 출력한다.
-            sendSensor(command.execute(value, sensorContext));
+            sendSensor(command.execute(value, sensorContextDto));
 
         } catch (IllegalArgumentException e) {
             log.warn(
@@ -130,7 +130,8 @@ public class SensorFilterTransformNode extends AbstractNode {
             SensorPayloadDto sensorPayload
     ) {
         String topic = String.format(
-                "%s/%s/%s",
+                "%s/%s/%s/%s",
+                sanitize(sensorPayload.applicationName()),
                 sanitize(sensorPayload.location()),
                 sanitize(sensorPayload.deviceName()),
                 sanitize(sensorPayload.sensorType())

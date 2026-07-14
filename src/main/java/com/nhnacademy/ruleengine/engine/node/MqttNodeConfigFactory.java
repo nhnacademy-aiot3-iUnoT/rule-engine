@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.mqtt.node;
+package com.nhnacademy.ruleengine.engine.node;
 
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.ExternalConfig;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;

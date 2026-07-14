@@ -1,7 +1,8 @@
-package com.nhnacademy.ruleengine.sensor.service;
+package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.sensor.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.sensor.repository.SensorInfluxRepository;
+import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+
+import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ public class SensorInfluxService {
 
     public void save(SensorPayloadDto sensorPayload) {
         sensorInfluxRepository.save(
+                sensorPayload.locationId(),
                 sensorPayload.applicationName(),
                 sensorPayload.location(),
                 sensorPayload.sensorType(),

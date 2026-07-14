@@ -1,9 +1,10 @@
-package com.nhnacademy.ruleengine.sensor.node;
+package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
-import com.nhnacademy.ruleengine.sensor.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.sensor.service.SensorInfluxService;
+import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+
+import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

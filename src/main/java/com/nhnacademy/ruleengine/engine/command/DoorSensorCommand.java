@@ -1,7 +1,7 @@
-package com.nhnacademy.ruleengine.sensor.command;
+package com.nhnacademy.ruleengine.engine.command;
 
-import com.nhnacademy.ruleengine.sensor.dto.SensorContext;
-import com.nhnacademy.ruleengine.sensor.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,17 +20,17 @@ public class DoorSensorCommand implements SensorCommand {
     @Override
     public SensorPayloadDto execute(
             Object value,
-            SensorContext sensorContext
+            SensorContextDto sensorContextDto
     ) {
         return SensorPayloadDto.fromSensor(
-                sensorContext.applicationName(),
-                sensorContext.deviceName(),
-                sensorContext.deviceEui(),
-                sensorContext.location(),
+                sensorContextDto.applicationName(),
+                sensorContextDto.deviceName(),
+                sensorContextDto.deviceEui(),
+                sensorContextDto.location(),
                 SENSOR_TYPE,
                 toDoorState(value),
                 UNIT,
-                sensorContext.time()
+                sensorContextDto.time()
         );
     }
 

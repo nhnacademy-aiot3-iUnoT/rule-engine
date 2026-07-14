@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.mqtt.flow;
+package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.Flow;
 

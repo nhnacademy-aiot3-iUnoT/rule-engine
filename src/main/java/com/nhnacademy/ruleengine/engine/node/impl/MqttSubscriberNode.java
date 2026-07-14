@@ -1,12 +1,12 @@
-package com.nhnacademy.ruleengine.mqtt.node;
+package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
-import com.nhnacademy.ruleengine.mqtt.dto.MqttInboundMessageDto;
-import com.nhnacademy.ruleengine.sensor.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-// 외부 MQTT topic을 구독해 Rule Engine 메시지로 변환한다.
+// MQTT topic을 구독해 설정된 표준 DTO로 변환한다.
 public class MqttSubscriberNode extends ProtocolNode {
     private static final String STANDARD_SENSOR_PAYLOAD = "sensorPayload";
 
@@ -96,15 +96,24 @@ public class MqttSubscriberNode extends ProtocolNode {
         String payloadType = (String) getConfig("payloadType");
 
         if (STANDARD_SENSOR_PAYLOAD.equals(payloadType)) {
-            SensorPayloadDto sensorPayload = objectMapper.convertValue(
-                    payloadMap,
-                    SensorPayloadDto.class
-            );
-            send("out", new Message(Map.of(STANDARD_SENSOR_PAYLOAD, sensorPayload)));
+            try {
+                SensorPayloadDto sensorPayload = objectMapper.convertValue(
+                        payloadMap,
+                        SensorPayloadDto.class
+                );
+                send("out", new Message(Map.of(STANDARD_SENSOR_PAYLOAD, sensorPayload)));
+            } catch (IllegalArgumentException e) {
+                log.warn(
+                        "[{}] 내부 센서 DTO 변환 실패. topic={}, reason={}",
+                        getId(),
+                        payloadMap.get("topic"),
+                        e.getMessage()
+                );
+            }
             return;
         }
 
-        MqttInboundMessageDto mqttInbound = MqttInboundMessageDto.from(payloadMap);
+        ExternalSensorMessageDto mqttInbound = ExternalSensorMessageDto.from(payloadMap);
         send("out", new Message(Map.of("mqttInbound", mqttInbound)));
     }
 
