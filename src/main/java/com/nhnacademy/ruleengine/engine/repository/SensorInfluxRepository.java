@@ -1,10 +1,11 @@
-package com.nhnacademy.ruleengine.sensor.repository;
+package com.nhnacademy.ruleengine.engine.repository;
 
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
+import com.nhnacademy.ruleengine.engine.exception.SensorDataSaveException;
 import com.nhnacademy.ruleengine.global.config.InfluxDbProperties;
-import com.nhnacademy.ruleengine.sensor.exception.SensorDataSaveException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -23,6 +24,7 @@ public class SensorInfluxRepository {
     private final InfluxDbProperties influxDbProperties;
 
     public void save(
+            Long locationId,
             String applicationName,
             String location,
             String sensorType,
@@ -34,6 +36,7 @@ public class SensorInfluxRepository {
     ) {
         // 조회 조건은 tag로, 실제 측정값은 field로 구성한다.
         Point point = Point.measurement(influxDbProperties.measurement())
+                .addTag("location_id", String.valueOf(locationId))
                 .addTag("application_name", applicationName)
                 .addTag("location", location)
                 .addTag("sensor_type", sensorType)

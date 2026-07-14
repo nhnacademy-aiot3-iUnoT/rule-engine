@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.global.bootstrap;
 
 import com.nhnacademy.ruleengine.engine.Flow;
 import com.nhnacademy.ruleengine.engine.FlowEngine;
-import com.nhnacademy.ruleengine.mqtt.flow.FlowFactory;
+import com.nhnacademy.ruleengine.engine.flow.FlowFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
