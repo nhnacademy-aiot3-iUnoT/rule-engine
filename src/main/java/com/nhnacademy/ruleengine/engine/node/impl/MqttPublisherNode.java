@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.mqtt.node;
+package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.Message;

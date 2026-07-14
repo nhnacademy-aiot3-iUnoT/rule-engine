@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.sensor.dto;
+package com.nhnacademy.ruleengine.engine.dto;
 
 // 내부 MQTT로 발행할 표준 센서 데이터 형식이다.
 public record SensorPayloadDto(
@@ -6,8 +6,9 @@ public record SensorPayloadDto(
         String deviceName,
         String deviceEui,
         String location,
+        Long locationId,
         String sensorType,
-        double value,
+        Double value,
         String unit,
         String time
 ) {
@@ -28,9 +29,28 @@ public record SensorPayloadDto(
                 deviceName,
                 deviceEui,
                 location,
+                null,
                 sensorType,
                 value,
                 unit,
                 time);
+    }
+
+    public SensorPayloadDto withLocationId(long resolvedLocationId) {
+        if (resolvedLocationId <= 0) {
+            throw new IllegalArgumentException("locationId는 양수여야 합니다.");
+        }
+
+        return new SensorPayloadDto(
+                applicationName,
+                deviceName,
+                deviceEui,
+                location,
+                resolvedLocationId,
+                sensorType,
+                value,
+                unit,
+                time
+        );
     }
 }
