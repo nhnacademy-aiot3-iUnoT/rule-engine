@@ -22,7 +22,7 @@ rule-engine:
       qos: 1
 
     internal:
-      broker-url: tcp://localhost:1883
+      broker-url: tcp://mosquitto:1883
       client-id-prefix: rule-engine-internal-publisher
       topic-prefix: iot
       qos: 1
