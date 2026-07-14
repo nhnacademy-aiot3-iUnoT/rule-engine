@@ -1,0 +1,87 @@
+services:
+  rule-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: team1-rule-engine
+
+    ports:
+      - "127.0.0.1:10405:10405"
+
+    env_file:
+      - .env
+
+    depends_on:
+      mosquitto:
+        condition: service_started
+      influxdb:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - team1-network
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: team1-mosquitto
+
+    ports:
+      - "1883:1883"
+
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+
+    restart: unless-stopped
+
+    networks:
+      - team1-network
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: team1-influxdb
+
+    ports:
+      - "8086:8086"
+
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+
+    healthcheck:
+      test: ["CMD", "influx", "ping", "--host", "http://localhost:8086"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    restart: unless-stopped
+
+    networks:
+      - team1-network
+
+networks:
+  team1-network:
+    driver: bridge
+
+volumes:
+  mosquitto-data:
+  mosquitto-log:
+  influxdb-data:
+  influxdb-config:
