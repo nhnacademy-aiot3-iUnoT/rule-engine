@@ -26,6 +26,7 @@ public class DatabaseSaveNode extends AbstractNode {
 
     @Override
     protected void onProcess(Message message) {
+        log.info("message: {}", message);
         SensorPayloadDto sensorPayload = message.get("sensorPayload");
 
         if (sensorPayload == null) {
@@ -35,5 +36,7 @@ public class DatabaseSaveNode extends AbstractNode {
 
         influxService.save(sensorPayload);
         log.info("[{}] sensorPayload가 성공적으로 저장되었습니다.", getId());
+
+        send("out", message);
     }
 }
