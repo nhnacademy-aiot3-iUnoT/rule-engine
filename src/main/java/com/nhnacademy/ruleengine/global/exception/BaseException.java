@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.global.exception;
 
-import com.nhnacademy.ruleengine.global.dto.ErrorCode;
 import lombok.Getter;
+import okhttp3.internal.http2.ErrorCode;
 
 @Getter
 public class BaseException extends RuntimeException {
@@ -10,11 +10,6 @@ public class BaseException extends RuntimeException {
 
     public BaseException(ErrorCode errorCode) {
         super(errorCode.getMessage());
-        this.errorCode = errorCode;
-    }
-
-    public BaseException(ErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
         this.errorCode = errorCode;
     }
 }
