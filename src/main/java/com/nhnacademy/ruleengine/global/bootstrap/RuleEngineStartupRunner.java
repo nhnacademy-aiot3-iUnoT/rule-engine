@@ -22,19 +22,26 @@ public class RuleEngineStartupRunner implements CommandLineRunner {
     @Override
     public void run(String... args) {
         for (FlowFactory flowFactory : flowFactories) {
-            start(flowFactory);
+            try {
+                start(flowFactory.create());
+            } catch (Exception e) {
+                log.error(
+                        "[RuleEngine] flow creation failed. factory={}",
+                        flowFactory.getClass().getSimpleName(),
+                        e
+                );
+            }
         }
     }
 
-    private void start(FlowFactory flowFactory) {
+    private void start(Flow flow) {
         try {
-            Flow flow = flowFactory.create();
             flowEngine.registerAndStart(flow);
             log.info("[RuleEngine] flow started. flowId={}", flow.getId());
         } catch (Exception e) {
             log.error(
-                    "[RuleEngine] flow start failed. factory={}",
-                    flowFactory.getClass().getSimpleName(),
+                    "[RuleEngine] flow start failed. flowId={}",
+                    flow.getId(),
                     e
             );
         }

@@ -1,10 +1,9 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
 
-
 import com.nhnacademy.ruleengine.engine.Message;
-import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
+import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
