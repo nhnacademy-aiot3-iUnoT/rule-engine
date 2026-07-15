@@ -15,3 +15,15 @@ Accept: application/json
 ### 특정 위치의 최신 온도·습도·문열림 조회
 GET {{host}}/api/rule-engine/sensor-data/locations/1/latest
 Accept: application/json
+
+### 존재하지 않는 센서데이터 조회
+GET {{host}}/api/rule-engine/sensor-data/types/co2/latest
+Accept: application/json
+
+### 존재하지 않는 최신 온도·습도·문열림 조회
+GET {{host}}/api/rule-engine/sensor-data/locations/5/latest
+Accept: application/json
+
+###
+GET {{host}}/api/rule-engine/sensor-data/locations/-1/latest
+Accept: application/json

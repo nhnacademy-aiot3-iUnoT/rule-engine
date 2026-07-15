@@ -14,7 +14,12 @@ public class LocationCatalog {
             "사무실 밖", 3L
     );
 
+
     public Optional<Long> resolve(String applicationName, String locationName) {
         return Optional.ofNullable(locationIdsByName.get(locationName));
+    }
+
+    public boolean exists(Long locationId) {
+        return locationIdsByName.containsValue(locationId);
     }
 }

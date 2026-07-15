@@ -22,8 +22,7 @@ public class GlobalExceptionHandler {
             IllegalArgumentException exception
     ) {
         log.warn("잘못된 API 요청입니다: {}", exception.getMessage());
-        com.nhnacademy.ruleengine.global.dto.ErrorCode errorCode =
-                com.nhnacademy.ruleengine.global.dto.ErrorCode.INVALID_INPUT;
+        ErrorCode errorCode = ErrorCode.INVALID_INPUT;
         return ResponseEntity.status(errorCode.getStatus())
                 .body(ApiResponse.error(errorCode.getCode(), exception.getMessage()));
     }

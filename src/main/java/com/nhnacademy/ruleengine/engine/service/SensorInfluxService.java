@@ -1,21 +1,32 @@
 package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
-
+import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
+import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
+import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-// 센서 데이터 저장 요청을 Repository로 전달한다.
 public class SensorInfluxService {
 
-    private final SensorInfluxRepository sensorInfluxRepository;
+    private static final Set<String> SUPPORTED_SENSOR_TYPES = Set.of(
+            "temperature",
+            "humidity",
+            "door"
+    );
 
+    private final SensorInfluxRepository sensorInfluxRepository;
+    private final LocationCatalog locationCatalog;
+
+    // 룰엔진 내부에서 전달받은 센서 데이터를 InfluxDB에 저장한다.
     public void save(SensorPayloadDto sensorPayload) {
         sensorInfluxRepository.save(
                 sensorPayload.locationId(),
@@ -30,38 +41,54 @@ public class SensorInfluxService {
         );
     }
 
-
+    // 특정 위치의 센서 종류별 최신 데이터를 조회한다.
     public List<SensorPayloadDto> findLatestByLocationId(Long locationId) {
-        if (locationId == null || locationId <= 0) {
-            throw new IllegalArgumentException("locationId는 양수여야 합니다.");
-        }
+        validateLocationId(locationId);
 
         return sensorInfluxRepository.findLatestByLocationId(locationId);
     }
 
+    // 특정 센서 타입의 위치별 최신 데이터를 조회한다.
     public List<SensorPayloadDto> findLatestBySensorType(String sensorType) {
-        validateSensorType(sensorType);
+        String normalizedSensorType = normalizeAndValidateSensorType(sensorType);
 
         return sensorInfluxRepository.findLatestBySensorType(
-                sensorType.toLowerCase()
+                normalizedSensorType
         );
     }
 
-    private void validateSensorType(String sensorType) {
+    private void validateLocationId(Long locationId) {
+        if (locationId == null || locationId <= 0) {
+            throw new SensorDataException(
+                    ErrorCode.INVALID_LOCATION_ID
+            );
+        }
+
+        if (!locationCatalog.exists(locationId)) {
+            throw new SensorDataException(
+                    ErrorCode.LOCATION_NOT_FOUND
+            );
+        }
+    }
+
+    private String normalizeAndValidateSensorType(String sensorType) {
         if (sensorType == null || sensorType.isBlank()) {
-            throw new IllegalArgumentException(
-                    "sensorType은 필수입니다."
+            throw new SensorDataException(
+                    ErrorCode.INVALID_SENSOR_TYPE
             );
         }
 
-        String normalizedSensorType = sensorType.toLowerCase();
+        String normalizedSensorType = sensorType
+                .trim()
+                .toLowerCase(Locale.ROOT);
 
-        if (!List.of("temperature", "humidity", "door")
-                .contains(normalizedSensorType)) {
-            throw new IllegalArgumentException(
-                    "지원하지 않는 센서 종류입니다: " + sensorType
+        if (!SUPPORTED_SENSOR_TYPES.contains(normalizedSensorType)) {
+            throw new SensorDataException(
+                    ErrorCode.UNSUPPORTED_SENSOR_TYPE
             );
         }
+
+        return normalizedSensorType;
     }
 
     private Instant parseTimestamp(String time) {

@@ -5,8 +5,10 @@ import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxRecord;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataSaveException;
 import com.nhnacademy.ruleengine.global.config.InfluxDbProperties;
+import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -72,19 +74,7 @@ public class SensorInfluxRepository {
                 locationId
         );
 
-        try {
-            return influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDbProperties.org())
-                    .stream()
-                    .flatMap(table -> table.getRecords().stream())
-                    .map(this::toSensorPayloadDto)
-                    .toList();
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "InfluxDB 센서 데이터 조회 실패. locationId=" + locationId,
-                    e
-            );
-        }
+        return executeQuery(fluxQuery);
     }
 
     public List<SensorPayloadDto> findLatestBySensorType(String sensorType) {
@@ -104,14 +94,23 @@ public class SensorInfluxRepository {
                 sensorType
         );
 
-        return influxDBClient.getQueryApi()
-                .query(fluxQuery, influxDbProperties.org())
-                .stream()
-                .flatMap(table -> table.getRecords().stream())
-                .map(this::toSensorPayloadDto)
-                .toList();
+        return executeQuery(fluxQuery);
     }
 
+    private List<SensorPayloadDto> executeQuery(String fluxQuery) {
+        try {
+            return influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDbProperties.org())
+                    .stream()
+                    .flatMap(table -> table.getRecords().stream())
+                    .map(this::toSensorPayloadDto)
+                    .toList();
+        } catch (Exception exception) {
+            throw new SensorDataException(
+                    ErrorCode.SENSOR_DATA_QUERY_FAILED
+            );
+        }
+    }
 
     private SensorPayloadDto toSensorPayloadDto(FluxRecord record) {
         Object rawValue = record.getValue();
