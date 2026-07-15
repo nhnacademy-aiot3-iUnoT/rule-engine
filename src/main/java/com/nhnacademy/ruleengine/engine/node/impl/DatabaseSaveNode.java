@@ -26,7 +26,6 @@ public class DatabaseSaveNode extends AbstractNode {
 
     @Override
     protected void onProcess(Message message) {
-        log.info("message: {}", message);
         SensorPayloadDto sensorPayload = message.get("sensorPayload");
 
         if (sensorPayload == null) {
