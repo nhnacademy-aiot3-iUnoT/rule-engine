@@ -87,6 +87,32 @@ public class SensorInfluxRepository {
         }
     }
 
+    public List<SensorPayloadDto> findLatestBySensorType(String sensorType) {
+        String fluxQuery = """
+            from(bucket: "%s")
+                |> range(start: -30d)
+                |> filter(fn: (r) => r._measurement == "%s")
+                |> filter(fn: (r) => r.sensor_type == "%s")
+                |> filter(fn: (r) => r._field == "value")
+                |> filter(fn: (r) => exists r.location_id)
+                |> group(columns: ["location_id"])
+                |> last()
+                |> sort(columns: ["location_id"])
+            """.formatted(
+                influxDbProperties.bucket(),
+                influxDbProperties.measurement(),
+                sensorType
+        );
+
+        return influxDBClient.getQueryApi()
+                .query(fluxQuery, influxDbProperties.org())
+                .stream()
+                .flatMap(table -> table.getRecords().stream())
+                .map(this::toSensorPayloadDto)
+                .toList();
+    }
+
+
     private SensorPayloadDto toSensorPayloadDto(FluxRecord record) {
         Object rawValue = record.getValue();
 

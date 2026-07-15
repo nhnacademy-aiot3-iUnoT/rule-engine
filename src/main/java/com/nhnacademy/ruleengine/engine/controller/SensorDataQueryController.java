@@ -12,18 +12,27 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/rule-engines")
 @RequiredArgsConstructor
-public class SensorQueryController {
+@RequestMapping("/api/rule-engine/sensor-data")
+public class SensorDataQueryController {
 
     private final SensorInfluxService sensorInfluxService;
 
-    @GetMapping("/latest/{locationId}")
-    public ApiResponse<List<SensorPayloadDto>> findLatest(
+    @GetMapping("/locations/{locationId}/latest")
+    public ApiResponse<List<SensorPayloadDto>> findLatestByLocationId(
             @PathVariable Long locationId
     ) {
         return ApiResponse.success(
                 sensorInfluxService.findLatestByLocationId(locationId)
+        );
+    }
+
+    @GetMapping("/types/{sensorType}/latest")
+    public ApiResponse<List<SensorPayloadDto>> findLatestBySensorType(
+            @PathVariable String sensorType
+    ) {
+        return ApiResponse.success(
+                sensorInfluxService.findLatestBySensorType(sensorType)
         );
     }
 }

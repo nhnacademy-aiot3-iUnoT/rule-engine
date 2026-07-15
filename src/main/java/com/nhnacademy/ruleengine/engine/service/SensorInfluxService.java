@@ -39,6 +39,31 @@ public class SensorInfluxService {
         return sensorInfluxRepository.findLatestByLocationId(locationId);
     }
 
+    public List<SensorPayloadDto> findLatestBySensorType(String sensorType) {
+        validateSensorType(sensorType);
+
+        return sensorInfluxRepository.findLatestBySensorType(
+                sensorType.toLowerCase()
+        );
+    }
+
+    private void validateSensorType(String sensorType) {
+        if (sensorType == null || sensorType.isBlank()) {
+            throw new IllegalArgumentException(
+                    "sensorType은 필수입니다."
+            );
+        }
+
+        String normalizedSensorType = sensorType.toLowerCase();
+
+        if (!List.of("temperature", "humidity", "door")
+                .contains(normalizedSensorType)) {
+            throw new IllegalArgumentException(
+                    "지원하지 않는 센서 종류입니다: " + sensorType
+            );
+        }
+    }
+
     private Instant parseTimestamp(String time) {
         if (time == null || time.isBlank()) {
             return Instant.now();
