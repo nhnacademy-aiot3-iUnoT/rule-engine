@@ -35,5 +35,7 @@ public class DatabaseSaveNode extends AbstractNode {
 
         influxService.save(sensorPayload);
         log.info("[{}] sensorPayload가 성공적으로 저장되었습니다.", getId());
+
+        send("out", message);
     }
 }
