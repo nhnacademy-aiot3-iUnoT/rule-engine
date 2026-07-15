@@ -14,4 +14,4 @@ Accept: application/json
 
 ### 특정 위치의 최신 온도·습도·문열림 조회
 GET {{host}}/api/rule-engine/sensor-data/locations/1/latest
-Accept: application/json현
+Accept: application/json
