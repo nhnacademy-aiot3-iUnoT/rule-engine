@@ -10,6 +10,7 @@ import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
 import com.nhnacademy.ruleengine.engine.node.impl.SensorTransformNode;
+import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,7 @@ public class ExternalSensorFlow implements FlowFactory {
     private final RuleEngineProperties properties;
     private final List<SensorCommand> sensorCommands;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
+    private final LocationCatalog locationCatalog;
 
     @Override
     public Flow create() {
@@ -49,8 +51,8 @@ public class ExternalSensorFlow implements FlowFactory {
                         sensorCommands
                 ))
                 .addNode(new LocationResolveNode(
-                        LOCATION_RESOLVE_NODE_ID
-
+                        LOCATION_RESOLVE_NODE_ID,
+                        locationCatalog
                 ))
                 .addNode(new MqttPublisherNode(
                         PUBLISHER_NODE_ID,

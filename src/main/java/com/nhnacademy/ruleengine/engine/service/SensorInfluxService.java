@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +28,15 @@ public class SensorInfluxService {
                 sensorPayload.deviceEui(),
                 parseTimestamp(sensorPayload.time())
         );
+    }
+
+
+    public List<SensorPayloadDto> findLatestByLocationId(Long locationId) {
+        if (locationId == null || locationId <= 0) {
+            throw new IllegalArgumentException("locationId는 양수여야 합니다.");
+        }
+
+        return sensorInfluxRepository.findLatestByLocationId(locationId);
     }
 
     private Instant parseTimestamp(String time) {

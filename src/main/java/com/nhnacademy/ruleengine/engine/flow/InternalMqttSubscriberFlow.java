@@ -13,14 +13,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-// 내부 MQTT iot/# 토픽을 구독해 표준 센서 DTO로 전달하는 Flow
+// 내부 MQTT iot/# 토픽을 구독하고 검증한 센서 데이터를 InfluxDB에 저장하는 Flow
 public class InternalMqttSubscriberFlow implements FlowFactory {
 
     public static final String FLOW_ID = "internal-mqtt-subscriber-flow";
 
     static final String SUBSCRIBER_NODE_ID = "internal-mqtt-subscriber";
     static final String VALIDATION_NODE_ID = "sensor-payload-validation";
-    static final String DATABASE_SAVE_NODE_ID = "test-database-save";
+    static final String DATABASE_SAVE_NODE_ID = "sensor-database-save";
 
     private static final String ALL_TOPICS = "#";
     private static final String INPUT_PORT = "in";

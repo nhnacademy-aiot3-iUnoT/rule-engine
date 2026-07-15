@@ -26,3 +26,5 @@ rule-engine:
       client-id-prefix: rule-engine-internal-publisher
       topic-prefix: iot
       qos: 1
+server:
+  port: 10405
