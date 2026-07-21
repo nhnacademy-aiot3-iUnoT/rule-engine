@@ -50,7 +50,7 @@ public class SensorMakeNode extends AbstractNode {
         organizationId = requiredLong(config, "organizationId");
         locationId = requiredLong(config, "locationId");
         positionId = requiredLong(config, "positionId");
-        deviceEui = requiredText(config, "devEui");
+        deviceEui = requiredText(config);
 
         validateConfig();
         addOutputPort(OUTPUT_PORT);
@@ -200,10 +200,10 @@ public class SensorMakeNode extends AbstractNode {
         }
     }
 
-    private static String requiredText(Map<String, Object> config, String key) {
-        String value = requiredValue(config, key).toString().trim();
+    private static String requiredText(Map<String, Object> config) {
+        String value = requiredValue(config, "devEui").toString().trim();
         if (value.isEmpty()) {
-            throw new IllegalArgumentException(key + "는 비어 있을 수 없습니다.");
+            throw new IllegalArgumentException("devEui" + "는 비어 있을 수 없습니다.");
         }
         return value;
     }
