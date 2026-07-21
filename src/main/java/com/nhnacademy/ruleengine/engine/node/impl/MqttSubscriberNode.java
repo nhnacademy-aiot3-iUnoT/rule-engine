@@ -4,11 +4,18 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.MqttTopic;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.nio.charset.StandardCharsets;
@@ -16,51 +23,58 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-// MQTT topic을 구독해 설정된 표준 DTO로 변환한다.
+// MQTT topic을 구독하고, 수신한 payload를 Rule Engine 메시지로 변환한다.
 public class MqttSubscriberNode extends ProtocolNode {
-    private static final String STANDARD_SENSOR_PAYLOAD = "sensorPayload";
+    private static final String OUTPUT_PORT = "out";
+
+    private static final String BROKER_URL_CONFIG = "brokerUrl";
+    private static final String CLIENT_ID_CONFIG = "clientId";
+    private static final String TOPIC_CONFIG = "topic";
+    private static final String QOS_CONFIG = "qos";
+    private static final String PAYLOAD_TYPE_CONFIG = "payloadType";
+    private static final String STANDARD_SENSOR_PAYLOAD_TYPE = "sensorPayload";
+
+    private static final int DEFAULT_QOS = 1;
+
+    private final ObjectMapper objectMapper;
 
     private MqttClient client;
-    private final ObjectMapper objectMapper;
-    private String targetTopic;
+    private String subscriptionTopic;
+    private int subscriptionQos;
 
     public MqttSubscriberNode(String id, Map<String, Object> config) {
         super(id, config);
         this.objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        addOutputPort("out");
+        addOutputPort(OUTPUT_PORT);
     }
 
     @Override
     protected void connect() throws Exception {
-        // 설정된 broker와 topic으로 MQTT 구독 연결을 생성한다.
-        String brokerUrl = (String) getConfig("brokerUrl");
-        String clientId = (String) getConfig("clientId");
-        this.targetTopic = (String) getConfig("topic");
-
-        Object objectQos = getConfig("qos");
-        int qos = resolveQos(objectQos);
+        String brokerUrl = (String) getConfig(BROKER_URL_CONFIG);
+        String clientId = (String) getConfig(CLIENT_ID_CONFIG);
+        subscriptionTopic = (String) getConfig(TOPIC_CONFIG);
+        subscriptionQos = resolveQos(getConfig(QOS_CONFIG));
 
         closeClient();
         client = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
+        client.setCallback(createCallback());
+        client.connect(createConnectOptions());
+        subscribe();
 
-        client.setCallback(new MqttCallbackExtended() {
+        log.info("[{}] MQTT 구독 성공: topic={}, qos={}", getId(), subscriptionTopic, subscriptionQos);
+    }
+
+    private MqttCallbackExtended createCallback() {
+        return new MqttCallbackExtended() {
             @Override
-            public void messageArrived(String receivedTopic, MqttMessage msg) {
-                // 구독 조건에 맞는 메시지만 DTO로 변환해 출력한다.
-                if (receivedTopic == null || !MqttTopic.isMatched(targetTopic, receivedTopic)) {
-                    return;
-                }
-
-                Map<String, Object> payloadMap = processPayload(receivedTopic, msg.getPayload());
-                sendPayload(payloadMap);
-
-                log.info("[{}] 메시지 수집 완료", getId());
+            public void messageArrived(String receivedTopic, MqttMessage message) {
+                handleIncomingMessage(receivedTopic, message);
             }
 
             @Override
             public void connectionLost(Throwable cause) {
-                log.warn("[{}] MQTT 연결 끊김: {}", getId(), cause.getMessage());
+                log.warn("[{}] MQTT 연결 끊김", getId(), cause);
             }
 
             @Override
@@ -70,72 +84,90 @@ public class MqttSubscriberNode extends ProtocolNode {
 
             @Override
             public void connectComplete(boolean reconnect, String serverURI) {
-                // 자동 재연결 후 끊어진 topic 구독을 복구한다.
                 if (reconnect) {
-                    try {
-                        client.subscribe(targetTopic, qos);
-                        log.info("[{}] MQTT 재연결 후 구독 복구: {}", getId(), targetTopic);
-                    } catch (MqttException e) {
-                        log.error("[{}] MQTT 재구독 실패: {}", getId(), e.getMessage());
-                    }
+                    restoreSubscription();
                 }
             }
-        });
+        };
+    }
 
+    private MqttConnectOptions createConnectOptions() {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
-
-        client.connect(options);
-        client.subscribe(targetTopic, qos);
-
-        log.info("[{}] 구독 성공: {}", getId(), targetTopic);
+        return options;
     }
 
-    private void sendPayload(Map<String, Object> payloadMap) {
-        String payloadType = (String) getConfig("payloadType");
-
-        if (STANDARD_SENSOR_PAYLOAD.equals(payloadType)) {
-            try {
-                SensorPayloadDto sensorPayload = objectMapper.convertValue(
-                        payloadMap,
-                        SensorPayloadDto.class
-                );
-                send("out", new Message(Map.of(STANDARD_SENSOR_PAYLOAD, sensorPayload)));
-            } catch (IllegalArgumentException e) {
-                log.warn(
-                        "[{}] 내부 센서 DTO 변환 실패. topic={}, reason={}",
-                        getId(),
-                        payloadMap.get("topic"),
-                        e.getMessage()
-                );
-            }
+    private void handleIncomingMessage(String receivedTopic, MqttMessage message) {
+        if (!isSubscribedTopic(receivedTopic)) {
             return;
         }
 
-        ExternalSensorMessageDto mqttInbound = ExternalSensorMessageDto.from(payloadMap);
-        send("out", new Message(Map.of("mqttInbound", mqttInbound)));
+        Map<String, Object> receivedPayload = parsePayload(receivedTopic, message.getPayload());
+        sendReceivedPayload(receivedPayload);
+        log.info("[{}] MQTT 메시지 수신 완료: topic={}", getId(), receivedTopic);
     }
 
-    private int resolveQos(Object objectQos) {
-        // 숫자 또는 문자열 QoS를 정수로 변환하고 범위를 보정한다.
-        int qos = 1;
-        if (objectQos instanceof Number number) {
+    private boolean isSubscribedTopic(String receivedTopic) {
+        return receivedTopic != null && MqttTopic.isMatched(subscriptionTopic, receivedTopic);
+    }
+
+    private void sendReceivedPayload(Map<String, Object> receivedPayload) {
+
+        // 내부 MQTT 구독시
+        if (receivesStandardSensorPayload()) {
+            sendStandardSensorPayload(receivedPayload);
+            return;
+        }
+
+        // 외부 MQTT 구독시
+        ExternalSensorMessageDto externalSensorMessage = ExternalSensorMessageDto.from(receivedPayload);
+        send(OUTPUT_PORT, new Message(Map.of(
+                MessageFields.EXTERNAL_SENSOR_MESSAGE,
+                externalSensorMessage
+        )));
+    }
+
+    // 내부 MQTT 타입의 데이터인지 확인
+    private boolean receivesStandardSensorPayload() {
+        return STANDARD_SENSOR_PAYLOAD_TYPE.equals(getConfig(PAYLOAD_TYPE_CONFIG));
+    }
+
+    //내부 MQTT 수신 로직
+    private void sendStandardSensorPayload(Map<String, Object> receivedPayload) {
+        try {
+            SensorPayloadDto sensorPayload = objectMapper.convertValue(
+                    receivedPayload,
+                    SensorPayloadDto.class
+            );
+            send(OUTPUT_PORT, new Message(Map.of(MessageFields.SENSOR_PAYLOAD, sensorPayload)));
+        } catch (IllegalArgumentException e) {
+            log.warn(
+                    "[{}] 내부 센서 DTO 변환 실패. topic={}, reason={}",
+                    getId(),
+                    receivedPayload.get(MessageFields.TOPIC),
+                    e.getMessage()
+            );
+        }
+    }
+
+    private int resolveQos(Object configuredQos) {
+        int qos = DEFAULT_QOS;
+        if (configuredQos instanceof Number number) {
             qos = number.intValue();
-        } else if (objectQos instanceof String text && !text.isBlank()) {
+        } else if (configuredQos instanceof String text && !text.isBlank()) {
             qos = Integer.parseInt(text);
         }
 
         if (qos < 0 || qos > 2) {
-            log.warn("[{}] 잘못된 MQTT QoS 값입니다. qos={}, default=1", getId(), qos);
-            return 1;
+            log.warn("[{}] 잘못된 MQTT QoS 값입니다. qos={}, default={}", getId(), qos, DEFAULT_QOS);
+            return DEFAULT_QOS;
         }
 
         return qos;
     }
 
-    protected Map<String, Object> processPayload(String topic, byte[] payloadBytes) {
-        // JSON 파싱 실패 시 원문을 보존해 메시지 유실을 막는다.
+    protected Map<String, Object> parsePayload(String topic, byte[] payloadBytes) {
         Map<String, Object> payloadMap;
         try {
             payloadMap = objectMapper.readValue(payloadBytes, new TypeReference<>() {
@@ -146,10 +178,23 @@ public class MqttSubscriberNode extends ProtocolNode {
             log.warn("[{}] 파싱 실패, rawPayload 생성", getId());
         }
 
-        payloadMap.put("topic", topic);
-        payloadMap.put("mqttTimestamp", System.currentTimeMillis());
+        payloadMap.put(MessageFields.TOPIC, topic);
+        payloadMap.put(MessageFields.MQTT_RECEIVED_AT, System.currentTimeMillis());
 
         return payloadMap;
+    }
+
+    private void subscribe() throws MqttException {
+        client.subscribe(subscriptionTopic, subscriptionQos);
+    }
+
+    private void restoreSubscription() {
+        try {
+            subscribe();
+            log.info("[{}] MQTT 재연결 후 구독 복구: {}", getId(), subscriptionTopic);
+        } catch (MqttException e) {
+            log.error("[{}] MQTT 재구독 실패: {}", getId(), e.getMessage());
+        }
     }
 
     @Override
@@ -169,6 +214,8 @@ public class MqttSubscriberNode extends ProtocolNode {
             client.close();
         } catch (MqttException e) {
             log.error("[{}] MQTT 종료 중 오류: {}", getId(), e.getMessage());
+        } finally {
+            client = null;
         }
     }
 

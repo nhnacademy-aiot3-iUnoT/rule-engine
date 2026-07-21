@@ -12,7 +12,7 @@ public record SensorContextDto(
 ) {
 
     public static SensorContextDto from(
-            ExternalSensorMessageDto mqttInbound,
+            ExternalSensorMessageDto externalSensorMessage,
             ResolvedLocation resolvedLocation
     ) {
         if (resolvedLocation == null) {
@@ -21,10 +21,10 @@ public record SensorContextDto(
 
         return new SensorContextDto(
                 resolvedLocation.organizationId(),
-                valueOrUnknown(mqttInbound.devEui()),
+                valueOrUnknown(externalSensorMessage.devEui()),
                 resolvedLocation.locationId(),
                 resolvedLocation.positionId(),
-                valueOrUnknown(mqttInbound.time())
+                valueOrUnknown(externalSensorMessage.time())
         );
     }
 

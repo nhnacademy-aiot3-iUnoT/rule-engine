@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
 import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
@@ -22,7 +23,6 @@ public class SensorTransformNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
-    private static final String MQTT_INBOUND_KEY = "mqttInbound";
 
     private final Map<String, SensorCommand> sensorCommands;
     private final LocationCatalog locationCatalog;
@@ -59,19 +59,19 @@ public class SensorTransformNode extends AbstractNode {
 
     @Override
     public void onProcess(Message message) {
-        ExternalSensorMessageDto mqttInbound = message.get(MQTT_INBOUND_KEY);
+        ExternalSensorMessageDto externalSensorMessage = message.get(MessageFields.EXTERNAL_SENSOR_MESSAGE);
 
-        if (mqttInbound == null) {
+        if (externalSensorMessage == null) {
             // 변환할 MQTT DTO가 없으면 메시지를 건너뛴다.
             log.warn(
-                    "[{}] mqttInbound DTO가 없어 메시지를 건너뜁니다: {}",
+                    "[{}] 외부 센서 메시지가 없어 변환을 건너뜁니다: {}",
                     getId(),
                     message
             );
             return;
         }
 
-        Map<String, Object> measurements = mqttInbound.measurements();
+        Map<String, Object> measurements = externalSensorMessage.measurements();
 
         if (measurements == null || measurements.isEmpty()) {
             // 측정값이 없는 메시지는 다음 노드로 전달하지 않는다.
@@ -83,9 +83,9 @@ public class SensorTransformNode extends AbstractNode {
         }
 
         ResolvedLocation resolvedLocation = locationCatalog.resolve(
-                        mqttInbound.applicationName(),
-                        mqttInbound.location(),
-                        mqttInbound.point()
+                        externalSensorMessage.applicationName(),
+                        externalSensorMessage.location(),
+                        externalSensorMessage.point()
                 )
                 .orElse(null);
 
@@ -93,15 +93,15 @@ public class SensorTransformNode extends AbstractNode {
             log.warn(
                     "[{}] 등록되지 않은 센서 위치입니다. applicationName={}, location={}, point={}",
                     getId(),
-                    mqttInbound.applicationName(),
-                    mqttInbound.location(),
-                    mqttInbound.point()
+                    externalSensorMessage.applicationName(),
+                    externalSensorMessage.location(),
+                    externalSensorMessage.point()
             );
             return;
         }
 
         SensorContextDto sensorContextDto = SensorContextDto.from(
-                mqttInbound,
+                externalSensorMessage,
                 resolvedLocation
         );
 
@@ -168,8 +168,8 @@ public class SensorTransformNode extends AbstractNode {
 
         send(OUTPUT_PORT, new Message(
                 Map.of(
-                        "topic", topic,
-                        "sensorPayload", sensorPayload
+                        MessageFields.TOPIC, topic,
+                        MessageFields.SENSOR_PAYLOAD, sensorPayload
                 )
         ));
     }
