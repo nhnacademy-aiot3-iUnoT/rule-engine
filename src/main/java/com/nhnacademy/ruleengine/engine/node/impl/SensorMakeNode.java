@@ -26,10 +26,9 @@ public class SensorMakeNode extends AbstractNode {
     private final double humidityMax;
     private final double doorOpenProbability;
     private final long measurementInterval;
-    private final String applicationName;
-    private final String location;
+    private final Long organizationId;
     private final Long locationId;
-    private final String deviceName;
+    private final Long positionId;
     private final String deviceEui;
 
     private ScheduledExecutorService scheduler;
@@ -48,10 +47,9 @@ public class SensorMakeNode extends AbstractNode {
         humidityMax = requiredDouble(config, "humidityMax");
         doorOpenProbability = requiredDouble(config, "doorOpenProbability");
         measurementInterval = requiredLong(config, "measurementInterval");
-        applicationName = requiredText(config, "applicationName");
-        location = requiredText(config, "location");
+        organizationId = requiredLong(config, "organizationId");
         locationId = requiredLong(config, "locationId");
-        deviceName = requiredText(config, "deviceName");
+        positionId = requiredLong(config, "positionId");
         deviceEui = requiredText(config, "devEui");
 
         validateConfig();
@@ -112,11 +110,10 @@ public class SensorMakeNode extends AbstractNode {
 
     private void publish(String sensorType, double value, String unit, String measuredAt) {
         SensorPayloadDto sensorPayload = new SensorPayloadDto(
-                applicationName,
-                deviceName,
+                organizationId,
                 deviceEui,
-                location,
                 locationId,
+                positionId,
                 sensorType,
                 value,
                 unit,
@@ -124,10 +121,11 @@ public class SensorMakeNode extends AbstractNode {
         );
 
         String topic = String.format(
-                "%s/%s/%s/%s",
-                sanitize(applicationName),
-                sanitize(location),
-                sanitize(deviceName),
+                "%d/%d/%d/%s/%s",
+                organizationId,
+                locationId,
+                positionId,
+                sanitize(deviceEui),
                 sanitize(sensorType)
         );
 
@@ -169,8 +167,14 @@ public class SensorMakeNode extends AbstractNode {
         if (measurementInterval <= 0) {
             throw new IllegalArgumentException("measurementInterval은 1초 이상이어야 합니다.");
         }
-        if (locationId <= 0) {
-            throw new IllegalArgumentException("locationId는 양수여야 합니다.");
+        requirePositive(organizationId, "organizationId");
+        requirePositive(locationId, "locationId");
+        requirePositive(positionId, "positionId");
+    }
+
+    private void requirePositive(Long value, String fieldName) {
+        if (value == null || value <= 0) {
+            throw new IllegalArgumentException(fieldName + "는 양수여야 합니다.");
         }
     }
 
