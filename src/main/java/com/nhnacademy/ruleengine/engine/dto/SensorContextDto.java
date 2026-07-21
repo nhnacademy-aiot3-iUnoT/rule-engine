@@ -1,23 +1,29 @@
 package com.nhnacademy.ruleengine.engine.dto;
 
+import com.nhnacademy.ruleengine.engine.location.LocationCatalog.ResolvedLocation;
+
 // 센서별 변환 로직에서 공통으로 사용하는 장치 정보를 담는다.
 public record SensorContextDto(
-        String applicationName,
-        String deviceName,
+        Long organizationId,
         String deviceEui,
-        String location,
+        Long locationId,
+        Long positionId,
         String time
 ) {
 
     public static SensorContextDto from(
-            ExternalSensorMessageDto mqttInbound
+            ExternalSensorMessageDto mqttInbound,
+            ResolvedLocation resolvedLocation
     ) {
-        // 누락된 장치 정보는 일관되게 unknown으로 보정한다.
+        if (resolvedLocation == null) {
+            throw new IllegalArgumentException("변환된 위치 ID는 필수입니다.");
+        }
+
         return new SensorContextDto(
-                valueOrUnknown(mqttInbound.applicationName()),
-                valueOrUnknown(mqttInbound.deviceName()),
+                resolvedLocation.organizationId(),
                 valueOrUnknown(mqttInbound.devEui()),
-                valueOrUnknown(mqttInbound.location()),
+                resolvedLocation.locationId(),
+                resolvedLocation.positionId(),
                 valueOrUnknown(mqttInbound.time())
         );
     }

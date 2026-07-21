@@ -29,14 +29,13 @@ public class SensorInfluxService {
     // 룰엔진 내부에서 전달받은 센서 데이터를 InfluxDB에 저장한다.
     public void save(SensorPayloadDto sensorPayload) {
         sensorInfluxRepository.save(
+                sensorPayload.organizationId(),
+                sensorPayload.deviceEui(),
                 sensorPayload.locationId(),
-                sensorPayload.applicationName(),
-                sensorPayload.location(),
+                sensorPayload.positionId(),
                 sensorPayload.sensorType(),
                 sensorPayload.value(),
                 sensorPayload.unit(),
-                sensorPayload.deviceName(),
-                sensorPayload.deviceEui(),
                 parseTimestamp(sensorPayload.time())
         );
     }

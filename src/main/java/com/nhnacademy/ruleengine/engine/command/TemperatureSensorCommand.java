@@ -22,10 +22,10 @@ public class TemperatureSensorCommand implements SensorCommand {
             SensorContextDto sensorContextDto
     ) {
         return SensorPayloadDto.fromSensor(
-                sensorContextDto.applicationName(),
-                sensorContextDto.deviceName(),
+                sensorContextDto.organizationId(),
                 sensorContextDto.deviceEui(),
-                sensorContextDto.location(),
+                sensorContextDto.locationId(),
+                sensorContextDto.positionId(),
                 getSensorType(),
                 toDouble(value),
                 UNIT,

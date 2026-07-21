@@ -5,6 +5,8 @@ import com.nhnacademy.ruleengine.engine.command.SensorCommand;
 import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
+import com.nhnacademy.ruleengine.engine.location.LocationCatalog.ResolvedLocation;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,12 +25,18 @@ public class SensorTransformNode extends AbstractNode {
     private static final String MQTT_INBOUND_KEY = "mqttInbound";
 
     private final Map<String, SensorCommand> sensorCommands;
+    private final LocationCatalog locationCatalog;
 
     public SensorTransformNode(
             String id,
-            List<SensorCommand> sensorCommands
+            List<SensorCommand> sensorCommands,
+            LocationCatalog locationCatalog
     ) {
         super(id);
+        this.locationCatalog = Objects.requireNonNull(
+                locationCatalog,
+                "locationCatalog은 null일 수 없습니다."
+        );
 
         addInputPort(INPUT_PORT);
         addOutputPort(OUTPUT_PORT);
@@ -74,7 +82,28 @@ public class SensorTransformNode extends AbstractNode {
             return;
         }
 
-        SensorContextDto sensorContextDto = SensorContextDto.from(mqttInbound);
+        ResolvedLocation resolvedLocation = locationCatalog.resolve(
+                        mqttInbound.applicationName(),
+                        mqttInbound.location(),
+                        mqttInbound.point()
+                )
+                .orElse(null);
+
+        if (resolvedLocation == null) {
+            log.warn(
+                    "[{}] 등록되지 않은 센서 위치입니다. applicationName={}, location={}, point={}",
+                    getId(),
+                    mqttInbound.applicationName(),
+                    mqttInbound.location(),
+                    mqttInbound.point()
+            );
+            return;
+        }
+
+        SensorContextDto sensorContextDto = SensorContextDto.from(
+                mqttInbound,
+                resolvedLocation
+        );
 
         measurements.forEach(
                 (sensorType, value) ->
@@ -130,10 +159,10 @@ public class SensorTransformNode extends AbstractNode {
             SensorPayloadDto sensorPayload
     ) {
         String topic = String.format(
-                "%s/%s/%s/%s",
-                sanitize(sensorPayload.applicationName()),
-                sanitize(sensorPayload.location()),
-                sanitize(sensorPayload.deviceName()),
+                "%d/%d/%s/%s",
+                sensorPayload.organizationId(),
+                sensorPayload.locationId(),
+                sanitize(sensorPayload.deviceEui()),
                 sanitize(sensorPayload.sensorType())
         );
 

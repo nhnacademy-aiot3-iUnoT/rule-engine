@@ -25,22 +25,20 @@ public class SensorInfluxRepository {
     private final InfluxDbProperties influxDbProperties;
 
     public void save(
+            Long organizationId,
+            String deviceEui,
             Long locationId,
-            String applicationName,
-            String location,
+            Long positionId,
             String sensorType,
             double value,
             String unit,
-            String deviceName,
-            String deviceEui,
             Instant timestamp
     ) {
         Point point = Point.measurement(influxDbProperties.measurement())
+                .addTag("organization_id", String.valueOf(organizationId))
                 .addTag("location_id", String.valueOf(locationId))
-                .addTag("application_name", applicationName)
-                .addTag("location", location)
+                .addTag("position_id", String.valueOf(positionId))
                 .addTag("sensor_type", sensorType)
-                .addTag("device_name", deviceName)
                 .addTag("device_eui", deviceEui)
                 .addTag("unit", unit)
                 .addField("value", value)
@@ -122,11 +120,10 @@ public class SensorInfluxRepository {
         }
 
         return new SensorPayloadDto(
-                getStringValue(record, "application_name"),
-                getStringValue(record, "device_name"),
+                parseId(record, "organization_id"),
                 getStringValue(record, "device_eui"),
-                getStringValue(record, "location"),
-                parseLocationId(record),
+                parseId(record, "location_id"),
+                parseId(record, "position_id"),
                 getStringValue(record, "sensor_type"),
                 numberValue.doubleValue(),
                 getStringValue(record, "unit"),
@@ -141,13 +138,13 @@ public class SensorInfluxRepository {
         return value != null ? String.valueOf(value) : null;
     }
 
-    private Long parseLocationId(FluxRecord record) {
-        String locationId = getStringValue(record, "location_id");
+    private Long parseId(FluxRecord record, String key) {
+        String id = getStringValue(record, key);
 
-        if (locationId == null || locationId.isBlank()) {
+        if (id == null || id.isBlank()) {
             return null;
         }
 
-        return Long.parseLong(locationId);
+        return Long.parseLong(id);
     }
 }
