@@ -1,23 +1,18 @@
 services:
   rule-engine-1:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: team1-rule-engine-1
-
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
     ports:
-      - "127.0.0.1:10405:10405"
-
-    env_file:
-      - .env
-
+      - "127.0.0.1:10406:10406"
+    restart: unless-stopped
     depends_on:
       mosquitto:
         condition: service_started
       influxdb:
         condition: service_healthy
-
-    restart: unless-stopped
 
     logging:
       driver: json-file
@@ -33,7 +28,7 @@ services:
     container_name: team1-mosquitto
 
     ports:
-      - "10406:1883"
+      - "10408:1883"
 
     volumes:
       - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
@@ -50,7 +45,7 @@ services:
     container_name: team1-influxdb
 
     ports:
-      - "8086:8086"
+      - "127.0.0.1:10409:8086"
 
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
@@ -78,7 +73,7 @@ services:
 
 networks:
   team1-network:
-    external: false
+    external: true
 
 volumes:
   mosquitto-data:
