@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -79,8 +80,8 @@ public class MqttPublisherNode extends ProtocolNode {
 
             int qos = resolveQos(getConfig("qos"));
 
-            Object outboundPayload = message.hasEntry("sensorPayload")
-                    ? message.get("sensorPayload")
+            Object outboundPayload = message.hasEntry(MessageFields.SENSOR_PAYLOAD)
+                    ? message.get(MessageFields.SENSOR_PAYLOAD)
                     : message.getPayload();
             byte[] payload = objectMapper.writeValueAsBytes(outboundPayload);
 
@@ -120,7 +121,7 @@ public class MqttPublisherNode extends ProtocolNode {
 
     private String resolveTopic(Message message) {
         // 메시지 topic에 설정된 prefix가 없으면 앞에 추가한다.
-        String topic = message.get("topic");
+        String topic = message.get(MessageFields.TOPIC);
         String topicPrefix = (String) getConfig("topicPrefix");
 
         if (topic == null || topic.isBlank()) {

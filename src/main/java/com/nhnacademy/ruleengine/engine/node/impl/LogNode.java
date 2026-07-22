@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
@@ -26,10 +27,10 @@ public class LogNode extends AbstractNode {
     protected void onProcess(Message message) {
         // MQTT DTO가 있으면 일반 payload 대신 DTO 내용을 기록한다.
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss");
-        ExternalSensorMessageDto mqttInbound = message.get("mqttInbound");
+        ExternalSensorMessageDto externalSensorMessage = message.get(MessageFields.EXTERNAL_SENSOR_MESSAGE);
 
-        if (mqttInbound != null) {
-            log.info("[{}][{}] {}", LocalDateTime.now().format(dtf), getId(), mqttInbound);
+        if (externalSensorMessage != null) {
+            log.info("[{}][{}] {}", LocalDateTime.now().format(dtf), getId(), externalSensorMessage);
             send("out", message);
             return;
         }

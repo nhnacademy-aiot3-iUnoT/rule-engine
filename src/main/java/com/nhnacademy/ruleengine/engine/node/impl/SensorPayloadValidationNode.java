@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.validation.SensorPayloadValidator;
@@ -11,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 public class SensorPayloadValidationNode extends AbstractNode {
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
-    private static final String SENSOR_PAYLOAD_KEY = "sensorPayload";
 
     public SensorPayloadValidationNode(String id) {
         super(id);
@@ -21,7 +21,7 @@ public class SensorPayloadValidationNode extends AbstractNode {
 
     @Override
     protected void onProcess(Message message) {
-        SensorPayloadDto sensorPayload = message.get(SENSOR_PAYLOAD_KEY);
+        SensorPayloadDto sensorPayload = message.get(MessageFields.SENSOR_PAYLOAD);
         if (sensorPayload == null) {
             log.warn("[{}] sensorPayload가 없어 검증을 건너뜁니다.", getId());
             return;

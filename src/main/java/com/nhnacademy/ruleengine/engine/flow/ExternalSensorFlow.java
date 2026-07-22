@@ -2,9 +2,8 @@ package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.Flow;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
-import com.nhnacademy.ruleengine.engine.node.impl.LocationResolveNode;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;
 import com.nhnacademy.ruleengine.engine.node.impl.SensorTransformNode;
@@ -26,15 +25,13 @@ public class ExternalSensorFlow implements FlowFactory {
     static final String SUBSCRIBER_NODE_ID = "external-mqtt-in";
     static final String TRANSFORM_NODE_ID = "sensor-filter";
     static final String PUBLISHER_NODE_ID = "internal-mqtt-out";
-    static final String LOCATION_RESOLVE_NODE_ID = "location-resolve";
-
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
     private final RuleEngineProperties properties;
     private final List<SensorCommand> sensorCommands;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
-    private final LocationCatalog locationCatalog;
+    private final SectionCatalog sectionCatalog;
 
     @Override
     public Flow create() {
@@ -48,11 +45,8 @@ public class ExternalSensorFlow implements FlowFactory {
                 ))
                 .addNode(new SensorTransformNode(
                         TRANSFORM_NODE_ID,
-                        sensorCommands
-                ))
-                .addNode(new LocationResolveNode(
-                        LOCATION_RESOLVE_NODE_ID,
-                        locationCatalog
+                        sensorCommands,
+                        sectionCatalog
                 ))
                 .addNode(new MqttPublisherNode(
                         PUBLISHER_NODE_ID,
@@ -66,12 +60,6 @@ public class ExternalSensorFlow implements FlowFactory {
                 )
                 .connect(
                         TRANSFORM_NODE_ID,
-                        OUTPUT_PORT,
-                        LOCATION_RESOLVE_NODE_ID,
-                        INPUT_PORT
-                )
-                .connect(
-                        LOCATION_RESOLVE_NODE_ID,
                         OUTPUT_PORT,
                         PUBLISHER_NODE_ID,
                         INPUT_PORT

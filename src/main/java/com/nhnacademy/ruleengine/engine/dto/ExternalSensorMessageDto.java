@@ -1,5 +1,7 @@
 package com.nhnacademy.ruleengine.engine.dto;
 
+import com.nhnacademy.ruleengine.engine.MessageFields;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,9 +12,9 @@ public record ExternalSensorMessageDto(
         Long receivedAt,
         String time,
         String applicationName,
-        String deviceName,
         String devEui,
         String location,
+        String point,
         Map<String, Object> measurements
 ) {
 
@@ -22,13 +24,13 @@ public record ExternalSensorMessageDto(
         Map<String, Object> tags = mapValue(deviceInfo.get("tags"));
 
         return new ExternalSensorMessageDto(
-                stringValue(payload.get("topic")),
-                longValue(payload.get("mqttTimestamp")),
+                stringValue(payload.get(MessageFields.TOPIC)),
+                longValue(payload.get(MessageFields.MQTT_RECEIVED_AT)),
                 stringValue(payload.get("time")),
                 stringValue(deviceInfo.get("applicationName")),
-                stringValue(deviceInfo.get("deviceName")),
                 stringValue(deviceInfo.get("devEui")),
                 stringValue(tags.get("location")),
+                stringValue(tags.get("point")),
                 mapValue(payload.get("object"))
         );
     }

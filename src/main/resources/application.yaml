@@ -2,8 +2,6 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-  profiles:
-    active: influx
 
   application:
     name: rule-engine
@@ -11,6 +9,7 @@ spring:
 logging:
   level:
     com.nhnacademy.ruleengine: DEBUG
+    com.influx-db: INFO
 
 
 rule-engine:
@@ -26,5 +25,22 @@ rule-engine:
       client-id-prefix: rule-engine-internal-publisher
       topic-prefix: iot
       qos: 1
+
+influx-db:
+  url: ${INFLUX_URL}
+  token: ${INFLUX_TOKEN}
+  org: ${INFLUX_ORG}
+  bucket: ${INFLUX_BUCKET}
+  measurement: ${INFLUX_MEASUREMENT}
+
 server:
-  port: 10405
+  port: 10406
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, service-registry
+  endpoint:
+    health:
+      show-details: never
