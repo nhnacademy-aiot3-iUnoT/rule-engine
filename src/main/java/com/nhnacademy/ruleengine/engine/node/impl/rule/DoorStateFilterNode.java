@@ -36,30 +36,63 @@ public class DoorStateFilterNode extends AbstractNode {
         }
 
         String sensorType = sensorPayload.sensorType();
+        Long organizationId = sensorPayload.organizationId();
+        Long storageId = sensorPayload.storageId();
+        Long sectionId = sensorPayload.sectionId();
 
         if(!DOOR.equals(sensorType)){
             return;
         }
 
-        Long storageId = sensorPayload.storageId();
+        if (organizationId == null || organizationId <= 0) {
+            log.info("[{}] organizationId가 없어 문 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
+                    getId(),
+                    organizationId,
+                    storageId,
+                    sectionId,
+                    sensorType
+            );
+            return;
+        }
 
         if (storageId == null || storageId <= 0) {
-            log.info("[{}] storageId가 없어 문 검사를 건너뜁니다. sensorType={}",
+            log.info("[{}] storageId가 없어 문 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
                     getId(),
+                    organizationId,
+                    storageId,
+                    sectionId,
+                    sensorType
+            );
+            return;
+        }
+
+        if (sectionId == null || sectionId <= 0) {
+            log.info("[{}] sectionId가 없어 문 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
+                    getId(),
+                    organizationId,
+                    storageId,
+                    sectionId,
                     sensorType
             );
             return;
         }
 
         if (sensorPayload.deviceEui() == null || sensorPayload.deviceEui().isBlank()) {
-            log.info("[{}] deviceEui가 없어 문 상태 검사를 건너뜁니다. sensorType={}",
-                    getId(), sensorType);
+            log.info("[{}] deviceEui가 없어 문 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
+                    getId(),
+                    organizationId,
+                    storageId,
+                    sectionId,
+                    sensorType);
             return;
         }
 
         if (sensorPayload.value() == null) {
-            log.info("[{}] 센서값이 없어 문 검사 검사를 건너뜁니다. locationId={}, sensorType={}",
+            log.info("[{}] 센서값이 없어 문 검사 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
                     getId(),
+                    organizationId,
+                    storageId,
+                    sectionId,
                     sensorType
             );
             return;
@@ -79,8 +112,13 @@ public class DoorStateFilterNode extends AbstractNode {
             return;
         }
 
-        log.info("[{}] 지원하지 않는 문 상태 값입니다. locationId={}, deviceEui={}, value={}",
-                getId(), sensorPayload.deviceEui(), value);
+        log.info("[{}] 지원하지 않는 문 상태 값입니다. organizationId={}, storageId={}, sectionId={}, deviceEui={}, value={}",
+                getId(),
+                organizationId,
+                storageId,
+                sectionId,
+                sensorPayload.deviceEui(),
+                value);
     }
 
     private void sendRuleResult(
@@ -111,8 +149,11 @@ public class DoorStateFilterNode extends AbstractNode {
                 ruleResult
         )));
 
-        log.info("[{}] Door 센서 검사 결과. sensorType={}, violate={}, value={}, reason={}",
+        log.info("[{}] Door 센서 검사 결과. organizationId={}, storageId={}, sectionId={}, sensorType={}, violate={}, value={}, reason={}",
                 getId(),
+                sensorPayload.organizationId(),
+                sensorPayload.storageId(),
+                sensorPayload.sectionId(),
                 sensorPayload.sensorType(),
                 violated,
                 sensorPayload.value(),
