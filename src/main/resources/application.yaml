@@ -34,4 +34,13 @@ influx-db:
   measurement: ${INFLUX_MEASUREMENT}
 
 server:
-  port: 10405
+  port: 10406
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, service-registry
+  endpoint:
+    health:
+      show-details: never
