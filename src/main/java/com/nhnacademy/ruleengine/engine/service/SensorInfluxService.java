@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -24,15 +24,15 @@ public class SensorInfluxService {
     );
 
     private final SensorInfluxRepository sensorInfluxRepository;
-    private final LocationCatalog locationCatalog;
+    private final SectionCatalog sectionCatalog;
 
     // 룰엔진 내부에서 전달받은 센서 데이터를 InfluxDB에 저장한다.
     public void save(SensorPayloadDto sensorPayload) {
         sensorInfluxRepository.save(
                 sensorPayload.organizationId(),
                 sensorPayload.deviceEui(),
-                sensorPayload.locationId(),
-                sensorPayload.positionId(),
+                sensorPayload.storageId(),
+                sensorPayload.sectionId(),
                 sensorPayload.sensorType(),
                 sensorPayload.value(),
                 sensorPayload.unit(),
@@ -41,10 +41,10 @@ public class SensorInfluxService {
     }
 
     // 특정 위치의 센서 종류별 최신 데이터를 조회한다.
-    public List<SensorPayloadDto> findLatestByLocationId(Long locationId) {
-        validateLocationId(locationId);
+    public List<SensorPayloadDto> findLatestByStorageId(Long storageId) {
+        validateStorageId(storageId);
 
-        return sensorInfluxRepository.findLatestByLocationId(locationId);
+        return sensorInfluxRepository.findLatestByStorageId(storageId);
     }
 
     // 특정 센서 타입의 위치별 최신 데이터를 조회한다.
@@ -56,16 +56,16 @@ public class SensorInfluxService {
         );
     }
 
-    private void validateLocationId(Long locationId) {
-        if (locationId == null || locationId <= 0) {
+    private void validateStorageId(Long storageId) {
+        if (storageId == null || storageId <= 0) {
             throw new SensorDataException(
-                    ErrorCode.INVALID_LOCATION_ID
+                    ErrorCode.INVALID_STORAGE_ID
             );
         }
 
-        if (!locationCatalog.exists(locationId)) {
+        if (!sectionCatalog.exists(storageId)) {
             throw new SensorDataException(
-                    ErrorCode.LOCATION_NOT_FOUND
+                    ErrorCode.STORAGE_NOT_FOUND
             );
         }
     }

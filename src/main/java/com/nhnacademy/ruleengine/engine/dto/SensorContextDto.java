@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.engine.dto;
 
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog.ResolvedLocation;
+
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog.ResolvedSection;
 
 // 센서별 변환 로직에서 공통으로 사용하는 장치 정보를 담는다.
 public record SensorContextDto(
@@ -12,19 +13,19 @@ public record SensorContextDto(
 ) {
 
     public static SensorContextDto from(
-            ExternalSensorMessageDto mqttInbound,
-            ResolvedLocation resolvedLocation
+            ExternalSensorMessageDto externalSensorMessage,
+            ResolvedSection resolvedSection
     ) {
-        if (resolvedLocation == null) {
-            throw new IllegalArgumentException("변환된 위치 ID는 필수입니다.");
+        if (resolvedSection == null) {
+            throw new IllegalArgumentException("변환된 섹션 ID는 필수입니다.");
         }
 
         return new SensorContextDto(
-                resolvedLocation.organizationId(),
-                valueOrUnknown(mqttInbound.devEui()),
-                resolvedLocation.locationId(),
-                resolvedLocation.positionId(),
-                valueOrUnknown(mqttInbound.time())
+                resolvedSection.organizationId(),
+                valueOrUnknown(externalSensorMessage.devEui()),
+                resolvedSection.storageId(),
+                resolvedSection.sectionId(),
+                valueOrUnknown(externalSensorMessage.time())
         );
     }
 

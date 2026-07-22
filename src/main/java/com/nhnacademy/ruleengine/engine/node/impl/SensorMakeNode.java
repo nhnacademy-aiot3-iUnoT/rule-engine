@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 public class SensorMakeNode extends AbstractNode {
 
     private static final String OUTPUT_PORT = "out";
-    private static final String SENSOR_PAYLOAD_KEY = "sensorPayload";
 
     private final double tempMin;
     private final double tempMax;
@@ -27,8 +27,8 @@ public class SensorMakeNode extends AbstractNode {
     private final double doorOpenProbability;
     private final long measurementInterval;
     private final Long organizationId;
-    private final Long locationId;
-    private final Long positionId;
+    private final Long storageId;
+    private final Long sectionId;
     private final String deviceEui;
 
     private ScheduledExecutorService scheduler;
@@ -48,9 +48,9 @@ public class SensorMakeNode extends AbstractNode {
         doorOpenProbability = requiredDouble(config, "doorOpenProbability");
         measurementInterval = requiredLong(config, "measurementInterval");
         organizationId = requiredLong(config, "organizationId");
-        locationId = requiredLong(config, "locationId");
-        positionId = requiredLong(config, "positionId");
-        deviceEui = requiredText(config);
+        storageId = requiredLong(config, "storageId");
+        sectionId = requiredLong(config, "sectionId");
+        deviceEui = requiredText(config,"deviceEui");
 
         validateConfig();
         addOutputPort(OUTPUT_PORT);
@@ -87,6 +87,7 @@ public class SensorMakeNode extends AbstractNode {
                 "bool",
                 measuredAt
         );
+        log.info("[{}] 가상 센서 데이터 생성", getId());
     }
 
     @Override
@@ -112,8 +113,8 @@ public class SensorMakeNode extends AbstractNode {
         SensorPayloadDto sensorPayload = new SensorPayloadDto(
                 organizationId,
                 deviceEui,
-                locationId,
-                positionId,
+                storageId,
+                sectionId,
                 sensorType,
                 value,
                 unit,
@@ -123,8 +124,8 @@ public class SensorMakeNode extends AbstractNode {
         String topic = String.format(
                 "%d/%d/%d/%s/%s",
                 organizationId,
-                locationId,
-                positionId,
+                storageId,
+                sectionId,
                 sanitize(deviceEui),
                 sanitize(sensorType)
         );
@@ -132,8 +133,8 @@ public class SensorMakeNode extends AbstractNode {
         send(
                 OUTPUT_PORT,
                 new Message(Map.of(
-                        "topic", topic,
-                        SENSOR_PAYLOAD_KEY, sensorPayload
+                        MessageFields.TOPIC, topic,
+                        MessageFields.SENSOR_PAYLOAD, sensorPayload
                 ))
         );
     }
@@ -168,8 +169,8 @@ public class SensorMakeNode extends AbstractNode {
             throw new IllegalArgumentException("measurementInterval은 1초 이상이어야 합니다.");
         }
         requirePositive(organizationId, "organizationId");
-        requirePositive(locationId, "locationId");
-        requirePositive(positionId, "positionId");
+        requirePositive(storageId, "storageId");
+        requirePositive(sectionId, "sectionId");
     }
 
     private void requirePositive(Long value, String fieldName) {
@@ -200,10 +201,10 @@ public class SensorMakeNode extends AbstractNode {
         }
     }
 
-    private static String requiredText(Map<String, Object> config) {
-        String value = requiredValue(config, "devEui").toString().trim();
+    private static String requiredText(Map<String, Object> config, String key) {
+        String value = requiredValue(config, key).toString().trim();
         if (value.isEmpty()) {
-            throw new IllegalArgumentException("devEui" + "는 비어 있을 수 없습니다.");
+            throw new IllegalArgumentException("deviceEui" + "는 비어 있을 수 없습니다.");
         }
         return value;
     }

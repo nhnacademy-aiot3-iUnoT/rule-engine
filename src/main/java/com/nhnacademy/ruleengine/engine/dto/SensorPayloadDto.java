@@ -4,8 +4,8 @@ package com.nhnacademy.ruleengine.engine.dto;
 public record SensorPayloadDto(
         Long organizationId,
         String deviceEui,
-        Long locationId,
-        Long positionId,
+        Long storageId,
+        Long sectionId,
         String sensorType,
         Double value,
         String unit,
@@ -15,8 +15,8 @@ public record SensorPayloadDto(
     public static SensorPayloadDto fromSensor(
             Long organizationId,
             String deviceEui,
-            Long locationId,
-            Long positionId,
+            Long storageId,
+            Long sectionId,
             String sensorType,
             Double value,
             String unit,
@@ -26,8 +26,8 @@ public record SensorPayloadDto(
         return new SensorPayloadDto(
                 organizationId,
                 deviceEui,
-                locationId,
-                positionId,
+                storageId,
+                sectionId,
                 sensorType,
                 value,
                 unit,

@@ -1,12 +1,13 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
 import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog.ResolvedLocation;
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog;
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog.ResolvedSection;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,20 +23,19 @@ public class SensorTransformNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
-    private static final String MQTT_INBOUND_KEY = "mqttInbound";
 
     private final Map<String, SensorCommand> sensorCommands;
-    private final LocationCatalog locationCatalog;
+    private final SectionCatalog sectionCatalog;
 
     public SensorTransformNode(
             String id,
             List<SensorCommand> sensorCommands,
-            LocationCatalog locationCatalog
+            SectionCatalog sectionCatalog
     ) {
         super(id);
-        this.locationCatalog = Objects.requireNonNull(
-                locationCatalog,
-                "locationCatalog은 null일 수 없습니다."
+        this.sectionCatalog = Objects.requireNonNull(
+              sectionCatalog,
+                "sectionCatalog은 null일 수 없습니다."
         );
 
         addInputPort(INPUT_PORT);
@@ -59,19 +59,19 @@ public class SensorTransformNode extends AbstractNode {
 
     @Override
     public void onProcess(Message message) {
-        ExternalSensorMessageDto mqttInbound = message.get(MQTT_INBOUND_KEY);
+        ExternalSensorMessageDto externalSensorMessage = message.get(MessageFields.EXTERNAL_SENSOR_MESSAGE);
 
-        if (mqttInbound == null) {
+        if (externalSensorMessage == null) {
             // 변환할 MQTT DTO가 없으면 메시지를 건너뛴다.
             log.warn(
-                    "[{}] mqttInbound DTO가 없어 메시지를 건너뜁니다: {}",
+                    "[{}] 외부 센서 메시지가 없어 변환을 건너뜁니다: {}",
                     getId(),
                     message
             );
             return;
         }
 
-        Map<String, Object> measurements = mqttInbound.measurements();
+        Map<String, Object> measurements = externalSensorMessage.measurements();
 
         if (measurements == null || measurements.isEmpty()) {
             // 측정값이 없는 메시지는 다음 노드로 전달하지 않는다.
@@ -82,27 +82,27 @@ public class SensorTransformNode extends AbstractNode {
             return;
         }
 
-        ResolvedLocation resolvedLocation = locationCatalog.resolve(
-                        mqttInbound.applicationName(),
-                        mqttInbound.location(),
-                        mqttInbound.point()
+        ResolvedSection resolvedSection = sectionCatalog.resolve(
+                        externalSensorMessage.applicationName(),
+                        externalSensorMessage.location(),
+                        externalSensorMessage.point()
                 )
                 .orElse(null);
 
-        if (resolvedLocation == null) {
+        if (resolvedSection == null) {
             log.warn(
                     "[{}] 등록되지 않은 센서 위치입니다. applicationName={}, location={}, point={}",
                     getId(),
-                    mqttInbound.applicationName(),
-                    mqttInbound.location(),
-                    mqttInbound.point()
+                    externalSensorMessage.applicationName(),
+                    externalSensorMessage.location(),
+                    externalSensorMessage.point()
             );
             return;
         }
 
         SensorContextDto sensorContextDto = SensorContextDto.from(
-                mqttInbound,
-                resolvedLocation
+                externalSensorMessage,
+                resolvedSection
         );
 
         measurements.forEach(
@@ -161,15 +161,15 @@ public class SensorTransformNode extends AbstractNode {
         String topic = String.format(
                 "%d/%d/%s/%s",
                 sensorPayload.organizationId(),
-                sensorPayload.locationId(),
+                sensorPayload.storageId(),
                 sanitize(sensorPayload.deviceEui()),
                 sanitize(sensorPayload.sensorType())
         );
 
         send(OUTPUT_PORT, new Message(
                 Map.of(
-                        "topic", topic,
-                        "sensorPayload", sensorPayload
+                        MessageFields.TOPIC, topic,
+                        MessageFields.SENSOR_PAYLOAD, sensorPayload
                 )
         ));
     }

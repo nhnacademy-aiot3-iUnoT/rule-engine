@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.Flow;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;
@@ -31,7 +31,7 @@ public class ExternalSensorFlow implements FlowFactory {
     private final RuleEngineProperties properties;
     private final List<SensorCommand> sensorCommands;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
-    private final LocationCatalog locationCatalog;
+    private final SectionCatalog sectionCatalog;
 
     @Override
     public Flow create() {
@@ -46,7 +46,7 @@ public class ExternalSensorFlow implements FlowFactory {
                 .addNode(new SensorTransformNode(
                         TRANSFORM_NODE_ID,
                         sensorCommands,
-                        locationCatalog
+                        sectionCatalog
                 ))
                 .addNode(new MqttPublisherNode(
                         PUBLISHER_NODE_ID,
