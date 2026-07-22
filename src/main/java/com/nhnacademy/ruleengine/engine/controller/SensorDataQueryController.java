@@ -18,12 +18,12 @@ public class SensorDataQueryController {
 
     private final SensorInfluxService sensorInfluxService;
 
-    @GetMapping("/locations/{locationId}/latest")
-    public ApiResponse<List<SensorPayloadDto>> findLatestByLocationId(
-            @PathVariable Long locationId
+    @GetMapping("/storages/{storageId}/latest")
+    public ApiResponse<List<SensorPayloadDto>> findLatestByStorageId(
+            @PathVariable Long storageId
     ) {
         return ApiResponse.success(
-                sensorInfluxService.findLatestByLocationId(locationId)
+                sensorInfluxService.findLatestByStorageId(storageId)
         );
     }
 

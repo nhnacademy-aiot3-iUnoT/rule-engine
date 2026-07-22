@@ -6,8 +6,8 @@ import com.nhnacademy.ruleengine.engine.command.SensorCommand;
 import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog;
-import com.nhnacademy.ruleengine.engine.location.LocationCatalog.ResolvedLocation;
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog;
+import com.nhnacademy.ruleengine.engine.location.SectionCatalog.ResolvedSection;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,17 +25,17 @@ public class SensorTransformNode extends AbstractNode {
     private static final String OUTPUT_PORT = "out";
 
     private final Map<String, SensorCommand> sensorCommands;
-    private final LocationCatalog locationCatalog;
+    private final SectionCatalog sectionCatalog;
 
     public SensorTransformNode(
             String id,
             List<SensorCommand> sensorCommands,
-            LocationCatalog locationCatalog
+            SectionCatalog sectionCatalog
     ) {
         super(id);
-        this.locationCatalog = Objects.requireNonNull(
-                locationCatalog,
-                "locationCatalog은 null일 수 없습니다."
+        this.sectionCatalog = Objects.requireNonNull(
+              sectionCatalog,
+                "sectionCatalog은 null일 수 없습니다."
         );
 
         addInputPort(INPUT_PORT);
@@ -82,14 +82,14 @@ public class SensorTransformNode extends AbstractNode {
             return;
         }
 
-        ResolvedLocation resolvedLocation = locationCatalog.resolve(
+        ResolvedSection resolvedSection = sectionCatalog.resolve(
                         externalSensorMessage.applicationName(),
                         externalSensorMessage.location(),
                         externalSensorMessage.point()
                 )
                 .orElse(null);
 
-        if (resolvedLocation == null) {
+        if (resolvedSection == null) {
             log.warn(
                     "[{}] 등록되지 않은 센서 위치입니다. applicationName={}, location={}, point={}",
                     getId(),
@@ -102,7 +102,7 @@ public class SensorTransformNode extends AbstractNode {
 
         SensorContextDto sensorContextDto = SensorContextDto.from(
                 externalSensorMessage,
-                resolvedLocation
+                resolvedSection
         );
 
         measurements.forEach(
@@ -161,7 +161,7 @@ public class SensorTransformNode extends AbstractNode {
         String topic = String.format(
                 "%d/%d/%s/%s",
                 sensorPayload.organizationId(),
-                sensorPayload.locationId(),
+                sensorPayload.storageId(),
                 sanitize(sensorPayload.deviceEui()),
                 sanitize(sensorPayload.sensorType())
         );

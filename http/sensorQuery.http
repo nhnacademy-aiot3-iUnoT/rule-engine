@@ -27,3 +27,5 @@ Accept: application/json
 ###
 GET {{host}}/api/rule-engine/sensor-data/locations/-1/latest
 Accept: application/json
+
+

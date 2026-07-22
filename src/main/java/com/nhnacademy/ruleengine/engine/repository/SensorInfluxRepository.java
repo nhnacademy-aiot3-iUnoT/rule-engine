@@ -27,8 +27,8 @@ public class SensorInfluxRepository {
     public void save(
             Long organizationId,
             String deviceEui,
-            Long locationId,
-            Long positionId,
+            Long storageId,
+            Long sectionId,
             String sensorType,
             double value,
             String unit,
@@ -36,8 +36,8 @@ public class SensorInfluxRepository {
     ) {
         Point point = Point.measurement(influxDbProperties.measurement())
                 .addTag("organization_id", String.valueOf(organizationId))
-                .addTag("location_id", String.valueOf(locationId))
-                .addTag("position_id", String.valueOf(positionId))
+                .addTag("storage_id", String.valueOf(storageId))
+                .addTag("section_id", String.valueOf(sectionId))
                 .addTag("sensor_type", sensorType)
                 .addTag("device_eui", deviceEui)
                 .addTag("unit", unit)
@@ -56,12 +56,12 @@ public class SensorInfluxRepository {
         }
     }
 
-    public List<SensorPayloadDto> findLatestByLocationId(Long locationId) {
+    public List<SensorPayloadDto> findLatestByStorageId(Long storageId) {
         String fluxQuery = """
                 from(bucket: "%s")
                     |> range(start: -30d)
                     |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.location_id == "%s")
+                    |> filter(fn: (r) => r.storage_id == "%s")
                     |> filter(fn: (r) => r._field == "value")
                     |> group(columns: ["sensor_type"])
                     |> last()
@@ -69,7 +69,7 @@ public class SensorInfluxRepository {
                 """.formatted(
                 influxDbProperties.bucket(),
                 influxDbProperties.measurement(),
-                locationId
+                storageId
         );
 
         return executeQuery(fluxQuery);
@@ -82,10 +82,10 @@ public class SensorInfluxRepository {
                 |> filter(fn: (r) => r._measurement == "%s")
                 |> filter(fn: (r) => r.sensor_type == "%s")
                 |> filter(fn: (r) => r._field == "value")
-                |> filter(fn: (r) => exists r.location_id)
-                |> group(columns: ["location_id"])
+                |> filter(fn: (r) => exists r.storage_id)
+                |> group(columns: ["storage_id"])
                 |> last()
-                |> sort(columns: ["location_id"])
+                |> sort(columns: ["storage_id"])
             """.formatted(
                 influxDbProperties.bucket(),
                 influxDbProperties.measurement(),
@@ -122,8 +122,8 @@ public class SensorInfluxRepository {
         return new SensorPayloadDto(
                 parseId(record, "organization_id"),
                 getStringValue(record, "device_eui"),
-                parseId(record, "location_id"),
-                parseId(record, "position_id"),
+                parseId(record, "storage_id"),
+                parseId(record, "section_id"),
                 getStringValue(record, "sensor_type"),
                 numberValue.doubleValue(),
                 getStringValue(record, "unit"),

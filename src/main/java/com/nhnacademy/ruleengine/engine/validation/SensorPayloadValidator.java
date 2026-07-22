@@ -9,8 +9,8 @@ public final class SensorPayloadValidator {
     public static void validate(SensorPayloadDto payload) {
         requirePositive(payload.organizationId(), "organizationId");
         requireText(payload.deviceEui(), "deviceEui");
-        requirePositive(payload.locationId(), "locationId");
-        requirePositive(payload.positionId(), "positionId");
+        requirePositive(payload.storageId(), "storageId");
+        requirePositive(payload.sectionId(), "sectionId");
         requireText(payload.sensorType(), "sensorType");
         requireText(payload.unit(), "unit");
         requireText(payload.time(), "time");
