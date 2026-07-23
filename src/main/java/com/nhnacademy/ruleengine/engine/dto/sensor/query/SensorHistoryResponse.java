@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.sensor.query;
 
 import java.time.Instant;
 

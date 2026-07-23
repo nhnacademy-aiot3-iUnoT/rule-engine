@@ -2,8 +2,8 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.MessageFields;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 // 설정된 범위와 주기에 따라 가상 센서 데이터를 생성한다.
-public class SensorMakeNode extends AbstractNode {
+public class VirtualSensorGeneratorNode extends AbstractNode {
 
     private static final String OUTPUT_PORT = "out";
 
@@ -34,7 +34,10 @@ public class SensorMakeNode extends AbstractNode {
 
     private ScheduledExecutorService scheduler;
 
-    public SensorMakeNode(String nodeId, Map<String, Object> sensorConfig) {
+    public VirtualSensorGeneratorNode(
+            String nodeId,
+            Map<String, Object> sensorConfig
+    ) {
         super(nodeId);
 
         Map<String, Object> config = Objects.requireNonNull(
@@ -51,7 +54,7 @@ public class SensorMakeNode extends AbstractNode {
         organizationId = requiredLong(config, "organizationId");
         storageId = requiredLong(config, "storageId");
         sectionId = requiredLong(config, "sectionId");
-        deviceEui = requiredText(config,"deviceEui");
+        deviceEui = requiredText(config, "deviceEui");
 
         validateConfig();
         addOutputPort(OUTPUT_PORT);
@@ -110,7 +113,7 @@ public class SensorMakeNode extends AbstractNode {
     }
 
     private void publish(SensorType sensorType, double value, String measuredAt) {
-        SensorPayloadDto sensorPayload = new SensorPayloadDto(
+        SensorPayload sensorPayload = new SensorPayload(
                 organizationId,
                 deviceEui,
                 storageId,

@@ -4,8 +4,8 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxRecord;
-import com.nhnacademy.ruleengine.engine.dto.SensorHistoryResponse;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataSaveException;
 import com.nhnacademy.ruleengine.global.config.InfluxDbProperties;
@@ -60,7 +60,7 @@ public class SensorInfluxRepository {
         }
     }
 
-    public List<SensorPayloadDto> findLatestBySectionId(
+    public List<SensorPayload> findLatestBySection(
             Long organizationId,
             Long storageId,
             Long sectionId
@@ -88,7 +88,7 @@ public class SensorInfluxRepository {
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorPayloadDto> findLatestByOrganizationAndSensorType(
+    public List<SensorPayload> findLatestByOrganizationAndSensorType(
             Long organizationId,
             String sensorType
     ) {
@@ -114,7 +114,7 @@ public class SensorInfluxRepository {
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorPayloadDto> findLatestByStorageId(
+    public List<SensorPayload> findLatestByStorage(
             Long organizationId,
             Long storageId
     ) {
@@ -139,7 +139,7 @@ public class SensorInfluxRepository {
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorPayloadDto> findLatestByOrganizationId(Long organizationId) {
+    public List<SensorPayload> findLatestByOrganization(Long organizationId) {
         String fluxQuery = """
                 from(bucket: "%s")
                     |> range(start: -30d)
@@ -159,7 +159,7 @@ public class SensorInfluxRepository {
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorHistoryResponse> findHistory(
+    public List<SensorHistoryResponse> findHistoryBySection(
             Long organizationId,
             Long storageId,
             Long sectionId,
@@ -208,8 +208,8 @@ public class SensorInfluxRepository {
         return executeQuery(fluxQuery, this::toHistoryResponse);
     }
 
-    private List<SensorPayloadDto> executeQuery(String fluxQuery) {
-        return executeQuery(fluxQuery, this::toSensorPayloadDto);
+    private List<SensorPayload> executeQuery(String fluxQuery) {
+        return executeQuery(fluxQuery, this::toSensorPayload);
     }
 
     private <T> List<T> executeQuery(
@@ -229,8 +229,8 @@ public class SensorInfluxRepository {
         }
     }
 
-    private SensorPayloadDto toSensorPayloadDto(FluxRecord record) {
-        return new SensorPayloadDto(
+    private SensorPayload toSensorPayload(FluxRecord record) {
+        return new SensorPayload(
                 parseId(record, "organization_id"),
                 getStringValue(record, "device_eui"),
                 parseId(record, "storage_id"),

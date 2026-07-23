@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.sensor;
 
 import com.nhnacademy.ruleengine.engine.MessageFields;
 
@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 // 외부 MQTT payload에서 Rule Engine이 사용할 필드만 정리한 DTO다.
-public record ExternalSensorMessageDto(
+public record ExternalSensorMessage(
         String topic,
         Long receivedAt,
         String time,
@@ -18,12 +18,12 @@ public record ExternalSensorMessageDto(
         Map<String, Object> measurements
 ) {
 
-    public static ExternalSensorMessageDto from(Map<String, Object> payload) {
+    public static ExternalSensorMessage from(Map<String, Object> payload) {
         // 중첩된 deviceInfo와 tags를 안전하게 꺼내 DTO로 변환한다.
         Map<String, Object> deviceInfo = mapValue(payload.get("deviceInfo"));
         Map<String, Object> tags = mapValue(deviceInfo.get("tags"));
 
-        return new ExternalSensorMessageDto(
+        return new ExternalSensorMessage(
                 stringValue(payload.get(MessageFields.TOPIC)),
                 longValue(payload.get(MessageFields.MQTT_RECEIVED_AT)),
                 stringValue(payload.get("time")),

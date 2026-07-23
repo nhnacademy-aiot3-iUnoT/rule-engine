@@ -1,8 +1,8 @@
 package com.nhnacademy.ruleengine.engine.controller;
 
-import com.nhnacademy.ruleengine.engine.dto.SensorHistoryQueryRequest;
-import com.nhnacademy.ruleengine.engine.dto.SensorHistoryResponse;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryQueryRequest;
+import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +21,13 @@ public class SensorDataQueryController {
             "/organizations/{organizationId}/storages/{storageId}"
                     + "/sections/{sectionId}/sensor-data/latest"
     )
-    public ApiResponse<List<SensorPayloadDto>> findLatestBySectionId(
+    public ApiResponse<List<SensorPayload>> findLatestBySection(
             @PathVariable Long organizationId,
             @PathVariable Long storageId,
             @PathVariable Long sectionId
     ) {
         return ApiResponse.success(
-                sensorInfluxService.findLatestBySectionId(
+                sensorInfluxService.findLatestBySection(
                         organizationId,
                         storageId,
                         sectionId
@@ -38,7 +38,7 @@ public class SensorDataQueryController {
     @GetMapping(
             "/organizations/{organizationId}/sensor-data/latest"
     )
-    public ApiResponse<List<SensorPayloadDto>> findLatestByOrganization(
+    public ApiResponse<List<SensorPayload>> findLatestByOrganization(
             @PathVariable Long organizationId,
             @RequestParam(required = false) String sensorType
     ) {
@@ -53,12 +53,12 @@ public class SensorDataQueryController {
     @GetMapping(
             "/organizations/{organizationId}/storages/{storageId}/sensor-data/latest"
     )
-    public ApiResponse<List<SensorPayloadDto>> findLatestByStorageId(
+    public ApiResponse<List<SensorPayload>> findLatestByStorage(
             @PathVariable Long organizationId,
             @PathVariable Long storageId
     ) {
         return ApiResponse.success(
-                sensorInfluxService.findLatestByStorageId(
+                sensorInfluxService.findLatestByStorage(
                         organizationId,
                         storageId
                 )
@@ -69,14 +69,14 @@ public class SensorDataQueryController {
             "/organizations/{organizationId}/storages/{storageId}"
                     + "/sections/{sectionId}/sensor-data/history"
     )
-    public ApiResponse<List<SensorHistoryResponse>> findHistory(
+    public ApiResponse<List<SensorHistoryResponse>> findHistoryBySection(
             @PathVariable Long organizationId,
             @PathVariable Long storageId,
             @PathVariable Long sectionId,
             @ModelAttribute SensorHistoryQueryRequest request
     ) {
         return ApiResponse.success(
-                sensorInfluxService.findHistory(
+                sensorInfluxService.findHistoryBySection(
                         organizationId,
                         storageId,
                         sectionId,
