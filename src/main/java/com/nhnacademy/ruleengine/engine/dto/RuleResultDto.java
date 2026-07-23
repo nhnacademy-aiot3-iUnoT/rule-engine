@@ -17,4 +17,41 @@ public record RuleResultDto(
         Integer durationMinutes,
         String message
 ) {
+    public static RuleResultDto fromThreshold(RuleResultCreateRequest request){
+        return new RuleResultDto(
+                request.sensorPayload().organizationId(),
+                request.sensorPayload().deviceEui(),
+                request.sensorPayload().storageId(),
+                request.sensorPayload().sectionId(),
+                request.sensorPayload().sensorType(),
+                null,
+                request.violated(),
+                request.sensorPayload().value(),
+                request.min(),
+                request.max(),
+                request.sensorPayload().unit(),
+                request.sensorPayload().time(),
+                request.thresholdDurationMinutes(),
+                request.message()
+                );
+    }
+
+    public static RuleResultDto fromDoorState(RuleResultCreateRequest request){
+        return new RuleResultDto(
+                request.sensorPayload().organizationId(),
+                request.sensorPayload().deviceEui(),
+                request.sensorPayload().storageId(),
+                request.sensorPayload().sectionId(),
+                request.sensorPayload().sensorType(),
+                null,
+                request.violated(),
+                request.sensorPayload().value(),
+                null,
+                null,
+                request.sensorPayload().unit(),
+                request.sensorPayload().time(),
+                null,
+                request.message()
+        );
+    }
 }
