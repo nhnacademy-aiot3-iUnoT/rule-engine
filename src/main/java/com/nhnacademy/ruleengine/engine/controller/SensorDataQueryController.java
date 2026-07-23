@@ -38,12 +38,34 @@ public class SensorDataQueryController {
     )
     public ApiResponse<List<SensorPayloadDto>> findLatestBySensorType(
             @PathVariable Long organizationId,
-            @RequestParam String sensorType
+            @RequestParam(required = false) String sensorType
     ) {
+        // 타입이 없는경우 모든 센서데이터 조회
+        if(sensorType == null) {
+            return ApiResponse.success(
+                    sensorInfluxService.findLatestByOrganizationId(organizationId)
+            );
+        }
+
         return ApiResponse.success(
                 sensorInfluxService.findLatestBySensorType(
                         organizationId,
                         sensorType
+                )
+        );
+    }
+
+    @GetMapping(
+            "/organizations/{organizationId}/storages/{storageId}/sensor-data/latest"
+    )
+    public ApiResponse<List<SensorPayloadDto>> findLatestByStorageId(
+            @PathVariable Long organizationId,
+            @PathVariable Long storageId
+    ) {
+        return ApiResponse.success(
+                sensorInfluxService.findLatestByStorageId(
+                        organizationId,
+                        storageId
                 )
         );
     }

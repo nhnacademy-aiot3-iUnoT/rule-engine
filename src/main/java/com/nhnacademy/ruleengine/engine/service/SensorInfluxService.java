@@ -4,6 +4,7 @@ import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
+import com.nhnacademy.ruleengine.engine.validation.LocationHierarchyValidator;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.List;
 public class SensorInfluxService {
 
     private final SensorInfluxRepository sensorInfluxRepository;
+    private final LocationHierarchyValidator locationHierarchyValidator;
 
     // 룰엔진 내부에서 전달받은 센서 데이터를 InfluxDB에 저장한다.
     public void save(SensorPayloadDto sensorPayload) {
@@ -35,15 +37,28 @@ public class SensorInfluxService {
         );
     }
 
-    // 조직의 창고에 있는 구역의 센서 종류별 최신 데이터를 조회한다.
+    // 조직의 특정창고에 있는 특정구역의 센서 최신데이터를 조회한다.
     public List<SensorPayloadDto> findLatestBySectionId(
             Long organizationId,
             Long storageId,
             Long sectionId
     ) {
-        validateSectionHierarchy(organizationId, storageId, sectionId);
+        locationHierarchyValidator.validateSection(organizationId, storageId, sectionId);
 
         return sensorInfluxRepository.findLatestBySectionId(organizationId, storageId, sectionId);
+    }
+
+    // 조직 의 특정창고에있는 모든 구역의 센서 최신데이터를 조회한다.
+    public List<SensorPayloadDto> findLatestByStorageId(
+            Long organizationId,
+            Long storageId
+    ) {
+        locationHierarchyValidator.validateStorage(organizationId, storageId);
+
+        return sensorInfluxRepository.findLatestByStorageId(
+                organizationId,
+                storageId
+        );
     }
 
     // 조직의 전체 창고의 특정 센서 타입의 구역별 최신 데이터를 조회한다.
@@ -51,23 +66,19 @@ public class SensorInfluxService {
             Long organizationId,
             String sensorType
     ) {
-        validateOrganizationId(organizationId);
+        locationHierarchyValidator.validateOrganization(organizationId);
         SensorType parsedSensorType = parseSensorType(sensorType);
 
         return sensorInfluxRepository.findLatestOrganizationBySensorType(organizationId, parsedSensorType.value());
     }
 
-    private void validateSectionHierarchy(
-            Long organizationId,
-            Long storageId,
-            Long sectionId
-    ) {
-        // Todo section 유효한지 검증 로직
+    // 조직의 모든 센서의 최신데이터 조회한다.
+    public List<SensorPayloadDto> findLatestByOrganizationId(Long organizationId) {
+        locationHierarchyValidator.validateOrganization(organizationId);
+
+        return sensorInfluxRepository.findLatestByOrganizationId(organizationId);
     }
 
-    private void validateOrganizationId(Long organizationId) {
-        // Todo organization 유효한지 검증로직
-    }
 
     private static SensorType parseSensorType(String sensorType) {
         if (sensorType == null || sensorType.isBlank()) {
@@ -91,4 +102,5 @@ public class SensorInfluxService {
             return Instant.now();
         }
     }
+
 }

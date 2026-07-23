@@ -101,6 +101,53 @@ public class SensorInfluxRepository {
         return executeQuery(fluxQuery);
     }
 
+    public List<SensorPayloadDto> findLatestByStorageId(
+            Long organizationId,
+            Long storageId
+    ) {
+        String fluxQuery = """
+            from(bucket: "%s")
+                |> range(start: -30d)
+                |> filter(fn: (r) => r._measurement == "%s")
+                |> filter(fn: (r) => r.organization_id == "%s")
+                |> filter(fn: (r) => r.storage_id == "%s")
+                |> filter(fn: (r) => r._field == "value")
+                |> group(columns: ["section_id", "sensor_type"])
+                |> last()
+                |> group()
+                |> sort(columns: ["section_id", "sensor_type"])
+            """.formatted(
+                influxDbProperties.bucket(),
+                influxDbProperties.measurement(),
+                organizationId,
+                storageId
+        );
+
+        return executeQuery(fluxQuery);
+    }
+
+    public List<SensorPayloadDto> findLatestByOrganizationId(Long organizationId) {
+        String fluxQuery = """
+            from(bucket: "%s")
+                |> range(start: -30d)
+                |> filter(fn: (r) => r._measurement == "%s")
+                |> filter(fn: (r) => r.organization_id == "%s")
+                |> filter(fn: (r) => r._field == "value")
+                |> group(columns: ["section_id", "sensor_type"])
+                |> last()
+                |> group()
+                |> sort(columns: ["section_id", "sensor_type"])
+            """.formatted(
+                influxDbProperties.bucket(),
+                influxDbProperties.measurement(),
+                organizationId
+        );
+
+        return executeQuery(fluxQuery);
+    }
+
+
+
     private List<SensorPayloadDto> executeQuery(String fluxQuery) {
         try {
             return influxDBClient.getQueryApi()
@@ -153,4 +200,5 @@ public class SensorInfluxRepository {
 
         return Long.parseLong(id);
     }
+
 }

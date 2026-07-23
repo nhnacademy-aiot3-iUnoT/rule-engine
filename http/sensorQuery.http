@@ -1,4 +1,13 @@
-@host = http://localhost:10405
+@host = http://localhost:10406
 
+### 조직의 최신 센서데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/sensor-data/latest
 
+### 조직의 특정 센서타입의 최신데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/sensor-data/latest?sensorType=temperature
 
+### 조직의 저장소별 최신 센서 데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/storages/1/sensor-data/latest
+
+### 조직의 특정 저장고의 구역의 센서별 최신데이터 조회
+GET {{host}}/api/rule-engine/organizations/2/storages/1/sections/2/sensor-data/latest
