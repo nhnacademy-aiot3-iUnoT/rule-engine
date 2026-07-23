@@ -1,5 +1,6 @@
 package com.nhnacademy.ruleengine.engine.command;
 
+import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import org.springframework.stereotype.Component;
@@ -8,12 +9,14 @@ import org.springframework.stereotype.Component;
 // 온도 측정값을 섭씨 센서 payload로 변환한다.
 public class TemperatureSensorCommand implements SensorCommand {
 
-    private static final String SENSOR_TYPE = "temperature";
-    private static final String UNIT = "C";
+    @Override
+    public String getMeasurementKey() {
+        return SensorType.TEMPERATURE.value();
+    }
 
     @Override
-    public String getSensorType() {
-        return SENSOR_TYPE;
+    public SensorType getSensorType() {
+        return SensorType.TEMPERATURE;
     }
 
     @Override
@@ -24,11 +27,11 @@ public class TemperatureSensorCommand implements SensorCommand {
         return SensorPayloadDto.fromSensor(
                 sensorContextDto.organizationId(),
                 sensorContextDto.deviceEui(),
-                sensorContextDto.locationId(),
-                sensorContextDto.positionId(),
-                getSensorType(),
+                sensorContextDto.storageId(),
+                sensorContextDto.sectionId(),
+                getSensorType().value(),
                 toDouble(value),
-                UNIT,
+                getSensorType().unit(),
                 sensorContextDto.time()
         );
     }

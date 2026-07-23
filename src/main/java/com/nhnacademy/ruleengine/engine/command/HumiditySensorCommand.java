@@ -2,18 +2,21 @@ package com.nhnacademy.ruleengine.engine.command;
 
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import org.springframework.stereotype.Component;
 
 @Component
 // 습도 측정값을 백분율 센서 payload로 변환한다.
 public class HumiditySensorCommand implements SensorCommand {
 
-    private static final String SENSOR_TYPE = "humidity";
-    private static final String UNIT = "%";
+    @Override
+    public String getMeasurementKey() {
+        return SensorType.HUMIDITY.value();
+    }
 
     @Override
-    public String getSensorType() {
-        return SENSOR_TYPE;
+    public SensorType getSensorType() {
+        return SensorType.HUMIDITY;
     }
 
     @Override
@@ -24,11 +27,11 @@ public class HumiditySensorCommand implements SensorCommand {
         return SensorPayloadDto.fromSensor(
                 sensorContextDto.organizationId(),
                 sensorContextDto.deviceEui(),
-                sensorContextDto.locationId(),
-                sensorContextDto.positionId(),
-                SENSOR_TYPE,
+                sensorContextDto.storageId(),
+                sensorContextDto.sectionId(),
+                getSensorType().value(),
                 toDouble(value),
-                UNIT,
+                getSensorType().unit(),
                 sensorContextDto.time()
         );
     }

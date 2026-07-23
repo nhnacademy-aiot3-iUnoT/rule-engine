@@ -1,103 +1,93 @@
 package com.nhnacademy.ruleengine.engine.service;
 
+import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
-import com.nhnacademy.ruleengine.engine.location.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class SensorInfluxService {
 
-    private static final Set<String> SUPPORTED_SENSOR_TYPES = Set.of(
-            "temperature",
-            "humidity",
-            "door"
-    );
-
     private final SensorInfluxRepository sensorInfluxRepository;
-    private final SectionCatalog sectionCatalog;
 
     // 룰엔진 내부에서 전달받은 센서 데이터를 InfluxDB에 저장한다.
     public void save(SensorPayloadDto sensorPayload) {
+        Instant timestamp = parseTimestampOrNow(sensorPayload.time());
+        SensorType sensorType = parseSensorType(sensorPayload.sensorType());
+
         sensorInfluxRepository.save(
                 sensorPayload.organizationId(),
                 sensorPayload.deviceEui(),
                 sensorPayload.storageId(),
                 sensorPayload.sectionId(),
-                sensorPayload.sensorType(),
+                sensorType.value(),
                 sensorPayload.value(),
                 sensorPayload.unit(),
-                parseTimestamp(sensorPayload.time())
+                timestamp
         );
     }
 
-    // 특정 위치의 센서 종류별 최신 데이터를 조회한다.
-    public List<SensorPayloadDto> findLatestByStorageId(Long storageId) {
-        validateStorageId(storageId);
+    // 조직의 창고에 있는 구역의 센서 종류별 최신 데이터를 조회한다.
+    public List<SensorPayloadDto> findLatestBySectionId(
+            Long organizationId,
+            Long storageId,
+            Long sectionId
+    ) {
+        validateSectionHierarchy(organizationId, storageId, sectionId);
 
-        return sensorInfluxRepository.findLatestByStorageId(storageId);
+        return sensorInfluxRepository.findLatestBySectionId(organizationId, storageId, sectionId);
     }
 
-    // 특정 센서 타입의 위치별 최신 데이터를 조회한다.
-    public List<SensorPayloadDto> findLatestBySensorType(String sensorType) {
-        String normalizedSensorType = normalizeAndValidateSensorType(sensorType);
+    // 조직의 전체 창고의 특정 센서 타입의 구역별 최신 데이터를 조회한다.
+    public List<SensorPayloadDto> findLatestBySensorType(
+            Long organizationId,
+            String sensorType
+    ) {
+        validateOrganizationId(organizationId);
+        SensorType parsedSensorType = parseSensorType(sensorType);
 
-        return sensorInfluxRepository.findLatestBySensorType(
-                normalizedSensorType
-        );
+        return sensorInfluxRepository.findLatestOrganizationBySensorType(organizationId, parsedSensorType.value());
     }
 
-    private void validateStorageId(Long storageId) {
-        if (storageId == null || storageId <= 0) {
-            throw new SensorDataException(
-                    ErrorCode.INVALID_STORAGE_ID
-            );
-        }
-
-        if (!sectionCatalog.exists(storageId)) {
-            throw new SensorDataException(
-                    ErrorCode.STORAGE_NOT_FOUND
-            );
-        }
+    private void validateSectionHierarchy(
+            Long organizationId,
+            Long storageId,
+            Long sectionId
+    ) {
+        // Todo section 유효한지 검증 로직
     }
 
-    private String normalizeAndValidateSensorType(String sensorType) {
+    private void validateOrganizationId(Long organizationId) {
+        // Todo organization 유효한지 검증로직
+    }
+
+    private static SensorType parseSensorType(String sensorType) {
         if (sensorType == null || sensorType.isBlank()) {
-            throw new SensorDataException(
-                    ErrorCode.INVALID_SENSOR_TYPE
-            );
+            throw new SensorDataException(ErrorCode.INVALID_SENSOR_TYPE);
         }
 
-        String normalizedSensorType = sensorType
-                .trim()
-                .toLowerCase(Locale.ROOT);
-
-        if (!SUPPORTED_SENSOR_TYPES.contains(normalizedSensorType)) {
-            throw new SensorDataException(
-                    ErrorCode.UNSUPPORTED_SENSOR_TYPE
-            );
-        }
-
-        return normalizedSensorType;
+        return SensorType.findByValue(sensorType)
+                .orElseThrow(() -> new SensorDataException(
+                        ErrorCode.UNSUPPORTED_SENSOR_TYPE
+                ));
     }
 
-    private Instant parseTimestamp(String time) {
+    private static Instant parseTimestampOrNow(String time) {
         if (time == null || time.isBlank()) {
             return Instant.now();
         }
 
         try {
             return Instant.parse(time);
-        } catch (RuntimeException ignored) {
+        } catch (DateTimeParseException ignored) {
             return Instant.now();
         }
     }

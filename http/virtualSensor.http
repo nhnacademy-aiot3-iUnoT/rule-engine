@@ -1,4 +1,4 @@
-@host = http://localhost:10405
+@host = http://localhost:10406
 
 ### 가상데이터 생성 Flow 생성
 POST {{host}}/api/rule-engine/organizations/2/storages/1/sections/2/virtual-sensor
@@ -14,6 +14,22 @@ Content-Type: application/json
     "max": 70
   },
   "doorOpenProbability": 0.5,
-  "measurementIntervalSeconds": 60,
+  "measurementIntervalSeconds": 10,
   "deviceEui": "device-eui-virtual-1"
+}
+
+### Section에서 Flow 정지
+PATCH {{host}}/api/rule-engine/organizations/2/storages/1/sections/2/status
+Content-Type: application/json
+
+{
+  "status": "INACTIVE"
+}
+
+### Section에서 Flow 다시시작
+PATCH {{host}}/api/rule-engine/organizations/2/storages/1/sections/2/status
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
 }

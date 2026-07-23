@@ -56,11 +56,13 @@ public class SensorInfluxRepository {
         }
     }
 
-    public List<SensorPayloadDto> findLatestByStorageId(Long storageId) {
+    public List<SensorPayloadDto> findLatestBySectionId(Long organizationId, Long storageId, Long sectionId) {
         String fluxQuery = """
                 from(bucket: "%s")
                     |> range(start: -30d)
                     |> filter(fn: (r) => r._measurement == "%s")
+                    |> filter(fn: (r) => r.section_id == "%s")
+                    |> filter(fn: (r) => r.organization_id == "%s")
                     |> filter(fn: (r) => r.storage_id == "%s")
                     |> filter(fn: (r) => r._field == "value")
                     |> group(columns: ["sensor_type"])
@@ -69,27 +71,31 @@ public class SensorInfluxRepository {
                 """.formatted(
                 influxDbProperties.bucket(),
                 influxDbProperties.measurement(),
+                sectionId,
+                organizationId,
                 storageId
         );
 
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorPayloadDto> findLatestBySensorType(String sensorType) {
+    public List<SensorPayloadDto> findLatestOrganizationBySensorType(Long organizationId, String sensorType) {
         String fluxQuery = """
-            from(bucket: "%s")
-                |> range(start: -30d)
-                |> filter(fn: (r) => r._measurement == "%s")
-                |> filter(fn: (r) => r.sensor_type == "%s")
-                |> filter(fn: (r) => r._field == "value")
-                |> filter(fn: (r) => exists r.storage_id)
-                |> group(columns: ["storage_id"])
-                |> last()
-                |> sort(columns: ["storage_id"])
-            """.formatted(
+                from(bucket: "%s")
+                    |> range(start: -30d)
+                    |> filter(fn: (r) => r._measurement == "%s")
+                    |> filter(fn: (r) => r.sensor_type == "%s")
+                    |> filter(fn: (r) => r.organization_id == "%s")
+                    |> filter(fn: (r) => r._field == "value")
+                    |> filter(fn: (r) => exists r.storage_id)
+                    |> group(columns: ["storage_id"])
+                    |> last()
+                    |> sort(columns: ["storage_id"])
+                """.formatted(
                 influxDbProperties.bucket(),
                 influxDbProperties.measurement(),
-                sensorType
+                sensorType,
+                organizationId
         );
 
         return executeQuery(fluxQuery);

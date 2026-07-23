@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.command;
 
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -9,12 +10,15 @@ import org.springframework.stereotype.Component;
 public class DoorSensorCommand implements SensorCommand {
 
     private static final String MEASUREMENT_KEY = "magnet_status";
-    private static final String SENSOR_TYPE = "door";
-    private static final String UNIT = "bool";
 
     @Override
-    public String getSensorType() {
+    public String getMeasurementKey() {
         return MEASUREMENT_KEY;
+    }
+
+    @Override
+    public SensorType getSensorType() {
+        return SensorType.DOOR;
     }
 
     @Override
@@ -25,11 +29,11 @@ public class DoorSensorCommand implements SensorCommand {
         return SensorPayloadDto.fromSensor(
                 sensorContextDto.organizationId(),
                 sensorContextDto.deviceEui(),
-                sensorContextDto.locationId(),
-                sensorContextDto.positionId(),
-                SENSOR_TYPE,
+                sensorContextDto.storageId(),
+                sensorContextDto.sectionId(),
+                getSensorType().value(),
                 toDoorState(value),
-                UNIT,
+                getSensorType().unit(),
                 sensorContextDto.time()
         );
     }

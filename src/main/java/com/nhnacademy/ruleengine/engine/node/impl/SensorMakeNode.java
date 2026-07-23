@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.MessageFields;
+import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
@@ -79,12 +80,11 @@ public class SensorMakeNode extends AbstractNode {
     protected void onProcess(Message message) {
         String measuredAt = Instant.now().toString();
 
-        publish("temperature", randomBetween(tempMin, tempMax), "C", measuredAt);
-        publish("humidity", randomBetween(humidityMin, humidityMax), "%", measuredAt);
+        publish(SensorType.TEMPERATURE, randomBetween(tempMin, tempMax), measuredAt);
+        publish(SensorType.HUMIDITY, randomBetween(humidityMin, humidityMax), measuredAt);
         publish(
-                "door",
+                SensorType.DOOR,
                 ThreadLocalRandom.current().nextDouble() < doorOpenProbability ? 1.0 : 0.0,
-                "bool",
                 measuredAt
         );
         log.info("[{}] 가상 센서 데이터 생성", getId());
@@ -109,15 +109,15 @@ public class SensorMakeNode extends AbstractNode {
         }
     }
 
-    private void publish(String sensorType, double value, String unit, String measuredAt) {
+    private void publish(SensorType sensorType, double value, String measuredAt) {
         SensorPayloadDto sensorPayload = new SensorPayloadDto(
                 organizationId,
                 deviceEui,
                 storageId,
                 sectionId,
-                sensorType,
+                sensorType.value(),
                 value,
-                unit,
+                sensorType.unit(),
                 measuredAt
         );
 
@@ -127,7 +127,7 @@ public class SensorMakeNode extends AbstractNode {
                 storageId,
                 sectionId,
                 sanitize(deviceEui),
-                sanitize(sensorType)
+                sanitize(sensorType.value())
         );
 
         send(
