@@ -32,17 +32,17 @@ public class SensorInfluxService {
 
     private final SensorInfluxRepository sensorInfluxRepository;
 
+    /**
+     * 센서 데이터를 InfluxDB에 저장한다.
+     */
     public void save(SensorPayload sensorPayload) {
-
         if (sensorPayload == null) {
-            throw new SensorDataException(ErrorCode.INVALID_SENSOR_DATA);
+            throw new SensorDataException(
+                    ErrorCode.INVALID_SENSOR_DATA
+            );
         }
 
-        validateSectionIds(
-                sensorPayload.organizationId(),
-                sensorPayload.storageId(),
-                sensorPayload.sectionId()
-        );
+        validateSensorPayloadIds(sensorPayload);
 
         SensorType sensorType =
                 parseSensorType(sensorPayload.sensorType());
@@ -62,46 +62,56 @@ public class SensorInfluxService {
         );
     }
 
+    /**
+     * 특정 구역의 센서별 최신 데이터를 조회한다.
+     *
+     * 실제 구역 존재 여부는 검증하지 않는다.
+     * 조회 결과가 없으면 빈 목록을 반환한다.
+     */
     public List<SensorPayload> findLatestBySection(
-            Long organizationId,
-            Long storageId,
             Long sectionId
     ) {
-        validateSectionIds(organizationId, storageId, sectionId);
+        validatePositiveId(sectionId, "sectionId");
 
         return sensorInfluxRepository.findLatestBySection(
-                organizationId,
-                storageId,
                 sectionId
         );
     }
 
+    /**
+     * 특정 창고에 속한 모든 구역의 센서별 최신 데이터를 조회한다.
+     *
+     * 실제 창고 존재 여부는 검증하지 않는다.
+     * 조회 결과가 없으면 빈 목록을 반환한다.
+     */
     public List<SensorPayload> findLatestByStorage(
-            Long organizationId,
             Long storageId
     ) {
-        validateStorageIds(organizationId, storageId);
+        validatePositiveId(storageId, "storageId");
 
         return sensorInfluxRepository.findLatestByStorage(
-                organizationId,
                 storageId
         );
     }
 
+    /**
+     * 조직의 최신 센서 데이터를 조회한다.
+     *
+     * sensorType이 없으면 모든 센서 타입을 조회한다.
+     */
     public List<SensorPayload> findLatestByOrganization(
             Long organizationId,
             String sensorType
     ) {
         validatePositiveId(organizationId, "organizationId");
 
-        if (sensorType == null || sensorType.isBlank()) {
-            return sensorInfluxRepository.findLatestByOrganization(
-                    organizationId
-            );
-        }
-
         String resolvedSensorType =
-                parseSensorType(sensorType).value();
+                parseOptionalSensorType(sensorType);
+
+        if (resolvedSensorType == null) {
+            return sensorInfluxRepository
+                    .findLatestByOrganization(organizationId);
+        }
 
         return sensorInfluxRepository
                 .findLatestByOrganizationAndSensorType(
@@ -110,16 +120,22 @@ public class SensorInfluxService {
                 );
     }
 
+    /**
+     * 특정 구역의 센서 이력을 조회한다.
+     *
+     * from이 없으면 종료 시각 기준 최근 24시간을 조회한다.
+     * to가 없으면 현재 시각을 사용한다.
+     * window가 없으면 10분 단위로 집계한다.
+     * sensorType이 없으면 모든 센서 타입을 조회한다.
+     */
     public List<SensorHistoryResponse> findHistoryBySection(
-            Long organizationId,
-            Long storageId,
             Long sectionId,
             String sensorType,
             Instant from,
             Instant to,
             String window
     ) {
-        validateSectionIds(organizationId, storageId, sectionId);
+        validatePositiveId(sectionId, "sectionId");
 
         Instant resolvedTo = resolveTo(to);
         Instant resolvedFrom = resolveFrom(from, resolvedTo);
@@ -130,13 +146,35 @@ public class SensorInfluxService {
         validateTimeRange(resolvedFrom, resolvedTo);
 
         return sensorInfluxRepository.findHistoryBySection(
-                organizationId,
-                storageId,
                 sectionId,
                 resolvedSensorType,
                 resolvedFrom,
                 resolvedTo,
                 resolvedWindow
+        );
+    }
+
+    /**
+     * 저장할 센서 데이터의 ID 형식을 검증한다.
+     *
+     * 실제 계층 관계는 데이터 수집 이전 단계에서 검증한다.
+     */
+    private void validateSensorPayloadIds(
+            SensorPayload sensorPayload
+    ) {
+        validatePositiveId(
+                sensorPayload.organizationId(),
+                "organizationId"
+        );
+
+        validatePositiveId(
+                sensorPayload.storageId(),
+                "storageId"
+        );
+
+        validatePositiveId(
+                sensorPayload.sectionId(),
+                "sectionId"
         );
     }
 
@@ -161,7 +199,14 @@ public class SensorInfluxService {
         return normalizeWindow(window);
     }
 
-    private String parseOptionalSensorType(String sensorType) {
+    /**
+     * 선택적인 센서 타입을 변환한다.
+     *
+     * 값이 없으면 모든 센서 타입을 조회하기 위해 null을 반환한다.
+     */
+    private String parseOptionalSensorType(
+            String sensorType
+    ) {
         if (sensorType == null || sensorType.isBlank()) {
             return null;
         }
@@ -169,7 +214,12 @@ public class SensorInfluxService {
         return parseSensorType(sensorType).value();
     }
 
-    private SensorType parseSensorType(String sensorType) {
+    /**
+     * 필수 센서 타입을 검증하고 SensorType으로 변환한다.
+     */
+    private SensorType parseSensorType(
+            String sensorType
+    ) {
         if (sensorType == null || sensorType.isBlank()) {
             throw new SensorDataException(
                     ErrorCode.INVALID_SENSOR_TYPE
@@ -183,23 +233,6 @@ public class SensorInfluxService {
                 .orElseThrow(() -> new SensorDataException(
                         ErrorCode.UNSUPPORTED_SENSOR_TYPE
                 ));
-    }
-
-    private void validateSectionIds(
-            Long organizationId,
-            Long storageId,
-            Long sectionId
-    ) {
-        validateStorageIds(organizationId, storageId);
-        validatePositiveId(sectionId, "sectionId");
-    }
-
-    private void validateStorageIds(
-            Long organizationId,
-            Long storageId
-    ) {
-        validatePositiveId(organizationId, "organizationId");
-        validatePositiveId(storageId, "storageId");
     }
 
     private void validatePositiveId(
@@ -224,7 +257,9 @@ public class SensorInfluxService {
         }
     }
 
-    private String normalizeWindow(String window) {
+    private String normalizeWindow(
+            String window
+    ) {
         String normalizedWindow =
                 window.trim().toLowerCase(Locale.ROOT);
 
@@ -239,7 +274,9 @@ public class SensorInfluxService {
         return normalizedWindow;
     }
 
-    private Instant parseTimestampOrNow(String time) {
+    private Instant parseTimestampOrNow(
+            String time
+    ) {
         if (time == null || time.isBlank()) {
             return Instant.now();
         }
