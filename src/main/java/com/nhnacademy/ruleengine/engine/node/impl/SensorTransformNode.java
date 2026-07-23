@@ -34,7 +34,7 @@ public class SensorTransformNode extends AbstractNode {
     ) {
         super(id);
         this.sectionCatalog = Objects.requireNonNull(
-              sectionCatalog,
+                sectionCatalog,
                 "sectionCatalog은 null일 수 없습니다."
         );
 
@@ -47,11 +47,11 @@ public class SensorTransformNode extends AbstractNode {
                         "sensorCommands는 null일 수 없습니다."
                 ).stream()
                 .collect(Collectors.toUnmodifiableMap(
-                        SensorCommand::getSensorType,
+                        SensorCommand::getMeasurementKey,
                         Function.identity(),
                         (existing, replacement) -> {
                             throw new IllegalArgumentException(
-                                    "중복된 센서 타입입니다: " + existing.getSensorType()
+                                    "중복된 측정 키입니다: " + existing.getMeasurementKey()
                             );
                         }
                 ));

@@ -21,6 +21,7 @@ public class SectionCatalog {
         storageIdsIdsByLocation.put("사무실 밖", 1L);
         storageIdsIdsByLocation.put("사무실", 2L);
         storageIdsIdsByLocation.put("실습실", 3L);
+        storageIdsIdsByLocation.put("회의실", 4L);
 
         sectionIdsByPoint.put("업무 공간 안쪽", 1L);
         sectionIdsByPoint.put("입구 오른쪽", 2L);

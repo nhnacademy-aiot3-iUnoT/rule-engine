@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.FlowEngine;
 import com.nhnacademy.ruleengine.engine.dto.LocationCreateRequest;
+import com.nhnacademy.ruleengine.engine.dto.SensorStatus;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.flow.VirtualSensorFlow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
@@ -50,5 +51,24 @@ public class VirtualSensorService {
         VirtualSensorFlow flow = new VirtualSensorFlow(sectionId.toString(), ruleEngineProperties, mqttNodeConfigFactory, sensorConfig);
         flowEngine.registerAndStart(flow.create());
 
+    }
+
+    public void changeStatus(
+            Long organizationId,
+            Long storageId,
+            Long sectionId,
+            SensorStatus status
+    ) {
+        // TODO 추후 sectionId가 해당 조직, 저장소 아래에 존재하는지 검증로직 추가
+
+        if (status == SensorStatus.INACTIVE) {
+            flowEngine.stopFlow("virtual-sensor-flow-" + sectionId);
+            return;
+        }
+
+        // ACTIVE라면 저장된 설정을 조회해서 다시 Flow 시작
+        if (status == SensorStatus.ACTIVE) {
+            flowEngine.startFlow("virtual-sensor-flow-" + sectionId);
+        }
     }
 }

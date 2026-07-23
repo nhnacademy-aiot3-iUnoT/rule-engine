@@ -1,31 +1,19 @@
-@host = http://localhost:10405
+@host = http://localhost:10406
 
-### 전체 위치의 최신 온도 데이터 조회
-GET {{host}}/api/rule-engine/sensor-data/types/temperature/latest
-Accept: application/json
+### 조직의 최신 센서데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/sensor-data/latest
 
-### 전체 위치의 최신 습도 데이터 조회
-GET {{host}}/api/rule-engine/sensor-data/types/humidity/latest
-Accept: application/json
+### 조직의 특정 센서타입의 최신데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/sensor-data/latest?sensorType=temperature
 
-### 전체 위치의 최신 문열림 데이터 조회
-GET {{host}}/api/rule-engine/sensor-data/types/door/latest
-Accept: application/json
+### 저장소별 최신 센서 데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/storages/1/sensor-data/latest
 
-### 특정 위치의 최신 온도·습도·문열림 조회
-GET {{host}}/api/rule-engine/sensor-data/locations/1/latest
-Accept: application/json
+### 구역 센서별 최신데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/storages/2/sections/1/sensor-data/latest
 
-### 존재하지 않는 센서데이터 조회
-GET {{host}}/api/rule-engine/sensor-data/types/co2/latest
-Accept: application/json
+### 구역의 전체 센서 이력 조회
+GET {{host}}/api/rule-engine/organizations/1/storages/3/sections/5/sensor-data/history?window=30m
 
-### 존재하지 않는 최신 온도·습도·문열림 조회
-GET {{host}}/api/rule-engine/sensor-data/locations/5/latest
-Accept: application/json
-
-###
-GET {{host}}/api/rule-engine/sensor-data/locations/-1/latest
-Accept: application/json
-
-
+### 구역의 특정 센서 타입 or 전체 센서의 일정시간의 데이터 조회
+GET {{host}}/api/rule-engine/organizations/1/storages/3/sections/5/sensor-data/history?window=30m

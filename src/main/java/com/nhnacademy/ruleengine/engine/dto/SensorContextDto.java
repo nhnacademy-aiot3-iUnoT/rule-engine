@@ -7,8 +7,8 @@ import com.nhnacademy.ruleengine.engine.location.SectionCatalog.ResolvedSection;
 public record SensorContextDto(
         Long organizationId,
         String deviceEui,
-        Long locationId,
-        Long positionId,
+        Long storageId,
+        Long sectionId,
         String time
 ) {
 
