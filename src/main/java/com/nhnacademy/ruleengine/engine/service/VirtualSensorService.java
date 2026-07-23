@@ -69,7 +69,6 @@ public class VirtualSensorService {
         // ACTIVE라면 저장된 설정을 조회해서 다시 Flow 시작
         if (status == SensorStatus.ACTIVE) {
             flowEngine.startFlow("virtual-sensor-flow-" + sectionId);
-            return;
         }
     }
 }

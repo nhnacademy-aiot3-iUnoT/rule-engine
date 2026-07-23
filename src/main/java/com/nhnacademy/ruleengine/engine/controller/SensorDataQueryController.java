@@ -1,5 +1,7 @@
 package com.nhnacademy.ruleengine.engine.controller;
 
+import com.nhnacademy.ruleengine.engine.dto.SensorHistoryQueryRequest;
+import com.nhnacademy.ruleengine.engine.dto.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
@@ -36,19 +38,12 @@ public class SensorDataQueryController {
     @GetMapping(
             "/organizations/{organizationId}/sensor-data/latest"
     )
-    public ApiResponse<List<SensorPayloadDto>> findLatestBySensorType(
+    public ApiResponse<List<SensorPayloadDto>> findLatestByOrganization(
             @PathVariable Long organizationId,
             @RequestParam(required = false) String sensorType
     ) {
-        // 타입이 없는경우 모든 센서데이터 조회
-        if(sensorType == null) {
-            return ApiResponse.success(
-                    sensorInfluxService.findLatestByOrganizationId(organizationId)
-            );
-        }
-
         return ApiResponse.success(
-                sensorInfluxService.findLatestBySensorType(
+                sensorInfluxService.findLatestByOrganization(
                         organizationId,
                         sensorType
                 )
@@ -66,6 +61,29 @@ public class SensorDataQueryController {
                 sensorInfluxService.findLatestByStorageId(
                         organizationId,
                         storageId
+                )
+        );
+    }
+
+    @GetMapping(
+            "/organizations/{organizationId}/storages/{storageId}"
+                    + "/sections/{sectionId}/sensor-data/history"
+    )
+    public ApiResponse<List<SensorHistoryResponse>> findHistory(
+            @PathVariable Long organizationId,
+            @PathVariable Long storageId,
+            @PathVariable Long sectionId,
+            @ModelAttribute SensorHistoryQueryRequest request
+    ) {
+        return ApiResponse.success(
+                sensorInfluxService.findHistory(
+                        organizationId,
+                        storageId,
+                        sectionId,
+                        request.sensorType(),
+                        request.from(),
+                        request.to(),
+                        request.window()
                 )
         );
     }

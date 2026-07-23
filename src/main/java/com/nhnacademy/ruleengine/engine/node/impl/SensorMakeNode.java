@@ -2,8 +2,8 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.MessageFields;
-import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 

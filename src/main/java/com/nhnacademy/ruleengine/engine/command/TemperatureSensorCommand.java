@@ -1,8 +1,8 @@
 package com.nhnacademy.ruleengine.engine.command;
 
-import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.SensorType;
 import org.springframework.stereotype.Component;
 
 @Component
