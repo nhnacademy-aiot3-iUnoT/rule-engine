@@ -4,8 +4,8 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxRecord;
-import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
+import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataSaveException;
 import com.nhnacademy.ruleengine.global.config.InfluxDbProperties;
@@ -24,6 +24,9 @@ import java.util.function.Function;
 @Repository
 @RequiredArgsConstructor
 public class SensorInfluxRepository {
+
+    private static final String VALUE_FIELD = "value";
+    private static final String DEFAULT_LATEST_RANGE = "-30d";
 
     private final InfluxDBClient influxDBClient;
     private final InfluxDbProperties influxDbProperties;
@@ -45,133 +48,150 @@ public class SensorInfluxRepository {
                 .addTag("sensor_type", sensorType)
                 .addTag("device_eui", deviceEui)
                 .addTag("unit", unit)
-                .addField("value", value)
+                .addField(VALUE_FIELD, value)
                 .time(timestamp, WritePrecision.NS);
 
         try {
-            influxDBClient.getWriteApiBlocking()
-                    .writePoint(
-                            influxDbProperties.bucket(),
-                            influxDbProperties.org(),
-                            point
-                    );
-        } catch (Exception e) {
-            throw new SensorDataSaveException("InfluxDB 저장 실패", e);
+            influxDBClient.getWriteApiBlocking().writePoint(
+                    influxDbProperties.bucket(),
+                    influxDbProperties.org(),
+                    point
+            );
+        } catch (Exception exception) {
+            log.error(
+                    "InfluxDB 센서 데이터 저장에 실패했습니다. organizationId={}, storageId={}, sectionId={}, deviceEui={}",
+                    organizationId,
+                    storageId,
+                    sectionId,
+                    deviceEui,
+                    exception
+            );
+
+            throw new SensorDataSaveException(
+                    "InfluxDB 저장 실패",
+                    exception
+            );
         }
     }
 
-    public List<SensorPayload> findLatestBySection(
-            Long organizationId,
-            Long storageId,
-            Long sectionId
-    ) {
+    /**
+     * 특정 구역의 센서 타입별 최신 데이터를 조회한다.
+     */
+    public List<SensorPayload> findLatestBySection(Long sectionId) {
         String fluxQuery = """
                 from(bucket: "%s")
-                    |> range(start: -30d)
+                    |> range(start: %s)
                     |> filter(fn: (r) => r._measurement == "%s")
                     |> filter(fn: (r) => r.section_id == "%s")
-                    |> filter(fn: (r) => r.organization_id == "%s")
-                    |> filter(fn: (r) => r.storage_id == "%s")
-                    |> filter(fn: (r) => r._field == "value")
+                    |> filter(fn: (r) => r._field == "%s")
                     |> group(columns: ["sensor_type"])
                     |> last()
                     |> group()
                     |> sort(columns: ["sensor_type"])
                 """.formatted(
                 influxDbProperties.bucket(),
+                DEFAULT_LATEST_RANGE,
                 influxDbProperties.measurement(),
                 sectionId,
-                organizationId,
-                storageId
+                VALUE_FIELD
         );
 
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorPayload> findLatestByOrganizationAndSensorType(
-            Long organizationId,
-            String sensorType
-    ) {
+    /**
+     * 특정 창고에 속한 구역별·센서 타입별 최신 데이터를 조회한다.
+     */
+    public List<SensorPayload> findLatestByStorage(Long storageId) {
         String fluxQuery = """
                 from(bucket: "%s")
-                    |> range(start: -30d)
+                    |> range(start: %s)
                     |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.sensor_type == "%s")
-                    |> filter(fn: (r) => r.organization_id == "%s")
-                    |> filter(fn: (r) => r._field == "value")
-                    |> filter(fn: (r) => exists r.storage_id)
-                    |> group(columns: ["storage_id", "section_id"])
-                    |> last()
-                    |> group()
-                    |> sort(columns: ["storage_id", "section_id"])
-                """.formatted(
-                influxDbProperties.bucket(),
-                influxDbProperties.measurement(),
-                sensorType,
-                organizationId
-        );
-
-        return executeQuery(fluxQuery);
-    }
-
-    public List<SensorPayload> findLatestByStorage(
-            Long organizationId,
-            Long storageId
-    ) {
-        String fluxQuery = """
-                from(bucket: "%s")
-                    |> range(start: -30d)
-                    |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.organization_id == "%s")
                     |> filter(fn: (r) => r.storage_id == "%s")
-                    |> filter(fn: (r) => r._field == "value")
+                    |> filter(fn: (r) => r._field == "%s")
                     |> group(columns: ["section_id", "sensor_type"])
                     |> last()
                     |> group()
                     |> sort(columns: ["section_id", "sensor_type"])
                 """.formatted(
                 influxDbProperties.bucket(),
+                DEFAULT_LATEST_RANGE,
                 influxDbProperties.measurement(),
-                organizationId,
-                storageId
+                storageId,
+                VALUE_FIELD
         );
 
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorPayload> findLatestByOrganization(Long organizationId) {
+    /**
+     * 특정 조직의 센서별 최신 데이터를 조회한다.
+     */
+    public List<SensorPayload> findLatestByOrganization(
+            Long organizationId
+    ) {
         String fluxQuery = """
                 from(bucket: "%s")
-                    |> range(start: -30d)
+                    |> range(start: %s)
                     |> filter(fn: (r) => r._measurement == "%s")
                     |> filter(fn: (r) => r.organization_id == "%s")
-                    |> filter(fn: (r) => r._field == "value")
+                    |> filter(fn: (r) => r._field == "%s")
                     |> group(columns: ["storage_id", "section_id", "sensor_type"])
                     |> last()
                     |> group()
                     |> sort(columns: ["storage_id", "section_id", "sensor_type"])
                 """.formatted(
                 influxDbProperties.bucket(),
+                DEFAULT_LATEST_RANGE,
                 influxDbProperties.measurement(),
-                organizationId
+                organizationId,
+                VALUE_FIELD
         );
 
         return executeQuery(fluxQuery);
     }
 
-    public List<SensorHistoryResponse> findHistoryBySection(
+    /**
+     * 특정 조직에서 지정한 센서 타입의 구역별 최신 데이터를 조회한다.
+     */
+    public List<SensorPayload> findLatestByOrganizationAndSensorType(
             Long organizationId,
-            Long storageId,
+            String sensorType
+    ) {
+        String fluxQuery = """
+                from(bucket: "%s")
+                    |> range(start: %s)
+                    |> filter(fn: (r) => r._measurement == "%s")
+                    |> filter(fn: (r) => r.organization_id == "%s")
+                    |> filter(fn: (r) => r.sensor_type == "%s")
+                    |> filter(fn: (r) => r._field == "%s")
+                    |> group(columns: ["storage_id", "section_id"])
+                    |> last()
+                    |> group()
+                    |> sort(columns: ["storage_id", "section_id"])
+                """.formatted(
+                influxDbProperties.bucket(),
+                DEFAULT_LATEST_RANGE,
+                influxDbProperties.measurement(),
+                organizationId,
+                sensorType,
+                VALUE_FIELD
+        );
+
+        return executeQuery(fluxQuery);
+    }
+
+    /**
+     * 특정 구역의 센서 이력을 조회한다.
+     */
+    public List<SensorHistoryResponse> findHistoryBySection(
             Long sectionId,
             String sensorType,
             Instant from,
             Instant to,
             String window
     ) {
-        String sensorTypeFilter = sensorType == null
-                ? ""
-                : "|> filter(fn: (r) => r.sensor_type == \"%s\")"
-                  .formatted(sensorType);
+        String sensorTypeFilter = createSensorTypeFilter(sensorType);
 
         String fluxQuery = """
                 from(bucket: "%s")
@@ -180,11 +200,9 @@ public class SensorInfluxRepository {
                         stop: time(v: "%s")
                     )
                     |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.organization_id == "%s")
-                    |> filter(fn: (r) => r.storage_id == "%s")
                     |> filter(fn: (r) => r.section_id == "%s")
                     %s
-                    |> filter(fn: (r) => r._field == "value")
+                    |> filter(fn: (r) => r._field == "%s")
                     |> group(columns: ["sensor_type", "unit"])
                     |> aggregateWindow(
                         every: %s,
@@ -198,18 +216,33 @@ public class SensorInfluxRepository {
                 from,
                 to,
                 influxDbProperties.measurement(),
-                organizationId,
-                storageId,
                 sectionId,
                 sensorTypeFilter,
+                VALUE_FIELD,
                 window
         );
 
-        return executeQuery(fluxQuery, this::toHistoryResponse);
+        return executeQuery(
+                fluxQuery,
+                this::toHistoryResponse
+        );
+    }
+
+    private String createSensorTypeFilter(String sensorType) {
+        if (sensorType == null) {
+            return "";
+        }
+
+        return """
+                |> filter(fn: (r) => r.sensor_type == "%s")
+                """.formatted(sensorType);
     }
 
     private List<SensorPayload> executeQuery(String fluxQuery) {
-        return executeQuery(fluxQuery, this::toSensorPayload);
+        return executeQuery(
+                fluxQuery,
+                this::toSensorPayload
+        );
     }
 
     private <T> List<T> executeQuery(
@@ -218,18 +251,31 @@ public class SensorInfluxRepository {
     ) {
         try {
             return influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDbProperties.org())
+                    .query(
+                            fluxQuery,
+                            influxDbProperties.org()
+                    )
                     .stream()
-                    .flatMap(table -> table.getRecords().stream())
+                    .flatMap(table ->
+                            table.getRecords().stream()
+                    )
                     .map(mapper)
                     .toList();
         } catch (Exception exception) {
-            log.error("InfluxDB 센서 데이터 조회에 실패했습니다.", exception);
-            throw new SensorDataException(ErrorCode.SENSOR_DATA_QUERY_FAILED);
+            log.error(
+                    "InfluxDB 센서 데이터 조회에 실패했습니다.",
+                    exception
+            );
+
+            throw new SensorDataException(
+                    ErrorCode.SENSOR_DATA_QUERY_FAILED
+            );
         }
     }
 
-    private SensorPayload toSensorPayload(FluxRecord record) {
+    private SensorPayload toSensorPayload(
+            FluxRecord record
+    ) {
         return new SensorPayload(
                 parseId(record, "organization_id"),
                 getStringValue(record, "device_eui"),
@@ -238,20 +284,28 @@ public class SensorInfluxRepository {
                 getStringValue(record, "sensor_type"),
                 getNumberValue(record),
                 getStringValue(record, "unit"),
-                record.getTime() != null ? record.getTime().toString() : null
+                record.getTime() != null
+                        ? record.getTime().toString()
+                        : null
         );
     }
 
-    private SensorHistoryResponse toHistoryResponse(FluxRecord record) {
+    private SensorHistoryResponse toHistoryResponse(
+            FluxRecord record
+    ) {
         if (record.getTime() == null) {
-            throw new IllegalStateException("센서 측정 시간이 존재하지 않습니다.");
+            throw new IllegalStateException(
+                    "센서 측정 시간이 존재하지 않습니다."
+            );
         }
 
         return new SensorHistoryResponse(
                 getStringValue(record, "sensor_type"),
                 getStringValue(record, "unit"),
                 record.getTime(),
-                roundToFirstDecimalPlace(getNumberValue(record)) //소수점 둘째 자리 반올림
+                roundToFirstDecimalPlace(
+                        getNumberValue(record)
+                )
         );
     }
 
@@ -260,29 +314,48 @@ public class SensorInfluxRepository {
 
         if (!(rawValue instanceof Number numberValue)) {
             throw new IllegalStateException(
-                    "센서 측정값이 숫자 형식이 아닙니다: " + rawValue
+                    "센서 측정값이 숫자 형식이 아닙니다: "
+                            + rawValue
             );
         }
 
         return numberValue.doubleValue();
     }
 
-    private String getStringValue(FluxRecord record, String key) {
+    private String getStringValue(
+            FluxRecord record,
+            String key
+    ) {
         Object value = record.getValueByKey(key);
-        return value != null ? String.valueOf(value) : null;
+
+        return value != null
+                ? String.valueOf(value)
+                : null;
     }
 
-    private Long parseId(FluxRecord record, String key) {
+    private Long parseId(
+            FluxRecord record,
+            String key
+    ) {
         String id = getStringValue(record, key);
 
         if (id == null || id.isBlank()) {
             return null;
         }
 
-        return Long.parseLong(id);
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException exception) {
+            throw new IllegalStateException(
+                    key + "가 숫자 형식이 아닙니다: " + id,
+                    exception
+            );
+        }
     }
 
-    private double roundToFirstDecimalPlace(double value) {
+    private double roundToFirstDecimalPlace(
+            double value
+    ) {
         return BigDecimal.valueOf(value)
                 .setScale(1, RoundingMode.HALF_UP)
                 .doubleValue();
