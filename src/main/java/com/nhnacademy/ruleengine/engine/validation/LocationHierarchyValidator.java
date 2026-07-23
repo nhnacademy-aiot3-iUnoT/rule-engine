@@ -7,18 +7,32 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class LocationHierarchyValidator {
 
-    // TODO 추후 DB통해 조회로 변경
+    // TODO 장소관리 서비스 API Client 주입
 
     public void validateOrganization(Long organizationId) {
-        // 검증
+        validatePositiveId(
+                organizationId,
+                "organizationId"
+        );
+
+        // TODO 장소관리 서비스에서 조직 존재 여부 조회
     }
 
     public void validateStorage(
             Long organizationId,
             Long storageId
     ) {
-        validateOrganization(organizationId);
-        // 저장소 소속 검증
+        validatePositiveId(
+                organizationId,
+                "organizationId"
+        );
+
+        validatePositiveId(
+                storageId,
+                "storageId"
+        );
+
+        // TODO storageId가 organizationId 소속인지 조회
     }
 
     public void validateSection(
@@ -26,7 +40,32 @@ public class LocationHierarchyValidator {
             Long storageId,
             Long sectionId
     ) {
-        validateStorage(organizationId, storageId);
-        // Section 소속 검증
+        validatePositiveId(
+                organizationId,
+                "organizationId"
+        );
+
+        validatePositiveId(
+                storageId,
+                "storageId"
+        );
+
+        validatePositiveId(
+                sectionId,
+                "sectionId"
+        );
+
+        // TODO sectionId가 organizationId와 storageId 소속인지 조회
+    }
+
+    private void validatePositiveId(
+            Long id,
+            String fieldName
+    ) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException(
+                    fieldName + "는 1 이상의 값이어야 합니다."
+            );
+        }
     }
 }

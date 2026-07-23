@@ -3,11 +3,11 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.MessageFields;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
-import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.engine.location.SectionCatalog;
-import com.nhnacademy.ruleengine.engine.location.SectionCatalog.ResolvedSection;
+import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
+import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
+import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,7 +59,7 @@ public class SensorTransformNode extends AbstractNode {
 
     @Override
     public void onProcess(Message message) {
-        ExternalSensorMessageDto externalSensorMessage = message.get(MessageFields.EXTERNAL_SENSOR_MESSAGE);
+        ExternalSensorMessage externalSensorMessage = message.get(MessageFields.EXTERNAL_SENSOR_MESSAGE);
 
         if (externalSensorMessage == null) {
             // 변환할 MQTT DTO가 없으면 메시지를 건너뛴다.
@@ -82,7 +82,7 @@ public class SensorTransformNode extends AbstractNode {
             return;
         }
 
-        ResolvedSection resolvedSection = sectionCatalog.resolve(
+        ResolvedSection resolvedSection = sectionCatalog.resolveSection(
                         externalSensorMessage.applicationName(),
                         externalSensorMessage.location(),
                         externalSensorMessage.point()
@@ -100,7 +100,7 @@ public class SensorTransformNode extends AbstractNode {
             return;
         }
 
-        SensorContextDto sensorContextDto = SensorContextDto.from(
+        SensorContext sensorContext = SensorContext.from(
                 externalSensorMessage,
                 resolvedSection
         );
@@ -110,7 +110,7 @@ public class SensorTransformNode extends AbstractNode {
                         executeSensorCommand(
                                 sensorType,
                                 value,
-                                sensorContextDto
+                                sensorContext
                         )
         );
     }
@@ -118,7 +118,7 @@ public class SensorTransformNode extends AbstractNode {
     private void executeSensorCommand(
             String sensorType,
             Object value,
-            SensorContextDto sensorContextDto
+            SensorContext sensorContext
     ) {
         SensorCommand command = sensorCommands.get(sensorType);
 
@@ -134,7 +134,7 @@ public class SensorTransformNode extends AbstractNode {
 
         try {
             // 측정값을 표준 센서 payload로 변환해 출력한다.
-            sendSensor(command.execute(value, sensorContextDto));
+            sendSensor(command.execute(value, sensorContext));
 
         } catch (IllegalArgumentException e) {
             log.warn(
@@ -156,7 +156,7 @@ public class SensorTransformNode extends AbstractNode {
     }
 
     private void sendSensor(
-            SensorPayloadDto sensorPayload
+            SensorPayload sensorPayload
     ) {
         String topic = String.format(
                 "%d/%d/%s/%s",

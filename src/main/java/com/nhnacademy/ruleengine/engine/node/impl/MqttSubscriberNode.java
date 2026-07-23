@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.MessageFields;
-import com.nhnacademy.ruleengine.engine.dto.ExternalSensorMessageDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
@@ -115,7 +115,7 @@ public class MqttSubscriberNode extends ProtocolNode {
         }
 
         // 외부 MQTT 구독시
-        ExternalSensorMessageDto externalSensorMessage = ExternalSensorMessageDto.from(receivedPayload);
+        ExternalSensorMessage externalSensorMessage = ExternalSensorMessage.from(receivedPayload);
         send(OUTPUT_PORT, new Message(Map.of(
                 MessageFields.EXTERNAL_SENSOR_MESSAGE,
                 externalSensorMessage
@@ -130,9 +130,9 @@ public class MqttSubscriberNode extends ProtocolNode {
     // 내부 MQTT 수신 로직
     private void sendStandardSensorPayload(Map<String, Object> receivedPayload) {
         try {
-            SensorPayloadDto sensorPayload = objectMapper.convertValue(
+            SensorPayload sensorPayload = objectMapper.convertValue(
                     receivedPayload,
-                    SensorPayloadDto.class
+                    SensorPayload.class
             );
             send(OUTPUT_PORT, new Message(Map.of(MessageFields.SENSOR_PAYLOAD, sensorPayload)));
         } catch (IllegalArgumentException e) {

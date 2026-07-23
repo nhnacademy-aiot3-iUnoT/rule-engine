@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.sensor;
 
 import java.util.Arrays;
 import java.util.Locale;
