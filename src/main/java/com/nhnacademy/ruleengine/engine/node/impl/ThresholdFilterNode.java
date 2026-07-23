@@ -1,6 +1,7 @@
-package com.nhnacademy.ruleengine.engine.node.impl.rule;
+package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.dto.RuleResultCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.RuleResultDto;
 import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.dto.ThresholdPolicyDto;
@@ -47,65 +48,12 @@ public class ThresholdFilterNode extends AbstractNode {
         Long storageId = sensorPayload.storageId();
         Long sectionId = sensorPayload.sectionId();
 
-        ThresholdPolicyDto thresholdPolicy = thresholdPolicyService.getThresholdPolicy(organizationId, storageId, sectionId);
 
         if(!TEMPERATURE.equals(sensorType) && !HUMIDITY.equals(sensorType)){
             return;
         }
 
-        if (organizationId == null || organizationId <= 0) {
-            log.info("[{}] organizationId가 없어 임계값 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
-                    getId(),
-                    organizationId,
-                    storageId,
-                    sectionId,
-                    sensorType
-            );
-            return;
-        }
-
-        if (storageId == null || storageId <= 0) {
-            log.info("[{}] storageId가 없어 임계값 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
-                    getId(),
-                    organizationId,
-                    storageId,
-                    sectionId,
-                    sensorType
-            );
-            return;
-        }
-
-        if (sectionId == null || sectionId <= 0) {
-            log.info("[{}] sectionId가 없어 임계값 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
-                    getId(),
-                    organizationId,
-                    storageId,
-                    sectionId,
-                    sensorType
-            );
-            return;
-        }
-
-        if (sensorPayload.deviceEui() == null || sensorPayload.deviceEui().isBlank()) {
-            log.info("[{}] deviceEui가 없어 임계값 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
-                    getId(),
-                    organizationId,
-                    storageId,
-                    sectionId,
-                    sensorType);
-            return;
-        }
-
-        if (sensorPayload.value() == null) {
-            log.info("[{}] 센서값이 없어 임계값 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
-                    getId(),
-                    organizationId,
-                    storageId,
-                    sectionId,
-                    sensorType
-            );
-            return;
-        }
+        ThresholdPolicyDto thresholdPolicy = thresholdPolicyService.getThresholdPolicy(organizationId, storageId, sectionId);
 
         if(thresholdPolicy==null){
             log.info("[{}] 임계값 설정이 없어 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}, deviceEui={}",
@@ -140,12 +88,12 @@ public class ThresholdFilterNode extends AbstractNode {
 
 
         if(min != null && value < min){
-            sendRuleResult(sensorPayload, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최솟값 미달");
+            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최솟값 미달"));
             return;
         }
 
         if(max != null && value > max){
-            sendRuleResult(sensorPayload, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최댓값 초과");
+            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최댓값 초과"));
             return;
         }
 
@@ -160,34 +108,13 @@ public class ThresholdFilterNode extends AbstractNode {
             return;
         }
 
-        sendRuleResult(sensorPayload, false, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 정상");
+        sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, false, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 정상"));
     }
 
     private void sendRuleResult(
-            SensorPayloadDto sensorPayload,
-            boolean violated,
-            Double min,
-            Double max,
-            Integer thresholdDurationMinutes,
-            String message
-
+            RuleResultCreateRequest ruleResultCreateRequest
     ){
-        RuleResultDto ruleResult = new RuleResultDto(
-                sensorPayload.organizationId(),
-                sensorPayload.deviceEui(),
-                sensorPayload.storageId(),
-                sensorPayload.sectionId(),
-                sensorPayload.sensorType(),
-                null,
-                violated,
-                sensorPayload.value(),
-                min,
-                max,
-                sensorPayload.unit(),
-                sensorPayload.time(),
-                thresholdDurationMinutes,
-                message
-        );
+        RuleResultDto ruleResult = RuleResultDto.fromThreshold(ruleResultCreateRequest);
 
         send(OUT_PORT, new Message(Map.of(
                 RULE_RESULT,
@@ -197,12 +124,12 @@ public class ThresholdFilterNode extends AbstractNode {
 
         log.info("[{}] 임계값 검사 결과. sensorType={}, violate={}, value={}, min={}, max={}, reason={}",
                 getId(),
-                sensorPayload.sensorType(),
-                violated,
-                sensorPayload.value(),
-                min,
-                max,
-                message
+                ruleResultCreateRequest.sensorPayload().sensorType(),
+                ruleResultCreateRequest.violated(),
+                ruleResultCreateRequest.sensorPayload().value(),
+                ruleResultCreateRequest.min(),
+                ruleResultCreateRequest.max(),
+                ruleResultCreateRequest.message()
         );
     }
 }
