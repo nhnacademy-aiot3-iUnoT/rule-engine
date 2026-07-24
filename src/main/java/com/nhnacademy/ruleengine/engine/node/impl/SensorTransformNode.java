@@ -159,9 +159,10 @@ public class SensorTransformNode extends AbstractNode {
             SensorPayloadDto sensorPayload
     ) {
         String topic = String.format(
-                "%d/%d/%s/%s",
+                "%d/%d/%d/%s/%s",
                 sensorPayload.organizationId(),
                 sensorPayload.storageId(),
+                sensorPayload.sectionId(),
                 sanitize(sensorPayload.deviceEui()),
                 sanitize(sensorPayload.sensorType())
         );
