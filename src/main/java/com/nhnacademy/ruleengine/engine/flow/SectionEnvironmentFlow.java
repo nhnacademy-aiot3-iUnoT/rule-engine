@@ -8,21 +8,18 @@ import com.nhnacademy.ruleengine.engine.node.impl.SensorPayloadValidationNode;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
-@RequiredArgsConstructor
-// 내부 MQTT iot/# 토픽을 구독하고 검증한 센서 데이터를 InfluxDB에 저장하는 Flow
-public class InternalMqttSubscriberFlow implements FlowFactory {
+// 각 section별 환경 플로우 (sectionId)
+// 내부 MQTT iot/# 토픽을 구독 + 센서 데이터 검증 + InfluxDB에 저장 + 환경룰
+public class SectionEnvironmentFlow {
 
-    public static final String FLOW_ID = "internal-mqtt-subscriber-flow";
+    private final Long sectionId;
 
+    static final String FLOW_ID_PREFIX = "section-environment-flow-";
     static final String SUBSCRIBER_NODE_ID = "internal-mqtt-subscriber";
     static final String VALIDATION_NODE_ID = "sensor-payload-validation";
     static final String DATABASE_SAVE_NODE_ID = "sensor-database-save";
 
-    private static final String ALL_TOPICS = "#";
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
@@ -30,14 +27,20 @@ public class InternalMqttSubscriberFlow implements FlowFactory {
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
     private final SensorInfluxService sensorInfluxService;
 
-    @Override
+    public SectionEnvironmentFlow(Long sectionId, RuleEngineProperties properties, MqttNodeConfigFactory mqttNodeConfigFactory, SensorInfluxService sensorInfluxService) {
+        this.sectionId = sectionId;
+        this.properties = properties;
+        this.mqttNodeConfigFactory = mqttNodeConfigFactory;
+        this.sensorInfluxService = sensorInfluxService;
+    }
+
     public Flow create() {
         InternalConfig internal = properties.mqtt().internal();
-
-        return new Flow(FLOW_ID)
+        String flowId = flowId(sectionId);
+        return new Flow(flowId)
                 .addNode(new MqttSubscriberNode(
                         SUBSCRIBER_NODE_ID,
-                        mqttNodeConfigFactory.createInternalSubscriberConfig(internal, ALL_TOPICS)
+                        mqttNodeConfigFactory.createInternalSubscriberConfig(internal, "+/+/" + sectionId + "/#")
                 ))
                 .addNode(new SensorPayloadValidationNode(
                         VALIDATION_NODE_ID
@@ -58,5 +61,9 @@ public class InternalMqttSubscriberFlow implements FlowFactory {
                         DATABASE_SAVE_NODE_ID,
                         INPUT_PORT
                 );
+    }
+
+    public static String flowId(Long sectionId) {
+        return FLOW_ID_PREFIX + sectionId;
     }
 }
