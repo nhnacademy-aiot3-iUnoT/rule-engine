@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.controller;
 
-import com.nhnacademy.ruleengine.engine.dto.LocationCreateRequest;
-import com.nhnacademy.ruleengine.engine.dto.SensorStatusRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatusRequest;
 import com.nhnacademy.ruleengine.engine.service.VirtualSensorService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -20,9 +20,9 @@ public class VirtualSensorController {
             @PathVariable Long organizationId,
             @PathVariable Long storageId,
             @PathVariable Long sectionId,
-            @Valid @RequestBody LocationCreateRequest request
+            @Valid @RequestBody VirtualSensorCreateRequest request
     ) {
-        virtualSensorService.createAndStart(
+        virtualSensorService.createAndStartFlow(
                 organizationId,
                 storageId,
                 sectionId,
@@ -33,13 +33,13 @@ public class VirtualSensorController {
     }
 
     @PatchMapping("/{sectionId}/status")
-    public ApiResponse<Void> changeSectionStatus(
+    public ApiResponse<Void> changeVirtualSensorStatus(
             @PathVariable Long organizationId,
             @PathVariable Long storageId,
             @PathVariable Long sectionId,
-            @Valid @RequestBody SensorStatusRequest request
+            @Valid @RequestBody VirtualSensorStatusRequest request
     ) {
-        virtualSensorService.changeStatus(
+        virtualSensorService.changeFlowStatus(
                 organizationId,
                 storageId,
                 sectionId,

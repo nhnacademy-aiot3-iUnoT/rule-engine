@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.location;
+package com.nhnacademy.ruleengine.engine.catalog;
 
 import org.springframework.stereotype.Component;
 
@@ -11,17 +11,17 @@ import java.util.Optional;
 public class SectionCatalog {
 
     private final Map<String, Long> organizationIdsByApplicationName = new HashMap<>();
-    private final Map<String, Long> storageIdsIdsByLocation = new HashMap<>();
+    private final Map<String, Long> storageIdsByLocation = new HashMap<>();
     private final Map<String, Long> sectionIdsByPoint = new HashMap<>();
 
     public SectionCatalog() {
 
         organizationIdsByApplicationName.put("광주 캠퍼스", 1L);
 
-        storageIdsIdsByLocation.put("사무실 밖", 1L);
-        storageIdsIdsByLocation.put("사무실", 2L);
-        storageIdsIdsByLocation.put("실습실", 3L);
-        storageIdsIdsByLocation.put("회의실", 4L);
+        storageIdsByLocation.put("사무실 밖", 1L);
+        storageIdsByLocation.put("사무실", 2L);
+        storageIdsByLocation.put("실습실", 3L);
+        storageIdsByLocation.put("회의실", 4L);
 
         sectionIdsByPoint.put("업무 공간 안쪽", 1L);
         sectionIdsByPoint.put("입구 오른쪽", 2L);
@@ -33,7 +33,7 @@ public class SectionCatalog {
         sectionIdsByPoint.put("후방 오른쪽", 5L);
     }
 
-    public Optional<ResolvedSection> resolve(
+    public Optional<ResolvedSection> resolveSection(
             String applicationName,
             String location,
             String point
@@ -43,7 +43,7 @@ public class SectionCatalog {
         }
 
         Long organizationId = organizationIdsByApplicationName.get(applicationName.trim());
-        Long storageId = storageIdsIdsByLocation.get(location.trim());
+        Long storageId = storageIdsByLocation.get(location.trim());
         Long sectionId = sectionIdsByPoint.get(point.trim());
 
         if (organizationId == null || storageId == null || sectionId == null) {
@@ -51,11 +51,6 @@ public class SectionCatalog {
         }
 
         return Optional.of(new ResolvedSection(organizationId, storageId, sectionId));
-    }
-
-
-    public boolean exists(Long sectionId) {
-        return sectionIdsByPoint.containsValue(sectionId);
     }
 
 

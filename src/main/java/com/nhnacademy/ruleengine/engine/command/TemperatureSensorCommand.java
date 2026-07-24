@@ -1,8 +1,8 @@
 package com.nhnacademy.ruleengine.engine.command;
 
-import com.nhnacademy.ruleengine.engine.dto.SensorContextDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,19 +20,19 @@ public class TemperatureSensorCommand implements SensorCommand {
     }
 
     @Override
-    public SensorPayloadDto execute(
+    public SensorPayload execute(
             Object value,
-            SensorContextDto sensorContextDto
+            SensorContext sensorContext
     ) {
-        return SensorPayloadDto.fromSensor(
-                sensorContextDto.organizationId(),
-                sensorContextDto.deviceEui(),
-                sensorContextDto.storageId(),
-                sensorContextDto.sectionId(),
+        return new SensorPayload(
+                sensorContext.organizationId(),
+                sensorContext.deviceEui(),
+                sensorContext.storageId(),
+                sensorContext.sectionId(),
                 getSensorType().value(),
                 toDouble(value),
                 getSensorType().unit(),
-                sensorContextDto.time()
+                sensorContext.time()
         );
     }
 

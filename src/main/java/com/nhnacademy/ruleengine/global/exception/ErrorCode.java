@@ -19,7 +19,8 @@ public enum ErrorCode {
     UNSUPPORTED_SENSOR_TYPE(HttpStatus.BAD_REQUEST, "R006", "지원하지 않는 센서 종류입니다."),
     VIRTUAL_SENSOR_FLOW_ALREADY_EXISTS(  HttpStatus.CONFLICT, "R006", "해당 Section의 가상 센서 Flow가 이미 존재합니다."),
 
-    SENSOR_DATA_QUERY_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "센서 데이터 조회에 실패했습니다.");
+    SENSOR_DATA_QUERY_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "센서 데이터 조회에 실패했습니다."),
+    INVALID_SENSOR_DATA(HttpStatus.BAD_REQUEST, "S002", "잘못된 센서 데이터입니다.");
 
     private final HttpStatus status;
     private final String code;

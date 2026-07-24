@@ -1,11 +1,10 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.dto.SensorHistoryResponse;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
-import com.nhnacademy.ruleengine.engine.validation.LocationHierarchyValidator;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,20 +24,31 @@ public class SensorInfluxService {
 
     private static final Pattern AGGREGATION_WINDOW_PATTERN =
             Pattern.compile("^[1-9]\\d{0,3}[smhd]$");
-    private static final Pattern HISTORY_SENSOR_TYPE_PATTERN =
-            Pattern.compile("^[a-z][a-z0-9_-]{0,63}$");
-    private static final Duration DEFAULT_HISTORY_PERIOD = Duration.ofHours(24);
+
+    private static final Duration DEFAULT_HISTORY_PERIOD =
+            Duration.ofHours(24);
+
     private static final String DEFAULT_AGGREGATION_WINDOW = "10m";
 
     private final SensorInfluxRepository sensorInfluxRepository;
-    private final LocationHierarchyValidator locationHierarchyValidator;
 
     /**
      * 센서 데이터를 InfluxDB에 저장한다.
      */
-    public void save(SensorPayloadDto sensorPayload) {
-        SensorType sensorType = parseSensorType(sensorPayload.sensorType());
-        Instant timestamp = parseTimestampOrNow(sensorPayload.time());
+    public void save(SensorPayload sensorPayload) {
+        if (sensorPayload == null) {
+            throw new SensorDataException(
+                    ErrorCode.INVALID_SENSOR_DATA
+            );
+        }
+
+        validateSensorPayloadIds(sensorPayload);
+
+        SensorType sensorType =
+                parseSensorType(sensorPayload.sensorType());
+
+        Instant timestamp =
+                parseTimestampOrNow(sensorPayload.time());
 
         sensorInfluxRepository.save(
                 sensorPayload.organizationId(),
@@ -54,35 +64,32 @@ public class SensorInfluxService {
 
     /**
      * 특정 구역의 센서별 최신 데이터를 조회한다.
+     *
+     * 실제 구역 존재 여부는 검증하지 않는다.
+     * 조회 결과가 없으면 빈 목록을 반환한다.
      */
-    public List<SensorPayloadDto> findLatestBySectionId(
-            Long organizationId,
-            Long storageId,
+    public List<SensorPayload> findLatestBySection(
             Long sectionId
     ) {
-        validateSectionHierarchy(organizationId, storageId, sectionId);
+        validatePositiveId(sectionId, "sectionId");
 
-        return sensorInfluxRepository.findLatestBySectionId(
-                organizationId,
-                storageId,
+        return sensorInfluxRepository.findLatestBySection(
                 sectionId
         );
     }
 
     /**
      * 특정 창고에 속한 모든 구역의 센서별 최신 데이터를 조회한다.
+     *
+     * 실제 창고 존재 여부는 검증하지 않는다.
+     * 조회 결과가 없으면 빈 목록을 반환한다.
      */
-    public List<SensorPayloadDto> findLatestByStorageId(
-            Long organizationId,
+    public List<SensorPayload> findLatestByStorage(
             Long storageId
     ) {
-        locationHierarchyValidator.validateStorage(
-                organizationId,
-                storageId
-        );
+        validatePositiveId(storageId, "storageId");
 
-        return sensorInfluxRepository.findLatestByStorageId(
-                organizationId,
+        return sensorInfluxRepository.findLatestByStorage(
                 storageId
         );
     }
@@ -92,86 +99,135 @@ public class SensorInfluxService {
      *
      * sensorType이 없으면 모든 센서 타입을 조회한다.
      */
-    public List<SensorPayloadDto> findLatestByOrganization(
+    public List<SensorPayload> findLatestByOrganization(
             Long organizationId,
             String sensorType
     ) {
-        locationHierarchyValidator.validateOrganization(organizationId);
+        validatePositiveId(organizationId, "organizationId");
 
-        if (sensorType == null) {
-            return sensorInfluxRepository.findLatestByOrganizationId(
-                    organizationId
-            );
+        String resolvedSensorType =
+                parseOptionalSensorType(sensorType);
+
+        if (resolvedSensorType == null) {
+            return sensorInfluxRepository
+                    .findLatestByOrganization(organizationId);
         }
 
-        SensorType parsedSensorType = parseSensorType(sensorType);
-
-        return sensorInfluxRepository.findLatestByOrganizationAndSensorType(
-                organizationId,
-                parsedSensorType.value()
-        );
+        return sensorInfluxRepository
+                .findLatestByOrganizationAndSensorType(
+                        organizationId,
+                        resolvedSensorType
+                );
     }
 
     /**
-     * 특정 구역의 센서 이력을 기간과 집계 간격에 따라 조회한다.
+     * 특정 구역의 센서 이력을 조회한다.
      *
-     * sensorType이 없으면 구역의 모든 센서 타입을 조회한다.
+     * from이 없으면 종료 시각 기준 최근 24시간을 조회한다.
+     * to가 없으면 현재 시각을 사용한다.
+     * window가 없으면 10분 단위로 집계한다.
+     * sensorType이 없으면 모든 센서 타입을 조회한다.
      */
-    public List<SensorHistoryResponse> findHistory(
-            Long organizationId,
-            Long storageId,
+    public List<SensorHistoryResponse> findHistoryBySection(
             Long sectionId,
             String sensorType,
             Instant from,
             Instant to,
             String window
     ) {
-        validateSectionHierarchy(organizationId, storageId, sectionId);
+        validatePositiveId(sectionId, "sectionId");
 
-        Instant resolvedTo = to != null ? to : Instant.now();
-        Instant resolvedFrom = from != null
-                ? from
-                : resolvedTo.minus(DEFAULT_HISTORY_PERIOD);
-        String resolvedWindow = window == null || window.isBlank()
-                ? DEFAULT_AGGREGATION_WINDOW
-                : window;
+        Instant resolvedTo = resolveTo(to);
+        Instant resolvedFrom = resolveFrom(from, resolvedTo);
+        String resolvedWindow = resolveWindow(window);
+        String resolvedSensorType =
+                parseOptionalSensorType(sensorType);
 
         validateTimeRange(resolvedFrom, resolvedTo);
-        String normalizedSensorType =
-                normalizeOptionalHistorySensorType(sensorType);
-        String normalizedWindow = normalizeWindow(resolvedWindow);
 
-        return sensorInfluxRepository.findHistory(
-                organizationId,
-                storageId,
+        return sensorInfluxRepository.findHistoryBySection(
                 sectionId,
-                normalizedSensorType,
+                resolvedSensorType,
                 resolvedFrom,
                 resolvedTo,
-                normalizedWindow
+                resolvedWindow
         );
     }
 
-    private void validateSectionHierarchy(
-            Long organizationId,
-            Long storageId,
-            Long sectionId
+    /**
+     * 저장할 센서 데이터의 ID 형식을 검증한다.
+     *
+     * 실제 계층 관계는 데이터 수집 이전 단계에서 검증한다.
+     */
+    private void validateSensorPayloadIds(
+            SensorPayload sensorPayload
     ) {
-        locationHierarchyValidator.validateSection(
-                organizationId,
-                storageId,
-                sectionId
+        validatePositiveId(
+                sensorPayload.organizationId(),
+                "organizationId"
         );
+
+        validatePositiveId(
+                sensorPayload.storageId(),
+                "storageId"
+        );
+
+        validatePositiveId(
+                sensorPayload.sectionId(),
+                "sectionId"
+        );
+    }
+
+    private Instant resolveTo(Instant to) {
+        return to != null ? to : Instant.now();
+    }
+
+    private Instant resolveFrom(
+            Instant from,
+            Instant resolvedTo
+    ) {
+        return from != null
+                ? from
+                : resolvedTo.minus(DEFAULT_HISTORY_PERIOD);
+    }
+
+    private String resolveWindow(String window) {
+        if (window == null || window.isBlank()) {
+            return DEFAULT_AGGREGATION_WINDOW;
+        }
+
+        return normalizeWindow(window);
+    }
+
+    /**
+     * 선택적인 센서 타입을 변환한다.
+     *
+     * 값이 없으면 모든 센서 타입을 조회하기 위해 null을 반환한다.
+     */
+    private String parseOptionalSensorType(
+            String sensorType
+    ) {
+        if (sensorType == null || sensorType.isBlank()) {
+            return null;
+        }
+
+        return parseSensorType(sensorType).value();
     }
 
     /**
      * 필수 센서 타입을 검증하고 SensorType으로 변환한다.
      */
-    private SensorType parseSensorType(String sensorType) {
-        String normalizedSensorType = normalizeRequiredText(
-                sensorType,
-                ErrorCode.INVALID_SENSOR_TYPE
-        );
+    private SensorType parseSensorType(
+            String sensorType
+    ) {
+        if (sensorType == null || sensorType.isBlank()) {
+            throw new SensorDataException(
+                    ErrorCode.INVALID_SENSOR_TYPE
+            );
+        }
+
+        String normalizedSensorType =
+                sensorType.trim().toLowerCase(Locale.ROOT);
 
         return SensorType.findByValue(normalizedSensorType)
                 .orElseThrow(() -> new SensorDataException(
@@ -179,44 +235,21 @@ public class SensorInfluxService {
                 ));
     }
 
-    private String normalizeOptionalHistorySensorType(String sensorType) {
-        if (sensorType == null || sensorType.isBlank()) {
-            return null;
-        }
-
-        String normalizedSensorType = sensorType
-                .trim()
-                .toLowerCase(Locale.ROOT);
-
-        if (!HISTORY_SENSOR_TYPE_PATTERN
-                .matcher(normalizedSensorType)
-                .matches()) {
-            throw new IllegalArgumentException(
-                    "sensorType은 영문, 숫자, 밑줄, 하이픈만 사용할 수 있습니다."
-            );
-        }
-
-        return normalizedSensorType;
-    }
-
-    private String normalizeRequiredText(
-            String value,
-            ErrorCode emptyValueErrorCode
+    private void validatePositiveId(
+            Long id,
+            String fieldName
     ) {
-        if (value == null || value.isBlank()) {
-            throw new SensorDataException(emptyValueErrorCode);
-        }
-
-        return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private void validateTimeRange(Instant from, Instant to) {
-        if (from == null || to == null) {
+        if (id == null || id <= 0) {
             throw new IllegalArgumentException(
-                    "조회 시작 시간과 종료 시간은 필수입니다."
+                    fieldName + "는 1 이상의 값이어야 합니다."
             );
         }
+    }
 
+    private void validateTimeRange(
+            Instant from,
+            Instant to
+    ) {
         if (!from.isBefore(to)) {
             throw new IllegalArgumentException(
                     "조회 시작 시간은 종료 시간보다 이전이어야 합니다."
@@ -224,8 +257,9 @@ public class SensorInfluxService {
         }
     }
 
-    private String normalizeWindow(String window) {
-
+    private String normalizeWindow(
+            String window
+    ) {
         String normalizedWindow =
                 window.trim().toLowerCase(Locale.ROOT);
 
@@ -240,7 +274,9 @@ public class SensorInfluxService {
         return normalizedWindow;
     }
 
-    private Instant parseTimestampOrNow(String time) {
+    private Instant parseTimestampOrNow(
+            String time
+    ) {
         if (time == null || time.isBlank()) {
             return Instant.now();
         }

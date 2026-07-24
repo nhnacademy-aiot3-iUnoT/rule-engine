@@ -1,12 +1,12 @@
 package com.nhnacademy.ruleengine.engine.validation;
 
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 
 public final class SensorPayloadValidator {
     private SensorPayloadValidator() {
     }
 
-    public static void validate(SensorPayloadDto payload) {
+    public static void validate(SensorPayload payload) {
         requirePositive(payload.organizationId(), "organizationId");
         requireText(payload.deviceEui(), "deviceEui");
         requirePositive(payload.storageId(), "storageId");

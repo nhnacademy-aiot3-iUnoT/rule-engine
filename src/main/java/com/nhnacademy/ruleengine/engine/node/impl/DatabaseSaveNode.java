@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.Message;
 import com.nhnacademy.ruleengine.engine.MessageFields;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +26,7 @@ public class DatabaseSaveNode extends AbstractNode {
 
     @Override
     protected void onProcess(Message message) {
-        SensorPayloadDto sensorPayload = message.get(MessageFields.SENSOR_PAYLOAD);
+        SensorPayload sensorPayload = message.get(MessageFields.SENSOR_PAYLOAD);
 
         if (sensorPayload == null) {
             log.warn("[{}] sensorPayload가 없어 저장을 건너뜁니다.", getId());
