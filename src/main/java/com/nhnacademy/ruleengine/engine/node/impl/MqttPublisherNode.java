@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.Message;
-import com.nhnacademy.ruleengine.engine.MessageFields;
+import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -120,7 +120,6 @@ public class MqttPublisherNode extends ProtocolNode {
     }
 
     private String resolveTopic(Message message) {
-        // 메시지 topic에 설정된 prefix가 없으면 앞에 추가한다.
         String topic = message.get(MessageFields.TOPIC);
         String topicPrefix = (String) getConfig("topicPrefix");
 
@@ -129,14 +128,20 @@ public class MqttPublisherNode extends ProtocolNode {
         }
 
         if (topic == null || topic.isBlank()) {
-            throw new IllegalArgumentException("MQTT publish topic is required.");
+            throw new IllegalArgumentException(
+                    "MQTT publish topic is required."
+            );
         }
 
-        if (topicPrefix == null || topicPrefix.isBlank() || topic.startsWith(topicPrefix + "/")) {
+        if (topicPrefix == null || topicPrefix.isBlank()) {
             return topic;
         }
 
-        return topicPrefix.replaceAll("/+$", "") + "/" + topic.replaceAll("^/+", "");
+        if (topic.startsWith(topicPrefix + "/")) {
+            return topic;
+        }
+
+        return topicPrefix + "/" + topic;
     }
 
 }

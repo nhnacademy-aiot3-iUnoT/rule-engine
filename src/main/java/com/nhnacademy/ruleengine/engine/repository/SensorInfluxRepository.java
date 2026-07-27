@@ -4,6 +4,7 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxRecord;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorDataWriteCommand;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
@@ -27,29 +28,23 @@ public class SensorInfluxRepository {
 
     private static final String VALUE_FIELD = "value";
     private static final String DEFAULT_LATEST_RANGE = "-30d";
+    private static final String SENSOR_TYPE = "sensor_type";
 
     private final InfluxDBClient influxDBClient;
     private final InfluxDbProperties influxDbProperties;
 
     public void save(
-            Long organizationId,
-            String deviceEui,
-            Long storageId,
-            Long sectionId,
-            String sensorType,
-            double value,
-            String unit,
-            Instant timestamp
+            SensorDataWriteCommand command
     ) {
         Point point = Point.measurement(influxDbProperties.measurement())
-                .addTag("organization_id", String.valueOf(organizationId))
-                .addTag("storage_id", String.valueOf(storageId))
-                .addTag("section_id", String.valueOf(sectionId))
-                .addTag("sensor_type", sensorType)
-                .addTag("device_eui", deviceEui)
-                .addTag("unit", unit)
-                .addField(VALUE_FIELD, value)
-                .time(timestamp, WritePrecision.NS);
+                .addTag("organization_id", String.valueOf(command.organizationId()))
+                .addTag("storage_id", String.valueOf(command.storageId()))
+                .addTag("section_id", String.valueOf(command.sectionId()))
+                .addTag(SENSOR_TYPE, command.sensorType())
+                .addTag("device_eui", command.deviceEui())
+                .addTag("unit", command.unit())
+                .addField(VALUE_FIELD, command.value())
+                .time(command.timestamp(), WritePrecision.NS);
 
         try {
             influxDBClient.getWriteApiBlocking().writePoint(
@@ -59,11 +54,11 @@ public class SensorInfluxRepository {
             );
         } catch (Exception exception) {
             log.error(
-                    "InfluxDB 센서 데이터 저장에 실패했습니다. organizationId={}, storageId={}, sectionId={}, deviceEui={}",
-                    organizationId,
-                    storageId,
-                    sectionId,
-                    deviceEui,
+                    "InfluxDB 센서 데이터 저장에 실패했습니다. organizationId={}, storageId={}, sectionId={}, device_eui={}",
+                    command.organizationId(),
+                    command.storageId(),
+                    command.sectionId(),
+                    command.deviceEui(),
                     exception
             );
 
@@ -274,43 +269,43 @@ public class SensorInfluxRepository {
     }
 
     private SensorPayload toSensorPayload(
-            FluxRecord record
+            FluxRecord fluxRecord
     ) {
         return new SensorPayload(
-                parseId(record, "organization_id"),
-                getStringValue(record, "device_eui"),
-                parseId(record, "storage_id"),
-                parseId(record, "section_id"),
-                getStringValue(record, "sensor_type"),
-                getNumberValue(record),
-                getStringValue(record, "unit"),
-                record.getTime() != null
-                        ? record.getTime().toString()
+                parseId(fluxRecord, "organization_id"),
+                getStringValue(fluxRecord, "device_eui"),
+                parseId(fluxRecord, "storage_id"),
+                parseId(fluxRecord, "section_id"),
+                getStringValue(fluxRecord, SENSOR_TYPE),
+                getNumberValue(fluxRecord),
+                getStringValue(fluxRecord, "unit"),
+                fluxRecord.getTime() != null
+                        ? fluxRecord.getTime().toString()
                         : null
         );
     }
 
     private SensorHistoryResponse toHistoryResponse(
-            FluxRecord record
+            FluxRecord fluxRecord
     ) {
-        if (record.getTime() == null) {
+        if (fluxRecord.getTime() == null) {
             throw new IllegalStateException(
                     "센서 측정 시간이 존재하지 않습니다."
             );
         }
 
         return new SensorHistoryResponse(
-                getStringValue(record, "sensor_type"),
-                getStringValue(record, "unit"),
-                record.getTime(),
+                getStringValue(fluxRecord, SENSOR_TYPE),
+                getStringValue(fluxRecord, "unit"),
+                fluxRecord.getTime(),
                 roundToFirstDecimalPlace(
-                        getNumberValue(record)
+                        getNumberValue(fluxRecord)
                 )
         );
     }
 
-    private double getNumberValue(FluxRecord record) {
-        Object rawValue = record.getValue();
+    private double getNumberValue(FluxRecord fluxRecord) {
+        Object rawValue = fluxRecord.getValue();
 
         if (!(rawValue instanceof Number numberValue)) {
             throw new IllegalStateException(
@@ -323,10 +318,10 @@ public class SensorInfluxRepository {
     }
 
     private String getStringValue(
-            FluxRecord record,
+            FluxRecord fluxRecord,
             String key
     ) {
-        Object value = record.getValueByKey(key);
+        Object value = fluxRecord.getValueByKey(key);
 
         return value != null
                 ? String.valueOf(value)
@@ -334,10 +329,10 @@ public class SensorInfluxRepository {
     }
 
     private Long parseId(
-            FluxRecord record,
+            FluxRecord fluxRecord,
             String key
     ) {
-        String id = getStringValue(record, key);
+        String id = getStringValue(fluxRecord, key);
 
         if (id == null || id.isBlank()) {
             return null;

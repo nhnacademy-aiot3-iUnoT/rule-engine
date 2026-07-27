@@ -1,5 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorDataWriteCommand;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
@@ -16,6 +17,8 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import static com.nhnacademy.ruleengine.engine.constants.LocationFields.*;
 
 @Slf4j
 @Service
@@ -50,7 +53,7 @@ public class SensorInfluxService {
         Instant timestamp =
                 parseTimestampOrNow(sensorPayload.time());
 
-        sensorInfluxRepository.save(
+        SensorDataWriteCommand sensorDataWriteCommand = SensorDataWriteCommand.of(
                 sensorPayload.organizationId(),
                 sensorPayload.deviceEui(),
                 sensorPayload.storageId(),
@@ -60,18 +63,20 @@ public class SensorInfluxService {
                 sensorPayload.unit(),
                 timestamp
         );
+
+        sensorInfluxRepository.save(sensorDataWriteCommand);
     }
 
     /**
      * 특정 구역의 센서별 최신 데이터를 조회한다.
-     *
+     * <p>
      * 실제 구역 존재 여부는 검증하지 않는다.
      * 조회 결과가 없으면 빈 목록을 반환한다.
      */
     public List<SensorPayload> findLatestBySection(
             Long sectionId
     ) {
-        validatePositiveId(sectionId, "sectionId");
+        validatePositiveId(sectionId, SECTION_ID);
 
         return sensorInfluxRepository.findLatestBySection(
                 sectionId
@@ -80,14 +85,14 @@ public class SensorInfluxService {
 
     /**
      * 특정 창고에 속한 모든 구역의 센서별 최신 데이터를 조회한다.
-     *
+     * <p>
      * 실제 창고 존재 여부는 검증하지 않는다.
      * 조회 결과가 없으면 빈 목록을 반환한다.
      */
     public List<SensorPayload> findLatestByStorage(
             Long storageId
     ) {
-        validatePositiveId(storageId, "storageId");
+        validatePositiveId(storageId, STORAGE_ID);
 
         return sensorInfluxRepository.findLatestByStorage(
                 storageId
@@ -96,14 +101,14 @@ public class SensorInfluxService {
 
     /**
      * 조직의 최신 센서 데이터를 조회한다.
-     *
+     * <p>
      * sensorType이 없으면 모든 센서 타입을 조회한다.
      */
     public List<SensorPayload> findLatestByOrganization(
             Long organizationId,
             String sensorType
     ) {
-        validatePositiveId(organizationId, "organizationId");
+        validatePositiveId(organizationId, ORGANIZATION_ID);
 
         String resolvedSensorType =
                 parseOptionalSensorType(sensorType);
@@ -122,7 +127,7 @@ public class SensorInfluxService {
 
     /**
      * 특정 구역의 센서 이력을 조회한다.
-     *
+     * <p>
      * from이 없으면 종료 시각 기준 최근 24시간을 조회한다.
      * to가 없으면 현재 시각을 사용한다.
      * window가 없으면 10분 단위로 집계한다.
@@ -135,7 +140,7 @@ public class SensorInfluxService {
             Instant to,
             String window
     ) {
-        validatePositiveId(sectionId, "sectionId");
+        validatePositiveId(sectionId, SECTION_ID);
 
         Instant resolvedTo = resolveTo(to);
         Instant resolvedFrom = resolveFrom(from, resolvedTo);
@@ -156,7 +161,7 @@ public class SensorInfluxService {
 
     /**
      * 저장할 센서 데이터의 ID 형식을 검증한다.
-     *
+     * <p>
      * 실제 계층 관계는 데이터 수집 이전 단계에서 검증한다.
      */
     private void validateSensorPayloadIds(
@@ -164,17 +169,17 @@ public class SensorInfluxService {
     ) {
         validatePositiveId(
                 sensorPayload.organizationId(),
-                "organizationId"
+                ORGANIZATION_ID
         );
 
         validatePositiveId(
                 sensorPayload.storageId(),
-                "storageId"
+                STORAGE_ID
         );
 
         validatePositiveId(
                 sensorPayload.sectionId(),
-                "sectionId"
+                SECTION_ID
         );
     }
 
@@ -201,7 +206,7 @@ public class SensorInfluxService {
 
     /**
      * 선택적인 센서 타입을 변환한다.
-     *
+     * <p>
      * 값이 없으면 모든 센서 타입을 조회하기 위해 null을 반환한다.
      */
     private String parseOptionalSensorType(

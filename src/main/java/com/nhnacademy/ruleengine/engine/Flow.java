@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 @Slf4j
 // 노드와 Connection을 구성하고 Flow의 생명주기를 관리한다.
@@ -191,56 +192,121 @@ public class Flow {
     }
 
     public List<String> validate() {
-        // 존재하지 않는 노드 연결과 순환 참조를 검사한다.
         List<String> errors = new ArrayList<>();
 
         if (nodes.isEmpty()) {
-            errors.add("에러: Flow에 등록된 노드가 하나도 없습니다.");
+            errors.add(
+                    "에러: Flow에 등록된 노드가 하나도 없습니다."
+            );
+            return errors;
         }
 
-        Map<String, List<String>> nodeGraph = new HashMap<>();
+        Map<String, List<String>> nodeGraph =
+                createNodeGraph(errors);
+
+        if (containsCycle(nodeGraph)) {
+            errors.add(
+                    "에러: Flow 내에서 순환참조가 발생하였습니다"
+            );
+        }
+
+        return errors;
+    }
+
+    private Map<String, List<String>> createNodeGraph(
+            List<String> errors
+    ) {
+        Map<String, List<String>> nodeGraph =
+                new HashMap<>();
+
         for (String nodeId : nodes.keySet()) {
             nodeGraph.put(nodeId, new ArrayList<>());
         }
 
         for (Connection connection : connections) {
-            String conId = connection.getId();
-            ConnectionEndpoints endpoints = parseConnectionId(connection);
-            String sourceId = endpoints.source().nodeId();
-            String targetId = endpoints.target().nodeId();
-
-            if (!nodes.containsKey(sourceId)) {
-                errors.add(String.format("에러: 연결[%s]의 소스 노드(%s)가 존재하지 않습니다.", conId, sourceId));
-            }
-            if (!nodes.containsKey(targetId)) {
-                errors.add(String.format("에러: 연결[%s]의 대상 노드(%s)가 존재하지 않습니다.", conId, targetId));
-            }
-
-            //그래프 간선 추가
-            if (nodes.containsKey(targetId) && nodes.containsKey(sourceId)) {
-                nodeGraph.get(sourceId).add(targetId);
-            }
-
-
+            addConnectionToGraph(
+                    connection,
+                    nodeGraph,
+                    errors
+            );
         }
 
-        if (!nodes.isEmpty()) {
-            Map<String, NodeState> nodeStates = new HashMap<>();
-            for (String nodeId : nodes.keySet()) {
-                nodeStates.put(nodeId, NodeState.UNVISITED);
-            }
+        return nodeGraph;
+    }
 
-            for (String nodeId : nodeStates.keySet()) {
-                if (nodeStates.get(nodeId) == NodeState.UNVISITED) {
-                    if (checkCycle(nodeId, nodeStates, nodeGraph)) {
-                        errors.add("에러: Flow 내에서 순환참조가 발생하였습니다");
-                    }
-                }
+    private void addConnectionToGraph(
+            Connection connection,
+            Map<String, List<String>> nodeGraph,
+            List<String> errors
+    ) {
+        ConnectionEndpoints endpoints =
+                parseConnectionId(connection);
 
+        String sourceId =
+                endpoints.source().nodeId();
+
+        String targetId =
+                endpoints.target().nodeId();
+
+        boolean sourceExists =
+                nodes.containsKey(sourceId);
+
+        boolean targetExists =
+                nodes.containsKey(targetId);
+
+        if (!sourceExists) {
+            errors.add(
+                    String.format(
+                            "에러: 연결[%s]의 소스 노드(%s)가 존재하지 않습니다.",
+                            connection.getId(),
+                            sourceId
+                    )
+            );
+        }
+
+        if (!targetExists) {
+            errors.add(
+                    String.format(
+                            "에러: 연결[%s]의 대상 노드(%s)가 존재하지 않습니다.",
+                            connection.getId(),
+                            targetId
+                    )
+            );
+        }
+
+        if (sourceExists && targetExists) {
+            nodeGraph.get(sourceId)
+                    .add(targetId);
+        }
+    }
+
+    private boolean containsCycle(
+            Map<String, List<String>> nodeGraph
+    ) {
+        Map<String, NodeState> nodeStates =
+                new HashMap<>();
+
+        for (String nodeId : nodes.keySet()) {
+            nodeStates.put(
+                    nodeId,
+                    NodeState.UNVISITED
+            );
+        }
+
+        for (Entry<String, NodeState> entry
+                : nodeStates.entrySet()) {
+
+            if (entry.getValue() == NodeState.UNVISITED
+                    && checkCycle(
+                    entry.getKey(),
+                    nodeStates,
+                    nodeGraph
+            )) {
+                return true;
             }
         }
-        return errors;
 
+        return false;
     }
 
     private boolean checkCycle(String nodeId, Map<String, NodeState> nodeStates, Map<String, List<String>> nodeGraph) {

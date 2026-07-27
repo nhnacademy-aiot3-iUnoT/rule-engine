@@ -3,6 +3,8 @@ package com.nhnacademy.ruleengine.engine.validation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import static com.nhnacademy.ruleengine.engine.constants.LocationFields.*;
+
 @Component
 @RequiredArgsConstructor
 public class LocationHierarchyValidator {
@@ -12,7 +14,7 @@ public class LocationHierarchyValidator {
     public void validateOrganization(Long organizationId) {
         validatePositiveId(
                 organizationId,
-                "organizationId"
+                ORGANIZATION_ID
         );
 
         // TODO 장소관리 서비스에서 조직 존재 여부 조회
@@ -24,12 +26,12 @@ public class LocationHierarchyValidator {
     ) {
         validatePositiveId(
                 organizationId,
-                "organizationId"
+                ORGANIZATION_ID
         );
 
         validatePositiveId(
                 storageId,
-                "storageId"
+                STORAGE_ID
         );
 
         // TODO storageId가 organizationId 소속인지 조회
@@ -42,17 +44,17 @@ public class LocationHierarchyValidator {
     ) {
         validatePositiveId(
                 organizationId,
-                "organizationId"
+                ORGANIZATION_ID
         );
 
         validatePositiveId(
                 storageId,
-                "storageId"
+                STORAGE_ID
         );
 
         validatePositiveId(
                 sectionId,
-                "sectionId"
+                SECTION_ID
         );
 
         // TODO sectionId가 organizationId와 storageId 소속인지 조회
