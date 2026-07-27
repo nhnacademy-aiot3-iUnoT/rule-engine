@@ -1,8 +1,8 @@
 package com.nhnacademy.ruleengine.engine.flow;
 
-import com.nhnacademy.ruleengine.engine.Flow;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
 import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
+import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;

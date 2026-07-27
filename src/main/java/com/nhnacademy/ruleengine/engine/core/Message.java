@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine;
+package com.nhnacademy.ruleengine.engine.core;
 
 import lombok.Getter;
 

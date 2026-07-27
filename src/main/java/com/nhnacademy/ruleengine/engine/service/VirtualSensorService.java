@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.FlowEngine;
+import com.nhnacademy.ruleengine.engine.core.FlowEngine;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;

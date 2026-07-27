@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine;
+package com.nhnacademy.ruleengine.engine.core;
 
 
 import com.nhnacademy.ruleengine.engine.connection.Connection;

@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.connection.impl;
 
 
-import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.connection.InputPort;
 import com.nhnacademy.ruleengine.engine.node.Node;
 import lombok.RequiredArgsConstructor;

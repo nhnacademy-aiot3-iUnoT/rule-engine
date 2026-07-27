@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.global.config;
 
-import com.nhnacademy.ruleengine.engine.FlowEngine;
+import com.nhnacademy.ruleengine.engine.core.FlowEngine;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

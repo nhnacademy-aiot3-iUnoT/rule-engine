@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.flow;
 
-import com.nhnacademy.ruleengine.engine.Flow;
+import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j

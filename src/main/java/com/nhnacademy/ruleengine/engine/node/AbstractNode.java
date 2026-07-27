@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.node;
 
-import com.nhnacademy.ruleengine.engine.Message;
+import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.connection.InputPort;
 import com.nhnacademy.ruleengine.engine.connection.OutputPort;
 import com.nhnacademy.ruleengine.engine.connection.impl.DefaultInputPort;

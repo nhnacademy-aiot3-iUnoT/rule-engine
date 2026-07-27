@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.global.bootstrap;
 
-import com.nhnacademy.ruleengine.engine.Flow;
-import com.nhnacademy.ruleengine.engine.FlowEngine;
+import com.nhnacademy.ruleengine.engine.core.Flow;
+import com.nhnacademy.ruleengine.engine.core.FlowEngine;
 import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.flow.FlowFactory;
 
