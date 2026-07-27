@@ -6,7 +6,9 @@ import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;
+import com.nhnacademy.ruleengine.engine.node.impl.RabbitRawPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.SensorTransformNode;
+import com.nhnacademy.ruleengine.engine.rabbit.RawSensorPublisher;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.ExternalConfig;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;
@@ -25,6 +27,8 @@ public class ExternalSensorFlow implements FlowFactory {
     static final String SUBSCRIBER_NODE_ID = "external-mqtt-in";
     static final String TRANSFORM_NODE_ID = "sensor-filter";
     static final String PUBLISHER_NODE_ID = "internal-mqtt-out";
+    static final String RABBIT_RAW_PUBLISHER_NODE_ID = "rabbit-raw-publisher";
+
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
@@ -32,6 +36,8 @@ public class ExternalSensorFlow implements FlowFactory {
     private final List<SensorCommand> sensorCommands;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
     private final SectionCatalog sectionCatalog;
+    private final RawSensorPublisher rawSensorPublisher;
+
 
     @Override
     public Flow create() {
@@ -48,6 +54,7 @@ public class ExternalSensorFlow implements FlowFactory {
                         sensorCommands,
                         sectionCatalog
                 ))
+                .addNode(new RabbitRawPublisherNode(RABBIT_RAW_PUBLISHER_NODE_ID, rawSensorPublisher))
                 .addNode(new MqttPublisherNode(
                         PUBLISHER_NODE_ID,
                         mqttNodeConfigFactory.createInternalPublisherConfig(internal)
@@ -62,6 +69,11 @@ public class ExternalSensorFlow implements FlowFactory {
                         TRANSFORM_NODE_ID,
                         OUTPUT_PORT,
                         PUBLISHER_NODE_ID,
+                        INPUT_PORT
+                )
+                .connect(SUBSCRIBER_NODE_ID,
+                        OUTPUT_PORT,
+                        RABBIT_RAW_PUBLISHER_NODE_ID,
                         INPUT_PORT
                 );
     }

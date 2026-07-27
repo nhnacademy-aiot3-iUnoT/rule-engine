@@ -19,6 +19,11 @@ spring:
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
 
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 10
+
 
 logging:
   level:

@@ -9,7 +9,10 @@ public final class MessageFields {
     public static final String MQTT_RECEIVED_AT = "mqttReceivedAt";
     public static final String SENSOR_PAYLOAD = "sensorPayload";
     public static final String TOPIC = "topic";
-
+    public static final String QOS = "qos";
+    public static final String PAYLOAD_TYPE = "payloadType";
+    public static final String CLIENT_ID = "clientId";
+    public static final String BROKER_URL = "brokerUrl";
     private MessageFields() {
     }
 }
