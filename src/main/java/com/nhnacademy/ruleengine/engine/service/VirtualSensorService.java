@@ -1,11 +1,12 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.FlowEngine;
+import com.nhnacademy.ruleengine.engine.core.FlowEngine;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.flow.VirtualSensorFlow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
+import com.nhnacademy.ruleengine.engine.validation.LocationHierarchyValidator;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +22,9 @@ public class VirtualSensorService {
     private final FlowEngine flowEngine;
     private final RuleEngineProperties ruleEngineProperties;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
+    private final LocationHierarchyValidator locationHierarchyValidator;
 
-    private final static String FLOW_ID_PREFIX = "virtual-sensor-flow-";
+    private static final String FLOW_ID_PREFIX = "virtual-sensor-flow-";
     private Map<String, Object> sensorConfig;
 
     public void createAndStartFlow(
@@ -64,7 +66,8 @@ public class VirtualSensorService {
             Long sectionId,
             VirtualSensorStatus status
     ) {
-        // TODO 추후 sectionId가 해당 조직, 저장소 아래에 존재하는지 검증로직 추가
+
+        locationHierarchyValidator.validateSection(organizationId, storageId, sectionId);
 
         if (status == VirtualSensorStatus.INACTIVE) {
             flowEngine.stopFlow(virtualSensorFlowId(sectionId));

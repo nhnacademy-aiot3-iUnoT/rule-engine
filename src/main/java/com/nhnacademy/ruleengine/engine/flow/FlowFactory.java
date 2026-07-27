@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.flow;
 
-import com.nhnacademy.ruleengine.engine.Flow;
+import com.nhnacademy.ruleengine.engine.core.Flow;
 
 public interface FlowFactory {
     Flow create();

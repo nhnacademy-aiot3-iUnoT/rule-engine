@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.dto.sensor;
 
-import com.nhnacademy.ruleengine.engine.MessageFields;
+import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

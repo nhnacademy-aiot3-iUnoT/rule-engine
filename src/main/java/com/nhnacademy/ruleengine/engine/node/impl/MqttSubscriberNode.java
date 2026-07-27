@@ -3,8 +3,8 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.ruleengine.engine.Message;
-import com.nhnacademy.ruleengine.engine.MessageFields;
+import com.nhnacademy.ruleengine.engine.core.Message;
+import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
@@ -16,17 +16,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.nhnacademy.ruleengine.engine.constants.MessageFields.*;
+
 @Slf4j
 // MQTT topic을 구독하고, 수신한 payload를 Rule Engine 메시지로 변환한다.
 public class MqttSubscriberNode extends ProtocolNode {
     private static final String OUTPUT_PORT = "out";
 
-    private static final String BROKER_URL_CONFIG = "brokerUrl";
-    private static final String CLIENT_ID_CONFIG = "clientId";
-    private static final String TOPIC_CONFIG = "topic";
-    private static final String QOS_CONFIG = "qos";
-    private static final String PAYLOAD_TYPE_CONFIG = "payloadType";
-    private static final String STANDARD_SENSOR_PAYLOAD_TYPE = "sensorPayload";
+
 
     private static final int DEFAULT_QOS = 1;
 
@@ -39,16 +36,16 @@ public class MqttSubscriberNode extends ProtocolNode {
     public MqttSubscriberNode(String id, Map<String, Object> config) {
         super(id, config);
         this.objectMapper = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // DTO에 없는 필드 무시
         addOutputPort(OUTPUT_PORT);
     }
 
     @Override
     protected void connect() throws Exception {
-        String brokerUrl = (String) getConfig(BROKER_URL_CONFIG);
-        String clientId = (String) getConfig(CLIENT_ID_CONFIG);
-        subscriptionTopic = (String) getConfig(TOPIC_CONFIG);
-        subscriptionQos = resolveQos(getConfig(QOS_CONFIG));
+        String brokerUrl = (String) getConfig(BROKER_URL);
+        String clientId = (String) getConfig(CLIENT_ID);
+        subscriptionTopic = (String) getConfig(TOPIC);
+        subscriptionQos = resolveQos(getConfig(QOS));
 
         closeClient();
         client = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
@@ -124,7 +121,7 @@ public class MqttSubscriberNode extends ProtocolNode {
 
     // 내부 MQTT 타입의 데이터인지 확인
     private boolean receivesStandardSensorPayload() {
-        return STANDARD_SENSOR_PAYLOAD_TYPE.equals(getConfig(PAYLOAD_TYPE_CONFIG));
+        return SENSOR_PAYLOAD.equals(getConfig(PAYLOAD_TYPE));
     }
 
     // 내부 MQTT 수신 로직
