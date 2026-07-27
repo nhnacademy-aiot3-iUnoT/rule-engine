@@ -1,7 +1,5 @@
 package com.nhnacademy.ruleengine.engine.flow;
 
-import com.nhnacademy.ruleengine.engine.command.SensorCommand;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
 import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
@@ -9,13 +7,12 @@ import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;
 import com.nhnacademy.ruleengine.engine.node.impl.RabbitRawPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.SensorTransformNode;
 import com.nhnacademy.ruleengine.engine.rabbit.RawSensorPublisher;
+import com.nhnacademy.ruleengine.engine.service.SensorTransformService;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.ExternalConfig;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -33,10 +30,9 @@ public class ExternalSensorFlow implements FlowFactory {
     private static final String OUTPUT_PORT = "out";
 
     private final RuleEngineProperties properties;
-    private final List<SensorCommand> sensorCommands;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
-    private final SectionCatalog sectionCatalog;
     private final RawSensorPublisher rawSensorPublisher;
+    private final SensorTransformService sensorTransformService;
 
 
     @Override
@@ -51,8 +47,7 @@ public class ExternalSensorFlow implements FlowFactory {
                 ))
                 .addNode(new SensorTransformNode(
                         TRANSFORM_NODE_ID,
-                        sensorCommands,
-                        sectionCatalog
+                        sensorTransformService
                 ))
                 .addNode(new RabbitRawPublisherNode(RABBIT_RAW_PUBLISHER_NODE_ID, rawSensorPublisher))
                 .addNode(new MqttPublisherNode(
