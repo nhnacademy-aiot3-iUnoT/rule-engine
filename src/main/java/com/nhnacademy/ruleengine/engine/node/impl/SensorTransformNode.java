@@ -2,20 +2,13 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
-import com.nhnacademy.ruleengine.engine.command.SensorCommand;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
-import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
+import com.nhnacademy.ruleengine.engine.service.SensorTransformService;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Slf4j
 // MQTT 측정값을 센서 타입별 표준 payload로 변환한다.
@@ -24,37 +17,16 @@ public class SensorTransformNode extends AbstractNode {
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
-    private final Map<String, SensorCommand> sensorCommands;
-    private final SectionCatalog sectionCatalog;
+    private final SensorTransformService sensorTransformService;
 
     public SensorTransformNode(
             String id,
-            List<SensorCommand> sensorCommands,
-            SectionCatalog sectionCatalog
+            SensorTransformService sensorTransformService
     ) {
         super(id);
-        this.sectionCatalog = Objects.requireNonNull(
-                sectionCatalog,
-                "sectionCatalog은 null일 수 없습니다."
-        );
-
+        this.sensorTransformService = sensorTransformService;
         addInputPort(INPUT_PORT);
         addOutputPort(OUTPUT_PORT);
-
-        // 센서 타입별 변환 전략을 빠르게 찾을 수 있도록 Map으로 구성한다.
-        this.sensorCommands = Objects.requireNonNull(
-                        sensorCommands,
-                        "sensorCommands는 null일 수 없습니다."
-                ).stream()
-                .collect(Collectors.toUnmodifiableMap(
-                        SensorCommand::getMeasurementKey,
-                        Function.identity(),
-                        (existing, replacement) -> {
-                            throw new IllegalArgumentException(
-                                    "중복된 측정 키입니다: " + existing.getMeasurementKey()
-                            );
-                        }
-                ));
     }
 
     @Override
@@ -71,88 +43,8 @@ public class SensorTransformNode extends AbstractNode {
             return;
         }
 
-        Map<String, Object> measurements = externalSensorMessage.measurements();
-
-        if (measurements == null || measurements.isEmpty()) {
-            // 측정값이 없는 메시지는 다음 노드로 전달하지 않는다.
-            log.debug(
-                    "[{}] 측정값이 없어 메시지를 건너뜁니다.",
-                    getId()
-            );
-            return;
-        }
-
-        ResolvedSection resolvedSection = sectionCatalog.resolveSection(
-                        externalSensorMessage.applicationName(),
-                        externalSensorMessage.location(),
-                        externalSensorMessage.point()
-                )
-                .orElse(null);
-
-        if (resolvedSection == null) {
-            log.warn(
-                    "[{}] 등록되지 않은 센서 위치입니다. applicationName={}, location={}, point={}",
-                    getId(),
-                    externalSensorMessage.applicationName(),
-                    externalSensorMessage.location(),
-                    externalSensorMessage.point()
-            );
-            return;
-        }
-
-        SensorContext sensorContext = SensorContext.from(
-                externalSensorMessage,
-                resolvedSection
-        );
-
-        measurements.forEach(
-                (sensorType, value) ->
-                        executeSensorCommand(
-                                sensorType,
-                                value,
-                                sensorContext
-                        )
-        );
-    }
-
-    private void executeSensorCommand(
-            String sensorType,
-            Object value,
-            SensorContext sensorContext
-    ) {
-        SensorCommand command = sensorCommands.get(sensorType);
-
-        if (command == null) {
-            // 지원하지 않는 센서 타입은 전체 처리를 중단하지 않는다.
-            log.debug(
-                    "[{}] 지원하지 않는 센서 타입입니다: {}",
-                    getId(),
-                    sensorType
-            );
-            return;
-        }
-
-        try {
-            // 측정값을 표준 센서 payload로 변환해 출력한다.
-            sendSensor(command.execute(value, sensorContext));
-
-        } catch (IllegalArgumentException e) {
-            log.warn(
-                    "[{}] 센서 데이터 변환 실패. type={}, value={}, reason={}",
-                    getId(),
-                    sensorType,
-                    value,
-                    e.getMessage()
-            );
-        } catch (Exception e) {
-            log.error(
-                    "[{}] 센서 데이터 처리 중 오류 발생. type={}, value={}",
-                    getId(),
-                    sensorType,
-                    value,
-                    e
-            );
-        }
+        sensorTransformService.transform(externalSensorMessage)
+                .forEach(this::sendSensor);
     }
 
     private void sendSensor(
