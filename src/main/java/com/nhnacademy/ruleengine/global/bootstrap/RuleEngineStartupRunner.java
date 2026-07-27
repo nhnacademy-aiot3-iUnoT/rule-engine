@@ -1,10 +1,9 @@
 package com.nhnacademy.ruleengine.global.bootstrap;
 
+import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.core.FlowEngine;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.flow.FlowFactory;
-
 import com.nhnacademy.ruleengine.engine.service.SectionEnvironmentFlowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +20,6 @@ public class RuleEngineStartupRunner implements CommandLineRunner {
 
     private final FlowEngine flowEngine;
     private final List<FlowFactory> flowFactories;
-    private final SectionCatalog sectionCatalog;
-    private final SectionEnvironmentFlowService sectionEnvironmentFlowService;
 
     @Override
     public void run(String... args) {
@@ -38,15 +35,7 @@ public class RuleEngineStartupRunner implements CommandLineRunner {
             }
         }
 
-            //섹션아이디목록을 조회여하여 실행
-            List<Long> sectionIds = sectionCatalog.findAllSectionIds();
-            for(Long sectionId : sectionIds){
-                try{
-                    sectionEnvironmentFlowService.createAndStart(sectionId);
-                } catch (Exception e) {
-                    log.error("[RuleEngine] section environment flow creation failed. sectionId={}", sectionId, e);
-                }
-            }
+
     }
 
     private void start(Flow flow) {

@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.global.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +13,10 @@ public class RabbitMqConfig {
     public static final String SENSOR_RAW_QUEUE = "iunot.sensor.raw.queue";
 
     public static final String SENSOR_RAW_ROUTING_KEY = "iunot.sensor.raw";
+
+    public static final String SENSOR_NORMALIZED_QUEUE = "iunot.sensor.normalized.queue";
+
+    public static final String SENSOR_NORMALIZED_ROUTING_KEY = "iunot.sensor.normalized";
 
     @Bean
     public DirectExchange sensorExchange() {
@@ -29,10 +34,24 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Binding sensorRawBinding(DirectExchange sensorExchange, Queue sensorRawQueue) {
+    public Binding sensorRawBinding(DirectExchange sensorExchange, @Qualifier("sensorRawQueue") Queue sensorRawQueue) {
         return BindingBuilder
                 .bind(sensorRawQueue)
                 .to(sensorExchange)
                 .with(SENSOR_RAW_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue sensorNormalizedQueue() {
+        return QueueBuilder.durable(SENSOR_NORMALIZED_QUEUE)
+                .build();
+    }
+
+    @Bean
+    public Binding sensorNormalizedBinding(DirectExchange sensorExchange, @Qualifier("sensorNormalizedQueue") Queue sensorNormalizedQueue) {
+        return BindingBuilder
+                .bind(sensorNormalizedQueue)
+                .to(sensorExchange)
+                .with(SENSOR_NORMALIZED_ROUTING_KEY);
     }
 }

@@ -2,12 +2,17 @@ services:
   rule-engine-1:
     build: .
     container_name: team1-rule-engine-1
+
     env_file: .env
+
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      INSTANCE_ID: rule-engine-1
+
     ports:
       - "127.0.0.1:10406:10406"
     restart: unless-stopped
+
     depends_on:
       mosquitto:
         condition: service_started
@@ -22,7 +27,36 @@ services:
 
     networks:
       - team1-network
+  rule-engine-2:
+    build: .
+    container_name: team1-rule-engine-2
 
+    env_file:
+      - .env
+
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      INSTANCE_ID: rule-engine-2
+
+    ports:
+      - "127.0.0.1:10407:10406"
+
+    restart: unless-stopped
+
+    depends_on:
+      mosquitto:
+        condition: service_started
+      influxdb:
+        condition: service_healthy
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - team1-network
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: team1-mosquitto

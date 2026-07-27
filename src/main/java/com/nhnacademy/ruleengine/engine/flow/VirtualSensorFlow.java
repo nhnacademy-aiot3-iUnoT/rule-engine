@@ -1,11 +1,9 @@
 package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.core.Flow;
-import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
-import com.nhnacademy.ruleengine.engine.node.impl.MqttPublisherNode;
+import com.nhnacademy.ruleengine.engine.node.impl.RabbitNormalizedPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.VirtualSensorGeneratorNode;
-import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
-import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;
+import com.nhnacademy.ruleengine.engine.rabbit.NormalizedSensorPublisher;
 
 import java.util.Map;
 
@@ -14,45 +12,42 @@ public class VirtualSensorFlow {
 
     public static final String FLOW_ID_PREFIX = "virtual-sensor-flow-";
 
-    static final String PUBLISHER_NODE_ID = "internal-mqtt-out";
     static final String SENSOR_GENERATOR_NODE_ID = "sensor-generator";
+    static final String RABBIT_NORMALIZED_PUBLISHER_NODE_ID = "rabbit-normalized-publisher";
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
     private final String flowId;
-    private final RuleEngineProperties properties;
-    private final MqttNodeConfigFactory mqttNodeConfigFactory;
+    private final NormalizedSensorPublisher normalizedSensorPublisher;
+
     private final Map<String, Object> sensorConfig;
 
     public VirtualSensorFlow(
             String sectionId,
-            RuleEngineProperties properties,
-            MqttNodeConfigFactory mqttNodeConfigFactory,
-            Map<String, Object> sensorConfig
+            Map<String, Object> sensorConfig,
+            NormalizedSensorPublisher normalizedSensorPublisher
     ) {
         this.flowId = FLOW_ID_PREFIX + sectionId;
-        this.properties = properties;
-        this.mqttNodeConfigFactory = mqttNodeConfigFactory;
         this.sensorConfig = sensorConfig;
+        this.normalizedSensorPublisher = normalizedSensorPublisher;
     }
 
     public Flow create() {
-        InternalConfig internal = properties.mqtt().internal();
 
         return new Flow(flowId)
                 .addNode(new VirtualSensorGeneratorNode(
                         SENSOR_GENERATOR_NODE_ID,
                         sensorConfig
                 ))
-                .addNode(new MqttPublisherNode(
-                        PUBLISHER_NODE_ID,
-                        mqttNodeConfigFactory.createInternalPublisherConfig(internal)
+                .addNode(new RabbitNormalizedPublisherNode(
+                        RABBIT_NORMALIZED_PUBLISHER_NODE_ID,
+                        normalizedSensorPublisher
                 ))
                 .connect(
                         SENSOR_GENERATOR_NODE_ID,
                         OUTPUT_PORT,
-                        PUBLISHER_NODE_ID,
+                        RABBIT_NORMALIZED_PUBLISHER_NODE_ID,
                         INPUT_PORT
                 );
     }

@@ -5,9 +5,8 @@ import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.flow.VirtualSensorFlow;
-import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
+import com.nhnacademy.ruleengine.engine.rabbit.NormalizedSensorPublisher;
 import com.nhnacademy.ruleengine.engine.validation.LocationHierarchyValidator;
-import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,12 +19,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VirtualSensorService {
     private final FlowEngine flowEngine;
-    private final RuleEngineProperties ruleEngineProperties;
-    private final MqttNodeConfigFactory mqttNodeConfigFactory;
     private final LocationHierarchyValidator locationHierarchyValidator;
+    private final NormalizedSensorPublisher normalizedSensorPublisher;
 
     private static final String FLOW_ID_PREFIX = "virtual-sensor-flow-";
-    private Map<String, Object> sensorConfig;
 
     public void createAndStartFlow(
             Long organizationId,
@@ -33,6 +30,8 @@ public class VirtualSensorService {
             Long sectionId,
             VirtualSensorCreateRequest request
     ) {
+        Map<String, Object> sensorConfig = new HashMap<>();
+
 
         sensorConfig = new HashMap<>();
         sensorConfig.put("organizationId", organizationId);
@@ -55,7 +54,7 @@ public class VirtualSensorService {
         }
 
 
-        VirtualSensorFlow flow = new VirtualSensorFlow(sectionId.toString(), ruleEngineProperties, mqttNodeConfigFactory, sensorConfig);
+        VirtualSensorFlow flow = new VirtualSensorFlow(sectionId.toString(), sensorConfig, normalizedSensorPublisher);
         flowEngine.registerAndStart(flow.create());
 
     }

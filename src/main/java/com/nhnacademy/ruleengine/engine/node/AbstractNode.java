@@ -1,10 +1,10 @@
 package com.nhnacademy.ruleengine.engine.node;
 
-import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.connection.InputPort;
 import com.nhnacademy.ruleengine.engine.connection.OutputPort;
 import com.nhnacademy.ruleengine.engine.connection.impl.DefaultInputPort;
 import com.nhnacademy.ruleengine.engine.connection.impl.DefaultOutputPort;
+import com.nhnacademy.ruleengine.engine.core.Message;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

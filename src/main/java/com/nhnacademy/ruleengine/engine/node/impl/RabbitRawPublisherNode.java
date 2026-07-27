@@ -23,9 +23,12 @@ public class RabbitRawPublisherNode extends AbstractNode {
     @Override
     protected void onProcess(Message message) {
         ExternalSensorMessage externalSensorMessage = message.get(MessageFields.EXTERNAL_SENSOR_MESSAGE);
-        if (externalSensorMessage != null) {
+
+        if (externalSensorMessage == null) {
             log.warn("[{}] 외부 센서 메세지 없습니다", getId());
+            return;
         }
+
         rawSensorPublisher.publish(externalSensorMessage);
     }
 }
