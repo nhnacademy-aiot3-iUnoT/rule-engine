@@ -1,9 +1,9 @@
 package com.nhnacademy.ruleengine.engine.connection.impl;
 
 
-import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.connection.Connection;
 import com.nhnacademy.ruleengine.engine.connection.OutputPort;
+import com.nhnacademy.ruleengine.engine.core.Message;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;

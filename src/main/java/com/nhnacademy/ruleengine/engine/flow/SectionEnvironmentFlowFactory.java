@@ -3,6 +3,7 @@ package com.nhnacademy.ruleengine.engine.flow;
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
+import com.nhnacademy.ruleengine.engine.service.ThresholdPolicyService;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ public class SectionEnvironmentFlowFactory {
     private final RuleEngineProperties properties;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
     private final SensorInfluxService sensorInfluxService;
+    private final ThresholdPolicyService thresholdPolicyService;
 
 
     public Flow create(Long sectionId){
@@ -26,7 +28,8 @@ public class SectionEnvironmentFlowFactory {
                 sectionId,
                 properties,
                 mqttNodeConfigFactory,
-                sensorInfluxService
+                sensorInfluxService,
+                thresholdPolicyService
         ).create();
     }
 
