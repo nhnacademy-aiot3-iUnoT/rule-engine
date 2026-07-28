@@ -8,6 +8,7 @@ public final class MessageFields {
     public static final String EXTERNAL_SENSOR_MESSAGE = "externalSensorMessage";
     public static final String MQTT_RECEIVED_AT = "mqttReceivedAt";
     public static final String SENSOR_PAYLOAD = "sensorPayload";
+    public static final String RULE_RESULT = "ruleResult";
     public static final String TOPIC = "topic";
     public static final String QOS = "qos";
     public static final String CLIENT_ID = "clientId";
