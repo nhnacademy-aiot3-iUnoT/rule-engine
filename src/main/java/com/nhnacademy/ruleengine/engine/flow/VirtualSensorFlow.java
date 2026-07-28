@@ -1,13 +1,14 @@
 package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.core.Flow;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
 import com.nhnacademy.ruleengine.engine.node.impl.RabbitNormalizedPublisherNode;
 import com.nhnacademy.ruleengine.engine.node.impl.VirtualSensorGeneratorNode;
 import com.nhnacademy.ruleengine.engine.rabbit.NormalizedSensorPublisher;
 
-import java.util.Map;
+import java.util.Objects;
 
-//가상 센서 데이터를 생성해 내부 MQTT로 전송하는 Flow
+// 가상 센서 데이터를 생성해 정규화 RabbitMQ Queue로 전송하는 Flow
 public class VirtualSensorFlow {
 
     public static final String FLOW_ID_PREFIX = "virtual-sensor-flow-";
@@ -21,16 +22,19 @@ public class VirtualSensorFlow {
     private final String flowId;
     private final NormalizedSensorPublisher normalizedSensorPublisher;
 
-    private final Map<String, Object> sensorConfig;
+    private final VirtualSensorConfig sensorConfig;
 
     public VirtualSensorFlow(
-            String sectionId,
-            Map<String, Object> sensorConfig,
+            VirtualSensorConfig sensorConfig,
             NormalizedSensorPublisher normalizedSensorPublisher
     ) {
-        this.flowId = FLOW_ID_PREFIX + sectionId;
-        this.sensorConfig = sensorConfig;
+        this.sensorConfig = Objects.requireNonNull(sensorConfig, "가상 센서 설정은 필수입니다.");
+        this.flowId = flowId(this.sensorConfig.sectionId());
         this.normalizedSensorPublisher = normalizedSensorPublisher;
+    }
+
+    public static String flowId(Long sectionId) {
+        return FLOW_ID_PREFIX + sectionId;
     }
 
     public Flow create() {

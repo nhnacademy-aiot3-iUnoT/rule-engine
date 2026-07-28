@@ -4,6 +4,7 @@ import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,25 +37,25 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
     public VirtualSensorGeneratorNode(
             String nodeId,
-            Map<String, Object> sensorConfig
+            VirtualSensorConfig sensorConfig
     ) {
         super(nodeId);
 
-        Map<String, Object> config = Objects.requireNonNull(
+        VirtualSensorConfig config = Objects.requireNonNull(
                 sensorConfig,
-                "sensorConfig는 null일 수 없습니다."
+                "가상 센서 설정은 필수입니다."
         );
 
-        tempMin = requiredDouble(config, "tempMin");
-        tempMax = requiredDouble(config, "tempMax");
-        humidityMin = requiredDouble(config, "humidityMin");
-        humidityMax = requiredDouble(config, "humidityMax");
-        doorOpenProbability = requiredDouble(config, "doorOpenProbability");
-        measurementInterval = requiredLong(config, "measurementInterval");
-        organizationId = requiredLong(config, "organizationId");
-        storageId = requiredLong(config, "storageId");
-        sectionId = requiredLong(config, "sectionId");
-        deviceEui = requiredText(config, "deviceEui");
+        tempMin = config.temperatureMin();
+        tempMax = config.temperatureMax();
+        humidityMin = config.humidityMin();
+        humidityMax = config.humidityMax();
+        doorOpenProbability = config.doorOpenProbability();
+        measurementInterval = config.measurementIntervalSeconds();
+        organizationId = config.organizationId();
+        storageId = config.storageId();
+        sectionId = config.sectionId();
+        deviceEui = config.deviceEui();
 
         validateConfig();
         addOutputPort(OUTPUT_PORT);
@@ -174,50 +175,15 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
         requirePositive(organizationId, "organizationId");
         requirePositive(storageId, "storageId");
         requirePositive(sectionId, "sectionId");
+        if (deviceEui == null || deviceEui.isBlank()) {
+            throw new IllegalArgumentException("deviceEui는 비어 있을 수 없습니다.");
+        }
     }
 
     private void requirePositive(Long value, String fieldName) {
         if (value == null || value <= 0) {
             throw new IllegalArgumentException(fieldName + "는 양수여야 합니다.");
         }
-    }
-
-    private static double requiredDouble(Map<String, Object> config, String key) {
-        Object value = requiredValue(config, key);
-        try {
-            return value instanceof Number number
-                    ? number.doubleValue()
-                    : Double.parseDouble(value.toString().trim());
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(key + "는 숫자여야 합니다.", e);
-        }
-    }
-
-    private static long requiredLong(Map<String, Object> config, String key) {
-        Object value = requiredValue(config, key);
-        try {
-            return value instanceof Number number
-                    ? number.longValue()
-                    : Long.parseLong(value.toString().trim());
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(key + "는 정수여야 합니다.", e);
-        }
-    }
-
-    private static String requiredText(Map<String, Object> config, String key) {
-        String value = requiredValue(config, key).toString().trim();
-        if (value.isEmpty()) {
-            throw new IllegalArgumentException("deviceEui" + "는 비어 있을 수 없습니다.");
-        }
-        return value;
-    }
-
-    private static Object requiredValue(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        if (value == null) {
-            throw new IllegalArgumentException("필수 센서 설정이 없습니다: " + key);
-        }
-        return value;
     }
 
     private String sanitize(String value) {

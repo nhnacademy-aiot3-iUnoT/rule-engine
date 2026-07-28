@@ -36,7 +36,7 @@ public class FlowEngine {
 
     public void register(Flow flow) {
         // Flow ID를 기준으로 실행 대상 Flow를 등록한다.
-        flows.put(flow.getId(), flow);
+        flows.putIfAbsent(flow.getId(), flow);
         log.info("[Engine] 플로우 '{}' 등록됨", flow.getId());
     }
 

@@ -14,6 +14,10 @@ public class FlowLifecycleManager {
 
     private final FlowEngine flowEngine;
 
+    public boolean isRegistered(String flowId) {
+        return flowEngine.getFlows().containsKey(flowId);
+    }
+
     public void start(String flowId, Supplier<Flow> flowSupplier) {
         if (flowEngine.getFlows().containsKey(flowId)) {
             flowEngine.startFlow(flowId);
@@ -25,11 +29,16 @@ public class FlowLifecycleManager {
     }
 
     public void stop(String flowId) {
-        if (!flowEngine.getFlows().containsKey(flowId)) {
+        if (!isRegistered(flowId)) {
             return;
         }
 
         flowEngine.stopFlow(flowId);
         log.info("Flow를 중지했습니다. flowId={}", flowId);
+    }
+
+    public void resume(String flowId) {
+        flowEngine.startFlow(flowId);
+        log.info("Flow를 다시 시작했습니다. flowId={}", flowId);
     }
 }

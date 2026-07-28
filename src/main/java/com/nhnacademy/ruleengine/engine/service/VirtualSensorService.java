@@ -1,7 +1,8 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.core.FlowEngine;
+import com.nhnacademy.ruleengine.engine.core.FlowLifecycleManager;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.flow.VirtualSensorFlow;
@@ -11,18 +12,12 @@ import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-
-
 @Service
 @RequiredArgsConstructor
 public class VirtualSensorService {
-    private final FlowEngine flowEngine;
+    private final FlowLifecycleManager flowLifecycleManager;
     private final LocationHierarchyValidator locationHierarchyValidator;
     private final NormalizedSensorPublisher normalizedSensorPublisher;
-
-    private static final String FLOW_ID_PREFIX = "virtual-sensor-flow-";
 
     public void createAndStartFlow(
             Long organizationId,
@@ -30,33 +25,21 @@ public class VirtualSensorService {
             Long sectionId,
             VirtualSensorCreateRequest request
     ) {
-        Map<String, Object> sensorConfig = new HashMap<>();
+        VirtualSensorConfig sensorConfig = VirtualSensorConfig.from(
+                organizationId,
+                storageId,
+                sectionId,
+                request
+        );
+        String flowId = VirtualSensorFlow.flowId(sectionId);
 
-
-        sensorConfig = new HashMap<>();
-        sensorConfig.put("organizationId", organizationId);
-        sensorConfig.put("storageId", storageId);
-        sensorConfig.put("sectionId", sectionId);
-        sensorConfig.put("tempMin", request.temperature().min());
-        sensorConfig.put("tempMax", request.temperature().max());
-        sensorConfig.put("humidityMin", request.humidity().min());
-        sensorConfig.put("humidityMax", request.humidity().max());
-        sensorConfig.put("doorOpenProbability", request.doorOpenProbability());
-        sensorConfig.put("measurementInterval", request.measurementIntervalSeconds());
-        sensorConfig.put("deviceEui", request.deviceEui());
-
-
-        String flowId = virtualSensorFlowId(sectionId);
-
-        // 이미 해당 sectionId로 가상데이터 생성하는 Flow가 있는지확인
-        if (flowEngine.getFlows().containsKey(flowId)) {
+        // 같은 Section의 가상 센서 Flow가 중복 생성되는 것을 막는다.
+        if (flowLifecycleManager.isRegistered(flowId)) {
             throw new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_FLOW_ALREADY_EXISTS);
         }
 
-
-        VirtualSensorFlow flow = new VirtualSensorFlow(sectionId.toString(), sensorConfig, normalizedSensorPublisher);
-        flowEngine.registerAndStart(flow.create());
-
+        VirtualSensorFlow flow = new VirtualSensorFlow(sensorConfig, normalizedSensorPublisher);
+        flowLifecycleManager.start(flowId, flow::create);
     }
 
     public void changeFlowStatus(
@@ -69,17 +52,13 @@ public class VirtualSensorService {
         locationHierarchyValidator.validateSection(organizationId, storageId, sectionId);
 
         if (status == VirtualSensorStatus.INACTIVE) {
-            flowEngine.stopFlow(virtualSensorFlowId(sectionId));
+            flowLifecycleManager.stop(VirtualSensorFlow.flowId(sectionId));
             return;
         }
 
-        // ACTIVE라면 저장된 설정을 조회해서 다시 Flow 시작
+        // 중지된 기존 Flow를 다시 시작한다.
         if (status == VirtualSensorStatus.ACTIVE) {
-            flowEngine.startFlow(virtualSensorFlowId(sectionId));
+            flowLifecycleManager.resume(VirtualSensorFlow.flowId(sectionId));
         }
-    }
-
-    private String virtualSensorFlowId(Long sectionId) {
-        return FLOW_ID_PREFIX + sectionId;
     }
 }
