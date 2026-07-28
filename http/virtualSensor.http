@@ -1,21 +1,21 @@
 @host = http://localhost:10406
 
 ### 가상데이터 생성 Flow 생성
-POST {{host}}/api/rule-engine/organizations/2/storages/1/sections/2/virtual-sensor
+POST {{host}}/api/rule-engine/organizations/2/storages/1/sections/22/virtual-sensor
 Content-Type: application/json
 
 {
   "temperature": {
-    "min": 10,
-    "max": 30
+    "min": 25,
+    "max": 26
   },
   "humidity": {
-    "min": 30,
-    "max": 70
+    "min": 50,
+    "max": 55
   },
   "doorOpenProbability": 0.5,
   "measurementIntervalSeconds": 10,
-  "deviceEui": "device-eui-virtual-1"
+  "deviceEui": "device-eui-virtual-2"
 }
 
 ### Section에서 Flow 정지

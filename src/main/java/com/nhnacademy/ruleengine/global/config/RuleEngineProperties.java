@@ -8,8 +8,7 @@ public record RuleEngineProperties(
 ) {
 
     public record Mqtt(
-            ExternalConfig external,
-            InternalConfig internal
+            ExternalConfig external
     ) {
     }
 
@@ -21,11 +20,4 @@ public record RuleEngineProperties(
     ) {
     }
 
-    public record InternalConfig(
-            String brokerUrl,
-            String clientIdPrefix,
-            String topicPrefix,
-            int qos
-    ) {
-    }
 }

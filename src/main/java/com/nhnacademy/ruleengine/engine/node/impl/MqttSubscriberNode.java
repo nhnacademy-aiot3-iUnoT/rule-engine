@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
-import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
@@ -96,7 +95,7 @@ public class MqttSubscriberNode extends ProtocolNode {
 
         Map<String, Object> receivedPayload = parsePayload(receivedTopic, message.getPayload());
         sendReceivedPayload(receivedPayload);
-        log.info("[{}] MQTT 메시지 수신 완료: topic={}", getId(), receivedTopic);
+        log.debug("[{}] MQTT 메시지 수신 완료: topic={}", getId(), receivedTopic);
     }
 
     private boolean isSubscribedTopic(String receivedTopic) {
@@ -104,42 +103,11 @@ public class MqttSubscriberNode extends ProtocolNode {
     }
 
     private void sendReceivedPayload(Map<String, Object> receivedPayload) {
-
-        // 내부 MQTT 구독시
-        if (receivesStandardSensorPayload()) {
-            sendStandardSensorPayload(receivedPayload);
-            return;
-        }
-
-        // 외부 MQTT 구독시
         ExternalSensorMessage externalSensorMessage = ExternalSensorMessage.from(receivedPayload);
         send(OUTPUT_PORT, new Message(Map.of(
                 MessageFields.EXTERNAL_SENSOR_MESSAGE,
                 externalSensorMessage
         )));
-    }
-
-    // 내부 MQTT 타입의 데이터인지 확인
-    private boolean receivesStandardSensorPayload() {
-        return SENSOR_PAYLOAD.equals(getConfig(PAYLOAD_TYPE));
-    }
-
-    // 내부 MQTT 수신 로직
-    private void sendStandardSensorPayload(Map<String, Object> receivedPayload) {
-        try {
-            SensorPayload sensorPayload = objectMapper.convertValue(
-                    receivedPayload,
-                    SensorPayload.class
-            );
-            send(OUTPUT_PORT, new Message(Map.of(MessageFields.SENSOR_PAYLOAD, sensorPayload)));
-        } catch (IllegalArgumentException e) {
-            log.warn(
-                    "[{}] 내부 센서 DTO 변환 실패. topic={}, reason={}",
-                    getId(),
-                    receivedPayload.get(MessageFields.TOPIC),
-                    e.getMessage()
-            );
-        }
     }
 
     private int resolveQos(Object configuredQos) {

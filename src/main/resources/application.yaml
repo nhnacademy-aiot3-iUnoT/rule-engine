@@ -27,21 +27,27 @@ spring:
 
 logging:
   level:
-    com.nhnacademy.ruleengine: DEBUG
+    com.nhnacademy.ruleengine: INFO
     com.influx-db: INFO
 
 rule-engine:
+  redundancy:
+    instance-id: ${INSTANCE_ID}
+    external-ingress:
+      lock-key: rule-engine:lock:external-ingress
+      lease-duration: 10s
+      renew-interval: 3s
+
+    virtual-sensor:
+      lock-key-prefix: rule-engine:lock:virtual-sensor
+      lease-duration: 10s
+      renew-interval: 3s
+
   mqtt:
     external:
       broker-url: tcp://10.116.64.13:1883
       client-id-prefix: rule-engine-subscriber
       topic: application/+/device/+/event/up
-      qos: 1
-
-    internal:
-      broker-url: tcp://mosquitto:1883
-      client-id-prefix: rule-engine-internal-publisher
-      topic-prefix: iot
       qos: 1
 
 influx-db:

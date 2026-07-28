@@ -1,63 +1,44 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.core.FlowEngine;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
-import com.nhnacademy.ruleengine.engine.flow.VirtualSensorFlow;
-import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
+import com.nhnacademy.ruleengine.engine.repository.VirtualSensorRedisRepository;
 import com.nhnacademy.ruleengine.engine.validation.LocationHierarchyValidator;
-import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-
-
 @Service
 @RequiredArgsConstructor
 public class VirtualSensorService {
-    private final FlowEngine flowEngine;
-    private final RuleEngineProperties ruleEngineProperties;
-    private final MqttNodeConfigFactory mqttNodeConfigFactory;
     private final LocationHierarchyValidator locationHierarchyValidator;
+    private final VirtualSensorRedisRepository virtualSensorRedisRepository;
 
-    private static final String FLOW_ID_PREFIX = "virtual-sensor-flow-";
-    private Map<String, Object> sensorConfig;
-
-    public void createAndStartFlow(
+    public void createVirtualSensor(
             Long organizationId,
             Long storageId,
             Long sectionId,
             VirtualSensorCreateRequest request
     ) {
+        locationHierarchyValidator.validateSection(organizationId, storageId, sectionId);
 
-        sensorConfig = new HashMap<>();
-        sensorConfig.put("organizationId", organizationId);
-        sensorConfig.put("storageId", storageId);
-        sensorConfig.put("sectionId", sectionId);
-        sensorConfig.put("tempMin", request.temperature().min());
-        sensorConfig.put("tempMax", request.temperature().max());
-        sensorConfig.put("humidityMin", request.humidity().min());
-        sensorConfig.put("humidityMax", request.humidity().max());
-        sensorConfig.put("doorOpenProbability", request.doorOpenProbability());
-        sensorConfig.put("measurementInterval", request.measurementIntervalSeconds());
-        sensorConfig.put("deviceEui", request.deviceEui());
+        VirtualSensorConfig sensorConfig = VirtualSensorConfig.from(
+                organizationId,
+                storageId,
+                sectionId,
+                request
+        );
 
+        boolean saved = virtualSensorRedisRepository.saveIfAbsent(sensorConfig);
 
-        String flowId = virtualSensorFlowId(sectionId);
-
-        // 이미 해당 sectionId로 가상데이터 생성하는 Flow가 있는지확인
-        if (flowEngine.getFlows().containsKey(flowId)) {
-            throw new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_FLOW_ALREADY_EXISTS);
+        if (!saved) {
+            throw new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_EXISTS);
         }
 
-
-        VirtualSensorFlow flow = new VirtualSensorFlow(sectionId.toString(), ruleEngineProperties, mqttNodeConfigFactory, sensorConfig);
-        flowEngine.registerAndStart(flow.create());
-
+        // Coordinator가 활성 목록을 확인한 뒤 Lock 소유 서버에서 Flow를 시작한다.
+        virtualSensorRedisRepository.activate(sectionId);
     }
 
     public void changeFlowStatus(
@@ -69,18 +50,18 @@ public class VirtualSensorService {
 
         locationHierarchyValidator.validateSection(organizationId, storageId, sectionId);
 
-        if (status == VirtualSensorStatus.INACTIVE) {
-            flowEngine.stopFlow(virtualSensorFlowId(sectionId));
+        virtualSensorRedisRepository.getVirtualSensorConfig(sectionId)
+                .orElseThrow(() -> new VirtualSensorFlowException(
+                        ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND
+                ));
+
+        if (status == VirtualSensorStatus.ACTIVE) {
+            virtualSensorRedisRepository.activate(sectionId);
             return;
         }
 
-        // ACTIVE라면 저장된 설정을 조회해서 다시 Flow 시작
-        if (status == VirtualSensorStatus.ACTIVE) {
-            flowEngine.startFlow(virtualSensorFlowId(sectionId));
+        if (status == VirtualSensorStatus.INACTIVE) {
+            virtualSensorRedisRepository.deactivate(sectionId);
         }
-    }
-
-    private String virtualSensorFlowId(Long sectionId) {
-        return FLOW_ID_PREFIX + sectionId;
     }
 }

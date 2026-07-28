@@ -72,7 +72,7 @@ public class Flow {
 
         sourceNode.getOutputPort(sourcePort).connect(connection);
         connection.setTarget(targetNode.getInputPort(targetPort));
-        log.info("[{}] Connection Success {}", id, connection.getId());
+        log.debug("[{}] Connection Success {}", id, connection.getId());
         connections.add(connection);
 
         return this;
@@ -138,7 +138,7 @@ public class Flow {
         connections.remove(connection);
         connection.stop();
 
-        log.info("[{}] Connection Removed {}", id, connection.getId());
+        log.debug("[{}] Connection Removed {}", id, connection.getId());
         return connection;
     }
 
@@ -163,7 +163,7 @@ public class Flow {
 
         AbstractNode node = nodes.remove(nodeId);
         node.shutdown();
-        log.info("[{}] Node Removed {}", id, nodeId);
+        log.debug("[{}] Node Removed {}", id, nodeId);
         return node;
     }
 

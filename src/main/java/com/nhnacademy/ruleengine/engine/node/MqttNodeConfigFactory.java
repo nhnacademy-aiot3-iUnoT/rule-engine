@@ -1,7 +1,6 @@
 package com.nhnacademy.ruleengine.engine.node;
 
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.ExternalConfig;
-import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -13,11 +12,7 @@ public class MqttNodeConfigFactory {
     private static final String BROKER_URL = "brokerUrl";
     private static final String CLIENT_ID = "clientId";
     private static final String TOPIC = "topic";
-    private static final String TOPIC_PREFIX = "topicPrefix";
     private static final String QOS = "qos";
-    private static final String PAYLOAD_TYPE = "payloadType";
-    private static final String EXTERNAL_SENSOR_PAYLOAD = "externalSensor";
-    private static final String STANDARD_SENSOR_PAYLOAD = "sensorPayload";
 
     public Map<String, Object> createExternalSubscriberConfig(
             ExternalConfig external
@@ -48,77 +43,6 @@ public class MqttNodeConfigFactory {
                 validateQos(
                         external.qos(),
                         "external.qos"
-                ),
-                PAYLOAD_TYPE,
-                EXTERNAL_SENSOR_PAYLOAD
-        );
-    }
-
-    public Map<String, Object> createInternalSubscriberConfig(
-            InternalConfig internal,
-            String topicSuffix
-    ) {
-        if (internal == null) {
-            throw new IllegalArgumentException(
-                    "rule-engine.mqtt.internal 설정이 필요합니다."
-            );
-        }
-
-        return Map.of(
-                BROKER_URL,
-                requireText(
-                        internal.brokerUrl(),
-                        "internal.broker-url"
-                ),
-                CLIENT_ID,
-                createClientId(
-                        internal.clientIdPrefix(),
-                        "internal.client-id-prefix"
-                ),
-                TOPIC,
-                requireText(
-                        normalizeTopic(internal.topicPrefix(), topicSuffix),
-                        "internal.topic-prefix"
-                ),
-                QOS,
-                validateQos(
-                        internal.qos(),
-                        "internal.qos"
-                ),
-                PAYLOAD_TYPE,
-                STANDARD_SENSOR_PAYLOAD
-        );
-    }
-
-    public Map<String, Object> createInternalPublisherConfig(
-            InternalConfig internal
-    ) {
-        if (internal == null) {
-            throw new IllegalArgumentException(
-                    "rule-engine.mqtt.internal 설정이 필요합니다."
-            );
-        }
-
-        return Map.of(
-                BROKER_URL,
-                requireText(
-                        internal.brokerUrl(),
-                        "internal.broker-url"
-                ),
-                CLIENT_ID,
-                createClientId(
-                        internal.clientIdPrefix(),
-                        "internal.client-id-prefix"
-                ),
-                TOPIC_PREFIX,
-                requireText(
-                        internal.topicPrefix(),
-                        "internal.topic-prefix"
-                ),
-                QOS,
-                validateQos(
-                        internal.qos(),
-                        "internal.qos"
                 )
         );
     }
@@ -130,34 +54,6 @@ public class MqttNodeConfigFactory {
         return requireText(prefix, propertyName)
                 + "-"
                 + UUID.randomUUID();
-    }
-
-    private String normalizeTopic(
-            String topicPrefix,
-            String topicSuffix
-    ) {
-        String prefix = normalizeTopicPart(topicPrefix);
-        String suffix = normalizeTopicPart(topicSuffix);
-
-        if (prefix.isEmpty()) {
-            return suffix;
-        }
-
-        if (suffix.isEmpty()) {
-            return prefix;
-        }
-
-        return prefix + "/" + suffix;
-    }
-
-    private String normalizeTopicPart(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-
-        return value.trim()
-                .replaceAll("^/+", "")
-                .replaceAll("/+$", "");
     }
 
     private String requireText(

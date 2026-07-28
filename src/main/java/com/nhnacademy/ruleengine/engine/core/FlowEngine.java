@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.engine.core;
 
 import com.nhnacademy.ruleengine.engine.connection.Connection;
+import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.node.Node;
 import lombok.Getter;
@@ -36,8 +37,8 @@ public class FlowEngine {
 
     public void register(Flow flow) {
         // Flow ID를 기준으로 실행 대상 Flow를 등록한다.
-        flows.put(flow.getId(), flow);
-        log.info("[Engine] 플로우 '{}' 등록됨", flow.getId());
+        flows.putIfAbsent(flow.getId(), flow);
+        log.debug("[Engine] 플로우 '{}' 등록됨", flow.getId());
     }
 
     public void registerAndStart(Flow flow) {
@@ -62,7 +63,7 @@ public class FlowEngine {
         }
 
         flowEngineState = FlowEngineState.RUNNING;
-        log.info("[Engine] 플로우 '{}' 시작됨", flow.getId());
+        log.debug("[Engine] 플로우 '{}' 시작됨", flow.getId());
     }
 
     public void startConnection(String flowId, Connection connection) {
@@ -81,8 +82,9 @@ public class FlowEngine {
         Future<?> future = executorService.submit(() -> {
             // 중단 요청 전까지 버퍼의 메시지를 대상 입력 포트로 전달한다.
             while (!Thread.currentThread().isInterrupted()) {
+                Message message = null;
                 try {
-                    Message message = connection.poll();
+                    message = connection.poll();
                     if (message != null && connection.getTarget() != null) {
                         connection.getTarget().receive(message);
                     }
@@ -90,11 +92,42 @@ public class FlowEngine {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    log.error("[Engine] connection task failed. connectionId={}", connection.getId(), e);
+                    completeMessageExceptionally(message, e);
+
+                    if (e instanceof IllegalArgumentException) {
+                        log.debug(
+                                "[Engine] 잘못된 메시지를 거절했습니다. connectionId={}, reason={}",
+                                connection.getId(),
+                                e.getMessage()
+                        );
+                    } else {
+                        log.error(
+                                "[Engine] connection task failed. connectionId={}",
+                                connection.getId(),
+                                e
+                        );
+                    }
                 }
             }
         });
         flowTasks.put(taskId, future);
+    }
+
+    private void completeMessageExceptionally(
+            Message message,
+            Exception exception
+    ) {
+        if (message == null) {
+            return;
+        }
+
+        FlowProcessingCompletion completion = message.get(
+                MessageFields.FLOW_PROCESSING_COMPLETION
+        );
+
+        if (completion != null) {
+            completion.completeExceptionally(exception);
+        }
     }
 
     public void stopConnection(String flowId, String connectionId) {
@@ -115,7 +148,7 @@ public class FlowEngine {
         if (flow != null) {
             stopConnectionTasks(flowId);
             flow.shutdown();
-            log.info("[Engine] 플로우 '{}' 정지됨", flowId);
+            log.debug("[Engine] 플로우 '{}' 정지됨", flowId);
         }
     }
 

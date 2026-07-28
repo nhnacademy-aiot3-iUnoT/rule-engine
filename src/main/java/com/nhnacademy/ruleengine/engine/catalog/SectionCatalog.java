@@ -3,7 +3,6 @@ package com.nhnacademy.ruleengine.engine.catalog;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -32,6 +31,7 @@ public class SectionCatalog {
         sectionIdsByPoint.put("전방 우측", 6L);
         sectionIdsByPoint.put("출입문", 7L);
         sectionIdsByPoint.put("후방 오른쪽", 8L);
+        sectionIdsByPoint.put("구역", 9L);
     }
 
     public Optional<ResolvedSection> resolveSection(
@@ -47,8 +47,13 @@ public class SectionCatalog {
         Long storageId = storageIdsByLocation.get(location.trim());
         Long sectionId = sectionIdsByPoint.get(point.trim());
 
-        if (organizationId == null || storageId == null || sectionId == null) {
+        if (organizationId == null || storageId == null) {
             return Optional.empty();
+        }
+
+        //외부 센서 데이터중 sectionID 없는경우
+        if(sectionId == null) {
+            sectionId = sectionIdsByPoint.get("구역");
         }
 
         return Optional.of(new ResolvedSection(organizationId, storageId, sectionId));
@@ -64,10 +69,5 @@ public class SectionCatalog {
             Long storageId,
             Long sectionId
     ) {
-    }
-
-    //임시(추후수정)
-    public List<Long> findAllSectionIds(){
-        return sectionIdsByPoint.values().stream().toList();
     }
 }

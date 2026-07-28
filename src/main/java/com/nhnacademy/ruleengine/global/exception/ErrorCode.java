@@ -17,7 +17,8 @@ public enum ErrorCode {
     STORAGE_NOT_FOUND(HttpStatus.BAD_REQUEST, "R004", "존재하지 않는 스토리지 ID 입니다"),
     INVALID_SENSOR_TYPE(HttpStatus.BAD_REQUEST, "R005", "sensorType은 필수입니다."),
     UNSUPPORTED_SENSOR_TYPE(HttpStatus.BAD_REQUEST, "R006", "지원하지 않는 센서 종류입니다."),
-    VIRTUAL_SENSOR_FLOW_ALREADY_EXISTS(  HttpStatus.CONFLICT, "R006", "해당 Section의 가상 센서 Flow가 이미 존재합니다."),
+    VIRTUAL_SENSOR_CONFIG_EXISTS(HttpStatus.CONFLICT, "R008", "해당 Section의 가상 센서 설정이 이미 존재합니다."),
+    VIRTUAL_SENSOR_CONFIG_NOT_FOUND(HttpStatus.NOT_FOUND, "R009", "해당 Section의 가상 센서 설정이 존재하지 않습니다."),
 
     SENSOR_DATA_QUERY_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "센서 데이터 조회에 실패했습니다."),
     INVALID_SENSOR_DATA(HttpStatus.BAD_REQUEST, "S002", "잘못된 센서 데이터입니다.");
