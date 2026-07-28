@@ -6,6 +6,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
     ports:
       - "127.0.0.1:10406:10406"
     restart: unless-stopped
