@@ -2,10 +2,9 @@ package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.MqttNodeConfigFactory;
-import com.nhnacademy.ruleengine.engine.node.impl.DatabaseSaveNode;
-import com.nhnacademy.ruleengine.engine.node.impl.MqttSubscriberNode;
-import com.nhnacademy.ruleengine.engine.node.impl.SensorPayloadValidationNode;
+import com.nhnacademy.ruleengine.engine.node.impl.*;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
+import com.nhnacademy.ruleengine.engine.service.ThresholdPolicyService;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties;
 import com.nhnacademy.ruleengine.global.config.RuleEngineProperties.InternalConfig;
 
@@ -19,6 +18,8 @@ public class SectionEnvironmentFlow {
     static final String SUBSCRIBER_NODE_ID = "internal-mqtt-subscriber";
     static final String VALIDATION_NODE_ID = "sensor-payload-validation";
     static final String DATABASE_SAVE_NODE_ID = "sensor-database-save";
+    static final String THRESHOLD_FILTER_NODE_ID = "threshold-filter";
+    static final String DOOR_STATE_FILTER_NODE_ID = "door-state-filter";
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
@@ -26,12 +27,20 @@ public class SectionEnvironmentFlow {
     private final RuleEngineProperties properties;
     private final MqttNodeConfigFactory mqttNodeConfigFactory;
     private final SensorInfluxService sensorInfluxService;
+    private final ThresholdPolicyService thresholdPolicyService;
 
-    public SectionEnvironmentFlow(Long sectionId, RuleEngineProperties properties, MqttNodeConfigFactory mqttNodeConfigFactory, SensorInfluxService sensorInfluxService) {
+    public SectionEnvironmentFlow(
+            Long sectionId,
+            RuleEngineProperties properties,
+            MqttNodeConfigFactory mqttNodeConfigFactory,
+            SensorInfluxService sensorInfluxService,
+            ThresholdPolicyService thresholdPolicyService
+    ) {
         this.sectionId = sectionId;
         this.properties = properties;
         this.mqttNodeConfigFactory = mqttNodeConfigFactory;
         this.sensorInfluxService = sensorInfluxService;
+        this.thresholdPolicyService = thresholdPolicyService;
     }
 
     public Flow create() {
@@ -49,6 +58,13 @@ public class SectionEnvironmentFlow {
                         DATABASE_SAVE_NODE_ID,
                         sensorInfluxService
                 ))
+                .addNode(new ThresholdFilterNode(
+                        THRESHOLD_FILTER_NODE_ID,
+                        thresholdPolicyService
+                ))
+                .addNode(new DoorStateFilterNode(
+                        DOOR_STATE_FILTER_NODE_ID
+                ))
                 .connect(
                         SUBSCRIBER_NODE_ID,
                         OUTPUT_PORT,
@@ -60,7 +76,20 @@ public class SectionEnvironmentFlow {
                         OUTPUT_PORT,
                         DATABASE_SAVE_NODE_ID,
                         INPUT_PORT
+                )
+                .connect(
+                        DATABASE_SAVE_NODE_ID,
+                        OUTPUT_PORT,
+                        THRESHOLD_FILTER_NODE_ID,
+                        INPUT_PORT
+                        )
+                .connect(
+                        DATABASE_SAVE_NODE_ID,
+                        OUTPUT_PORT,
+                        DOOR_STATE_FILTER_NODE_ID,
+                        INPUT_PORT
                 );
+
     }
 
     public static String flowId(Long sectionId) {

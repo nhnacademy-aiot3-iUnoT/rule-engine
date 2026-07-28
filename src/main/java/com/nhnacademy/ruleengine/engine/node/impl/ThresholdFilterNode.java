@@ -1,15 +1,21 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
-import com.nhnacademy.ruleengine.engine.Message;
+
+import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.dto.RuleResultCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.RuleResultDto;
-import com.nhnacademy.ruleengine.engine.dto.SensorPayloadDto;
 import com.nhnacademy.ruleengine.engine.dto.ThresholdPolicyDto;
-import com.nhnacademy.ruleengine.engine.service.ThresholdPolicyService;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
+import com.nhnacademy.ruleengine.engine.dto.sensor.ViolationType;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
+import com.nhnacademy.ruleengine.engine.service.ThresholdPolicyService;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
+
+import static com.nhnacademy.ruleengine.engine.constants.MessageFields.RULE_RESULT;
+import static com.nhnacademy.ruleengine.engine.constants.MessageFields.SENSOR_PAYLOAD;
+
 
 // 임계값 검사 노드
 @Slf4j
@@ -17,9 +23,6 @@ public class ThresholdFilterNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
     private static final String OUT_PORT = "out";
-
-    private static final String SENSOR_PAYLOAD = "sensorPayload";
-    private static final String RULE_RESULT = "ruleResult";
 
     private static final String TEMPERATURE = "temperature";
     private static final String HUMIDITY = "humidity";
@@ -36,7 +39,7 @@ public class ThresholdFilterNode extends AbstractNode {
 
     @Override
     protected void onProcess(Message message) {
-        SensorPayloadDto sensorPayload = message.get(SENSOR_PAYLOAD);
+        SensorPayload sensorPayload = message.get(SENSOR_PAYLOAD);
 
         if (sensorPayload == null) {
             log.info("[{}] sensorPayload가 없어 임계값 조회를 건너뜁니다.", getId());
@@ -71,7 +74,7 @@ public class ThresholdFilterNode extends AbstractNode {
     }
 
     private void checkValue(
-            SensorPayloadDto sensorPayload,
+            SensorPayload sensorPayload,
             ThresholdPolicyDto thresholdPolicy
     ){
         Double value = sensorPayload.value();
@@ -88,16 +91,16 @@ public class ThresholdFilterNode extends AbstractNode {
 
 
         if(min != null && value < min){
-            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최솟값 미달"));
+            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.BELOW_MIN, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최솟값 미달"));
             return;
         }
 
         if(max != null && value > max){
-            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최댓값 초과"));
+            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.ABOVE_MAX, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최댓값 초과"));
             return;
         }
 
-        if (min == null || max == null) {
+        if (min == null && max == null) {
             log.info("[{}] 임계값이 없어 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}",
                     getId(),
                     sensorPayload.organizationId(),
@@ -108,7 +111,7 @@ public class ThresholdFilterNode extends AbstractNode {
             return;
         }
 
-        sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, false, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 정상"));
+        sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.NORMAL, false, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 정상"));
     }
 
     private void sendRuleResult(

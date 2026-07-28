@@ -1,10 +1,9 @@
 package com.nhnacademy.ruleengine.global.bootstrap;
 
+import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.core.FlowEngine;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.flow.FlowFactory;
-
 import com.nhnacademy.ruleengine.engine.service.SectionEnvironmentFlowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,5 +1,7 @@
 package com.nhnacademy.ruleengine.engine.dto;
 
+import com.nhnacademy.ruleengine.engine.dto.sensor.ViolationType;
+
 // 환경 룰 필터 결과 dto
 public record RuleResultDto(
         Long organizationId,
@@ -7,7 +9,7 @@ public record RuleResultDto(
         Long storageId,
         Long sectionId,
         String sensorType,
-        String ruleType, //이상 판단 기준
+        ViolationType violationType, //이상 타입
         boolean violated,
         Double value,
         Double min,
@@ -24,7 +26,7 @@ public record RuleResultDto(
                 request.sensorPayload().storageId(),
                 request.sensorPayload().sectionId(),
                 request.sensorPayload().sensorType(),
-                null,
+                request.violationType(),
                 request.violated(),
                 request.sensorPayload().value(),
                 request.min(),
@@ -43,12 +45,13 @@ public record RuleResultDto(
                 request.sensorPayload().storageId(),
                 request.sensorPayload().sectionId(),
                 request.sensorPayload().sensorType(),
-                null,
+                request.violationType(),
                 request.violated(),
                 request.sensorPayload().value(),
                 null,
                 null,
                 request.sensorPayload().unit(),
+
                 request.sensorPayload().time(),
                 null,
                 request.message()

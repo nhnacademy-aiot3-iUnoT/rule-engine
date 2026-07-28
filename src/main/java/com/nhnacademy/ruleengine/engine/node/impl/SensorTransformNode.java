@@ -1,13 +1,13 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
-import com.nhnacademy.ruleengine.engine.core.Message;
-import com.nhnacademy.ruleengine.engine.constants.MessageFields;
+import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
+import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
 import com.nhnacademy.ruleengine.engine.command.SensorCommand;
+import com.nhnacademy.ruleengine.engine.constants.MessageFields;
+import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
