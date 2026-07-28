@@ -15,11 +15,11 @@ public class FlowLifecycleManager {
     private final FlowEngine flowEngine;
 
     public boolean isRegistered(String flowId) {
-        return flowEngine.getFlows().containsKey(flowId);
+        return flowEngine.containsFlow(flowId);
     }
 
     public void start(String flowId, Supplier<Flow> flowSupplier) {
-        if (flowEngine.getFlows().containsKey(flowId)) {
+        if (flowEngine.containsFlow(flowId)) {
             flowEngine.startFlow(flowId);
         } else {
             flowEngine.registerAndStart(flowSupplier.get());

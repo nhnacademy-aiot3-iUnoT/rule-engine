@@ -2,12 +2,9 @@ package com.nhnacademy.ruleengine.engine.core;
 
 import com.nhnacademy.ruleengine.engine.connection.Connection;
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
-import com.nhnacademy.ruleengine.engine.node.AbstractNode;
-import com.nhnacademy.ruleengine.engine.node.Node;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,20 +16,24 @@ import java.util.concurrent.Future;
 // 여러 Flow와 Connection 처리 작업을 등록·실행·종료한다.
 public class FlowEngine {
 
-    public enum FlowEngineState {INITIALIZED, RUNNING, STOPPED}
+    public enum FlowEngineState {
+        INITIALIZED,
+        RUNNING,
+        STOPPED
+    }
+
+    private final Map<String, Flow> flows = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Future<?>>> connectionTasks =
+            new ConcurrentHashMap<>();
+    private final ExecutorService executorService =
+            Executors.newCachedThreadPool();
 
     @Getter
-    private final Map<String, Flow> flows;
-    @Getter
-    private FlowEngineState flowEngineState;
-    private final ExecutorService executorService;
-    private final Map<String, Map<String, Future<?>>> connectionTasks;
+    private volatile FlowEngineState flowEngineState =
+            FlowEngineState.INITIALIZED;
 
-    public FlowEngine() {
-        this.flowEngineState = FlowEngineState.INITIALIZED;
-        this.flows = new ConcurrentHashMap<>();
-        this.executorService = Executors.newCachedThreadPool();
-        this.connectionTasks = new ConcurrentHashMap<>();
+    public boolean containsFlow(String flowId) {
+        return flows.containsKey(flowId);
     }
 
     public void register(Flow flow) {
@@ -66,51 +67,79 @@ public class FlowEngine {
         log.debug("[Engine] 플로우 '{}' 시작됨", flow.getId());
     }
 
-    public void startConnection(String flowId, Connection connection) {
+    private void startConnection(String flowId, Connection connection) {
         // Connection마다 메시지를 소비하는 별도 작업을 실행한다.
-        if (!flows.containsKey(flowId)) {
-            throw new IllegalArgumentException("Flow '" + flowId + "' not found");
-        }
+        getFlowOrThrow(flowId);
 
-        Map<String, Future<?>> flowTasks = connectionTasks.computeIfAbsent(flowId, id -> new ConcurrentHashMap<>());
+        Map<String, Future<?>> flowTasks = connectionTasks.computeIfAbsent(
+                flowId,
+                id -> new ConcurrentHashMap<>()
+        );
         String taskId = Flow.normalizeConnectionId(connection.getId());
 
-        if (flowTasks.containsKey(taskId) && !flowTasks.get(taskId).isDone()) {
+        if (isTaskRunning(flowTasks.get(taskId))) {
             return;
         }
 
-        Future<?> future = executorService.submit(() -> {
-            // 중단 요청 전까지 버퍼의 메시지를 대상 입력 포트로 전달한다.
-            while (!Thread.currentThread().isInterrupted()) {
-                Message message = null;
-                try {
-                    message = connection.poll();
-                    if (message != null && connection.getTarget() != null) {
-                        connection.getTarget().receive(message);
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
-                    completeMessageExceptionally(message, e);
-
-                    if (e instanceof IllegalArgumentException) {
-                        log.debug(
-                                "[Engine] 잘못된 메시지를 거절했습니다. connectionId={}, reason={}",
-                                connection.getId(),
-                                e.getMessage()
-                        );
-                    } else {
-                        log.error(
-                                "[Engine] connection task failed. connectionId={}",
-                                connection.getId(),
-                                e
-                        );
-                    }
-                }
-            }
-        });
+        Future<?> future = executorService.submit(
+                () -> consumeMessages(connection)
+        );
         flowTasks.put(taskId, future);
+    }
+
+    private boolean isTaskRunning(Future<?> task) {
+        return task != null && !task.isDone();
+    }
+
+    private void consumeMessages(Connection connection) {
+        // 중단 요청 전까지 버퍼의 메시지를 대상 입력 포트로 전달한다.
+        while (!Thread.currentThread().isInterrupted()) {
+            Message message = null;
+
+            try {
+                message = connection.poll();
+                deliverMessage(connection, message);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception exception) {
+                handleConnectionFailure(connection, message, exception);
+            }
+        }
+    }
+
+    private void deliverMessage(
+            Connection connection,
+            Message message
+    ) {
+        if (message == null || connection.getTarget() == null) {
+            return;
+        }
+
+        connection.getTarget().receive(message);
+    }
+
+    private void handleConnectionFailure(
+            Connection connection,
+            Message message,
+            Exception exception
+    ) {
+        completeMessageExceptionally(message, exception);
+
+        if (exception instanceof IllegalArgumentException) {
+            log.debug(
+                    "[Engine] 잘못된 메시지를 거절했습니다. connectionId={}, reason={}",
+                    connection.getId(),
+                    exception.getMessage()
+            );
+            return;
+        }
+
+        log.error(
+                "[Engine] connection task failed. connectionId={}",
+                connection.getId(),
+                exception
+        );
     }
 
     private void completeMessageExceptionally(
@@ -127,18 +156,6 @@ public class FlowEngine {
 
         if (completion != null) {
             completion.completeExceptionally(exception);
-        }
-    }
-
-    public void stopConnection(String flowId, String connectionId) {
-        Map<String, Future<?>> flowTasks = connectionTasks.get(flowId);
-        if (flowTasks == null) {
-            return;
-        }
-
-        Future<?> future = flowTasks.remove(Flow.normalizeConnectionId(connectionId));
-        if (future != null) {
-            future.cancel(true);
         }
     }
 
@@ -162,63 +179,6 @@ public class FlowEngine {
         }
         executorService.shutdownNow();
         flowEngineState = FlowEngineState.STOPPED;
-    }
-
-    public List<Map<String, Object>> getRunningFlows() {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Flow flow : flows.values()) {
-            String status = "STOPPED";
-            Map<String, Future<?>> tasks = connectionTasks.get(flow.getId());
-            if (tasks != null && !tasks.isEmpty()) {
-                status = "RUNNING";
-            }
-
-            result.add(Map.of(
-                    "id", flow.getId(),
-                    "name", flow.getId() != null ? flow.getId() : "이름 없음",
-                    "status", status
-            ));
-        }
-        return result;
-    }
-
-    public List<String> getNodeIdsByFlowId(String flowId) {
-        Flow flow = flows.get(flowId);
-        if (flow == null) {
-            return List.of();
-        }
-
-        List<String> nodeIds = new ArrayList<>();
-        if (flow.getNodes() != null) {
-            for (Node node : flow.getNodes().values()) {
-                nodeIds.add(node.getId());
-            }
-        }
-        return nodeIds;
-    }
-
-    public AbstractNode getNodeInstance(String nodeId) {
-        for (Flow flow : flows.values()) {
-            if (flow.getNodes() != null) {
-                for (AbstractNode node : flow.getNodes().values()) {
-                    if (nodeId.equals(node.getId())) {
-                        return node;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    public int getRunningFlowCount() {
-        int activeCount = 0;
-        for (String flowId : flows.keySet()) {
-            Map<String, Future<?>> tasks = connectionTasks.get(flowId);
-            if (tasks != null && !tasks.isEmpty()) {
-                activeCount++;
-            }
-        }
-        return activeCount;
     }
 
     private Flow getFlowOrThrow(String flowId) {
