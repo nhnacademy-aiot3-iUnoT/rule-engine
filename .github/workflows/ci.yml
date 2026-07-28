@@ -54,7 +54,7 @@ jobs:
             cd ~/rule-engine
             git pull origin main
             set -a
-            source ~/infra/common.env
+            . ~/infra/common.env
             set +a
             docker compose -f compose.yaml up -d --build
             docker image prune -f
