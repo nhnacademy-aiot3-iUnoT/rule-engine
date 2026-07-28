@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-// 외부 MQTT 데이터 전처리후 내부 MQTT로 전송하는 Flow
+// 외부 MQTT 데이터를 수집해 RabbitMQ Raw Queue로 전달하는 Flow
 public class ExternalSensorFlow {
 
     public static final String FLOW_ID = "sensor-processing-flow";
