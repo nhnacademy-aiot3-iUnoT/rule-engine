@@ -9,6 +9,7 @@ services:
       INSTANCE_ID: rule-engine-1
 
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
     ports:
       - "127.0.0.1:10406:10406"
 
