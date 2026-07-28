@@ -36,9 +36,4 @@ public class FlowLifecycleManager {
         flowEngine.stopFlow(flowId);
         log.info("Flow를 중지했습니다. flowId={}", flowId);
     }
-
-    public void resume(String flowId) {
-        flowEngine.startFlow(flowId);
-        log.info("Flow를 다시 시작했습니다. flowId={}", flowId);
-    }
 }

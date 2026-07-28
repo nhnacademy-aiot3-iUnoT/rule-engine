@@ -50,12 +50,6 @@ rule-engine:
       topic: application/+/device/+/event/up
       qos: 1
 
-    internal:
-      broker-url: tcp://mosquitto:1883
-      client-id-prefix: rule-engine-internal-publisher
-      topic-prefix: iot
-      qos: 1
-
 influx-db:
   url: ${INFLUX_URL}
   token: ${INFLUX_TOKEN}

@@ -3,7 +3,6 @@ package com.nhnacademy.ruleengine.engine.catalog;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -64,10 +63,5 @@ public class SectionCatalog {
             Long storageId,
             Long sectionId
     ) {
-    }
-
-    //임시(추후수정)
-    public List<Long> findAllSectionIds(){
-        return sectionIdsByPoint.values().stream().toList();
     }
 }

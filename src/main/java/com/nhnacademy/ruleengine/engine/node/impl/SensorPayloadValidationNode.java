@@ -23,8 +23,7 @@ public class SensorPayloadValidationNode extends AbstractNode {
     protected void onProcess(Message message) {
         SensorPayload sensorPayload = message.get(MessageFields.SENSOR_PAYLOAD);
         if (sensorPayload == null) {
-            log.warn("[{}] sensorPayload가 없어 검증을 건너뜁니다.", getId());
-            return;
+            throw new IllegalArgumentException("sensorPayload는 필수입니다.");
         }
 
         try {
@@ -36,6 +35,7 @@ public class SensorPayloadValidationNode extends AbstractNode {
                     getId(),
                     e.getMessage()
             );
+            throw e;
         }
     }
 }

@@ -10,9 +10,10 @@ public final class MessageFields {
     public static final String SENSOR_PAYLOAD = "sensorPayload";
     public static final String TOPIC = "topic";
     public static final String QOS = "qos";
-    public static final String PAYLOAD_TYPE = "payloadType";
     public static final String CLIENT_ID = "clientId";
     public static final String BROKER_URL = "brokerUrl";
+    public static final String FLOW_PROCESSING_COMPLETION = "flowProcessingCompletion";
+
     private MessageFields() {
     }
 }

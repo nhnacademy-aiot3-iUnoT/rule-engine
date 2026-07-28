@@ -29,8 +29,7 @@ public class DatabaseSaveNode extends AbstractNode {
         SensorPayload sensorPayload = message.get(MessageFields.SENSOR_PAYLOAD);
 
         if (sensorPayload == null) {
-            log.warn("[{}] sensorPayload가 없어 저장을 건너뜁니다.", getId());
-            return;
+            throw new IllegalArgumentException("sensorPayload는 필수입니다.");
         }
 
         influxService.save(sensorPayload);
