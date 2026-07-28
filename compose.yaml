@@ -1,9 +1,13 @@
 services:
   rule-engine-1:
-    build: .
+    image: team1-rule-engine:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: team1-rule-engine-1
 
-    env_file: .env
+    env_file:
+      - .env
 
     environment:
       SPRING_PROFILES_ACTIVE: dev
@@ -11,6 +15,7 @@ services:
 
     ports:
       - "127.0.0.1:10406:10406"
+
     restart: unless-stopped
 
     depends_on:
@@ -27,8 +32,9 @@ services:
 
     networks:
       - team1-network
+
   rule-engine-2:
-    build: .
+    image: team1-rule-engine:latest
     container_name: team1-rule-engine-2
 
     env_file:
