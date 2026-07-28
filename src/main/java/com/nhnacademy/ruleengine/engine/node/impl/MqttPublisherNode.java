@@ -90,7 +90,7 @@ public class MqttPublisherNode extends ProtocolNode {
 
             if (client != null && client.isConnected()) {
                 client.publish(topic, jsonMessage);
-                log.info("[{}] 메시지 발행 성공: {}", getId(), topic);
+                log.debug("[{}] 메시지 발행 성공: {}", getId(), topic);
             } else {
                 log.error("[{}] 브로커와 연결되지 않았습니다", getId());
             }

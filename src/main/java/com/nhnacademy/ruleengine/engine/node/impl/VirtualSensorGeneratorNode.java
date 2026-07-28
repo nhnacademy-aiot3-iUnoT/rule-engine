@@ -91,7 +91,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
                 ThreadLocalRandom.current().nextDouble() < doorOpenProbability ? 1.0 : 0.0,
                 measuredAt
         );
-        log.info("[{}] 가상 센서 데이터 생성", getId());
+        log.debug("[{}] 가상 센서 데이터 생성", getId());
     }
 
     @Override

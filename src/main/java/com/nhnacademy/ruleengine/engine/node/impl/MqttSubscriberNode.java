@@ -96,7 +96,7 @@ public class MqttSubscriberNode extends ProtocolNode {
 
         Map<String, Object> receivedPayload = parsePayload(receivedTopic, message.getPayload());
         sendReceivedPayload(receivedPayload);
-        log.info("[{}] MQTT 메시지 수신 완료: topic={}", getId(), receivedTopic);
+        log.debug("[{}] MQTT 메시지 수신 완료: topic={}", getId(), receivedTopic);
     }
 
     private boolean isSubscribedTopic(String receivedTopic) {

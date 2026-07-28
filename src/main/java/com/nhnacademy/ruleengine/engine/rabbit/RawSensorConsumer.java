@@ -28,8 +28,6 @@ public class RawSensorConsumer {
     public void consume(String rawPayload) {
         ExternalSensorMessage externalSensorMessage;
 
-        log.info("Received sensor raw message: {}", rawPayload);
-
         try {
             externalSensorMessage = objectMapper.readValue(rawPayload, ExternalSensorMessage.class);
         } catch (JsonProcessingException e) {
@@ -48,7 +46,7 @@ public class RawSensorConsumer {
                 normalizedSensorPublisher::publish
         );
 
-        log.info(
+        log.debug(
                 "외부 센서 메시지 변환 완료. normalizedCount={}",
                 sensorPayloads.size()
         );

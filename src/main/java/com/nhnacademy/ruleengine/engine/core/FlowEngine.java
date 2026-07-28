@@ -37,7 +37,7 @@ public class FlowEngine {
     public void register(Flow flow) {
         // Flow ID를 기준으로 실행 대상 Flow를 등록한다.
         flows.putIfAbsent(flow.getId(), flow);
-        log.info("[Engine] 플로우 '{}' 등록됨", flow.getId());
+        log.debug("[Engine] 플로우 '{}' 등록됨", flow.getId());
     }
 
     public void registerAndStart(Flow flow) {
@@ -62,7 +62,7 @@ public class FlowEngine {
         }
 
         flowEngineState = FlowEngineState.RUNNING;
-        log.info("[Engine] 플로우 '{}' 시작됨", flow.getId());
+        log.debug("[Engine] 플로우 '{}' 시작됨", flow.getId());
     }
 
     public void startConnection(String flowId, Connection connection) {
@@ -115,7 +115,7 @@ public class FlowEngine {
         if (flow != null) {
             stopConnectionTasks(flowId);
             flow.shutdown();
-            log.info("[Engine] 플로우 '{}' 정지됨", flowId);
+            log.debug("[Engine] 플로우 '{}' 정지됨", flowId);
         }
     }
 

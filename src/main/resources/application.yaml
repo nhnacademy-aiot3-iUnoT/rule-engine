@@ -27,7 +27,7 @@ spring:
 
 logging:
   level:
-    com.nhnacademy.ruleengine: DEBUG
+    com.nhnacademy.ruleengine: INFO
     com.influx-db: INFO
 
 rule-engine:
@@ -35,6 +35,11 @@ rule-engine:
     instance-id: ${INSTANCE_ID}
     external-ingress:
       lock-key: rule-engine:lock:external-ingress
+      lease-duration: 10s
+      renew-interval: 3s
+
+    virtual-sensor:
+      lock-key-prefix: rule-engine:lock:virtual-sensor
       lease-duration: 10s
       renew-interval: 3s
 

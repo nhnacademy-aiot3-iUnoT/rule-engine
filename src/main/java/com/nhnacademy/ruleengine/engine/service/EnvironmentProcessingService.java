@@ -18,7 +18,7 @@ public class EnvironmentProcessingService {
 
         sensorInfluxService.save(sensorPayload);
 
-        log.info(
+        log.debug(
                 "환경 데이터 처리 완료. sectionId={}, sensorType={}",
                 sensorPayload.sectionId(),
                 sensorPayload.sensorType()

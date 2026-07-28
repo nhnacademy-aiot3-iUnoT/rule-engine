@@ -22,7 +22,7 @@ public class VirtualSensorController {
             @PathVariable Long sectionId,
             @Valid @RequestBody VirtualSensorCreateRequest request
     ) {
-        virtualSensorService.createAndStartFlow(
+        virtualSensorService.createVirtualSensor(
                 organizationId,
                 storageId,
                 sectionId,
