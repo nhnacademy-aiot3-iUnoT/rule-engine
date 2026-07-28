@@ -1,16 +1,11 @@
 services:
   rule-engine-1:
-    image: team1-rule-engine:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     container_name: team1-rule-engine-1
-
-    env_file:
-      - .env
-
+    env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
       SERVER_PORT: 10406
       INSTANCE_ID: rule-engine-1
 
