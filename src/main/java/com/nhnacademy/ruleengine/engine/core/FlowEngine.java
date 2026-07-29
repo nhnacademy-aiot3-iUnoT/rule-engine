@@ -1,104 +1,81 @@
 package com.nhnacademy.ruleengine.engine.core;
 
 import com.nhnacademy.ruleengine.engine.connection.Connection;
-import com.nhnacademy.ruleengine.engine.constants.MessageFields;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 @Slf4j
-// 여러 Flow와 Connection 처리 작업을 등록·실행·종료한다.
+// Flow를 등록하고 Connection 작업을 실행·중지한다.
 public class FlowEngine {
 
-    public enum FlowEngineState {
-        INITIALIZED,
-        RUNNING,
-        STOPPED
-    }
+    private final Map<String, Flow> flows = new HashMap<>();
+    private final Map<String, List<Future<?>>> connectionTasks = new HashMap<>();
+    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
-    private final Map<String, Flow> flows = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, Future<?>>> connectionTasks =
-            new ConcurrentHashMap<>();
-    private final ExecutorService executorService =
-            Executors.newCachedThreadPool();
-
-    @Getter
-    private volatile FlowEngineState flowEngineState =
-            FlowEngineState.INITIALIZED;
-
-    public boolean containsFlow(String flowId) {
-        return flows.containsKey(flowId);
-    }
-
-    public void register(Flow flow) {
-        // Flow ID를 기준으로 실행 대상 Flow를 등록한다.
-        flows.putIfAbsent(flow.getId(), flow);
-        log.debug("[Engine] 플로우 '{}' 등록됨", flow.getId());
-    }
-
-    public void registerAndStart(Flow flow) {
-        register(flow);
-        startFlow(flow.getId());
-    }
-
-    public void startFlow(String flowId) {
-        // 유효성 검사를 통과한 Flow만 초기화하고 실행한다.
-        Flow flow = getFlowOrThrow(flowId);
-
-        List<String> errors = flow.validate();
-        if (!errors.isEmpty()) {
-            throw new IllegalStateException("Flow '" + flowId + "' is not valid: " + errors);
-        }
-
-        stopConnectionTasks(flowId);
-
-        flow.initialize();
-        for (Connection connection : flow.getConnections()) {
-            startConnection(flowId, connection);
-        }
-
-        flowEngineState = FlowEngineState.RUNNING;
-        log.debug("[Engine] 플로우 '{}' 시작됨", flow.getId());
-    }
-
-    private void startConnection(String flowId, Connection connection) {
-        // Connection마다 메시지를 소비하는 별도 작업을 실행한다.
-        getFlowOrThrow(flowId);
-
-        Map<String, Future<?>> flowTasks = connectionTasks.computeIfAbsent(
-                flowId,
-                id -> new ConcurrentHashMap<>()
+    // Flow가 없으면 등록하고, 중지 상태면 시작한다.
+    public synchronized void ensureStarted(Flow candidate) {
+        Flow flow = Objects.requireNonNull(
+                candidate,
+                "Flow는 필수입니다."
         );
-        String taskId = Flow.normalizeConnectionId(connection.getId());
 
-        if (isTaskRunning(flowTasks.get(taskId))) {
+        Flow registeredFlow = flows.putIfAbsent(flow.getId(), flow);
+
+        if (registeredFlow == null) {
+            log.debug("[Engine] 플로우 '{}' 등록됨", flow.getId());
+        } else {
+            flow = registeredFlow;
+        }
+
+        if (flow.getFlowState() == Flow.FlowState.RUNNING) {
             return;
         }
 
-        Future<?> future = executorService.submit(
-                () -> consumeMessages(connection)
-        );
-        flowTasks.put(taskId, future);
+        startFlow(flow);
     }
 
-    private boolean isTaskRunning(Future<?> task) {
-        return task != null && !task.isDone();
+    // Flow 시작
+    private void startFlow(Flow flow) {
+        List<String> errors = flow.validate();
+        if (!errors.isEmpty()) {
+            throw new IllegalStateException(
+                    "Flow '" + flow.getId() + "' is not valid: " + errors
+            );
+        }
+
+        List<Future<?>> tasks = new ArrayList<>();
+        try {
+            flow.initialize();
+            for (Connection connection : flow.getConnections()) {
+                tasks.add(executorService.submit(
+                        () -> consumeMessages(connection)
+                ));
+            }
+
+            connectionTasks.put(flow.getId(), tasks);
+            log.debug("[Engine] 플로우 '{}' 시작됨", flow.getId());
+        } catch (RuntimeException exception) {
+            cancelTasks(tasks);
+            rollbackFlowInitialization(flow, exception);
+            throw exception;
+        }
     }
 
     private void consumeMessages(Connection connection) {
-        // 중단 요청 전까지 버퍼의 메시지를 대상 입력 포트로 전달한다.
         while (!Thread.currentThread().isInterrupted()) {
             Message message = null;
 
             try {
                 message = connection.poll();
-                deliverMessage(connection, message);
+                connection.getTarget().receive(message);
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 return;
@@ -108,23 +85,14 @@ public class FlowEngine {
         }
     }
 
-    private void deliverMessage(
-            Connection connection,
-            Message message
-    ) {
-        if (message == null || connection.getTarget() == null) {
-            return;
-        }
-
-        connection.getTarget().receive(message);
-    }
-
     private void handleConnectionFailure(
             Connection connection,
             Message message,
             Exception exception
     ) {
-        completeMessageExceptionally(message, exception);
+        if (message != null) {
+            message.completeProcessingExceptionally(exception);
+        }
 
         if (exception instanceof IllegalArgumentException) {
             log.debug(
@@ -142,62 +110,64 @@ public class FlowEngine {
         );
     }
 
-    private void completeMessageExceptionally(
-            Message message,
-            Exception exception
-    ) {
-        if (message == null) {
-            return;
-        }
-
-        FlowProcessingCompletion completion = message.get(
-                MessageFields.FLOW_PROCESSING_COMPLETION
-        );
-
-        if (completion != null) {
-            completion.completeExceptionally(exception);
-        }
-    }
-
-    public void stopFlow(String flowId) {
-        // 소비 작업을 먼저 취소한 뒤 Flow 자원을 종료한다.
+    public synchronized void stopFlow(String flowId) {
         Flow flow = flows.get(flowId);
         if (flow != null) {
-            stopConnectionTasks(flowId);
+            stopFlow(flow);
+        }
+    }
+
+    public synchronized void stopAndRemoveFlow(String flowId) {
+        stopFlow(flowId);
+        flows.remove(flowId);
+    }
+
+
+    private void stopFlow(Flow flow) {
+        List<Future<?>> tasks = connectionTasks.remove(flow.getId());
+        cancelTasks(tasks);
+
+        if (flow.getFlowState() == Flow.FlowState.RUNNING) {
             flow.shutdown();
-            log.debug("[Engine] 플로우 '{}' 정지됨", flowId);
+            log.debug("[Engine] 플로우 '{}' 정지됨", flow.getId());
         }
     }
 
-    public void shutdown() {
-        // 등록된 모든 작업과 Flow를 종료하고 Executor를 정리한다.
-        for (String flowId : flows.keySet()) {
-            stopConnectionTasks(flowId);
-        }
-        for (Flow flow : flows.values()) {
-            flow.shutdown();
-        }
-        executorService.shutdownNow();
-        flowEngineState = FlowEngineState.STOPPED;
-    }
-
-    private Flow getFlowOrThrow(String flowId) {
-        Flow flow = flows.get(flowId);
-        if (flow == null) {
-            throw new IllegalArgumentException("Flow '" + flowId + "' not found");
-        }
-        return flow;
-    }
-
-    private void stopConnectionTasks(String flowId) {
-        // 해당 Flow에 속한 모든 비동기 소비 작업을 취소한다.
-        Map<String, Future<?>> flowTasks = connectionTasks.remove(flowId);
-        if (flowTasks == null) {
+    private void cancelTasks(List<Future<?>> tasks) {
+        if (tasks == null) {
             return;
         }
 
-        for (Future<?> future : flowTasks.values()) {
-            future.cancel(true);
+        tasks.forEach(task -> task.cancel(true));
+    }
+
+    // FlowEngine 종료
+    public synchronized void shutdown() {
+        for (Flow flow : flows.values()) {
+            try {
+                stopFlow(flow);
+            } catch (RuntimeException exception) {
+                log.error(
+                        "[Engine] 플로우 종료에 실패했습니다. flowId={}",
+                        flow.getId(),
+                        exception
+                );
+            }
+        }
+
+        flows.clear();
+        executorService.shutdownNow();
+    }
+
+    // Flow 생성 실패시 롤백
+    private void rollbackFlowInitialization(
+            Flow flow,
+            RuntimeException startException
+    ) {
+        try {
+            flow.shutdown();
+        } catch (RuntimeException shutdownException) {
+            startException.addSuppressed(shutdownException);
         }
     }
 

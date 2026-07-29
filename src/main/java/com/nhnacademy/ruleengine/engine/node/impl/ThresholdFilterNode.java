@@ -70,10 +70,11 @@ public class ThresholdFilterNode extends AbstractNode {
             return;
         }
 
-        checkValue(sensorPayload, thresholdPolicy);
+        checkValue(message, sensorPayload, thresholdPolicy);
     }
 
     private void checkValue(
+            Message sourceMessage,
             SensorPayload sensorPayload,
             ThresholdPolicyDto thresholdPolicy
     ){
@@ -91,12 +92,12 @@ public class ThresholdFilterNode extends AbstractNode {
 
 
         if(min != null && value < min){
-            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.BELOW_MIN, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최솟값 미달"));
+            sendRuleResult(sourceMessage, RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.BELOW_MIN, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최솟값 미달"));
             return;
         }
 
         if(max != null && value > max){
-            sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.ABOVE_MAX, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최댓값 초과"));
+            sendRuleResult(sourceMessage, RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.ABOVE_MAX, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최댓값 초과"));
             return;
         }
 
@@ -111,15 +112,16 @@ public class ThresholdFilterNode extends AbstractNode {
             return;
         }
 
-        sendRuleResult(RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.NORMAL, false, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 정상"));
+        sendRuleResult(sourceMessage, RuleResultCreateRequest.ofThreshold(sensorPayload, ViolationType.NORMAL, false, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 정상"));
     }
 
     private void sendRuleResult(
+            Message sourceMessage,
             RuleResultCreateRequest ruleResultCreateRequest
     ){
         RuleResultDto ruleResult = RuleResultDto.fromThreshold(ruleResultCreateRequest);
 
-        send(OUT_PORT, new Message(Map.of(
+        send(OUT_PORT, sourceMessage.withPayload(Map.of(
                 RULE_RESULT,
                 ruleResult
         )));

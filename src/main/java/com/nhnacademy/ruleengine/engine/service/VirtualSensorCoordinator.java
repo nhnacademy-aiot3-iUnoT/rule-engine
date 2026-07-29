@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.core.FlowLifecycleManager;
+import com.nhnacademy.ruleengine.engine.core.FlowEngine;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
 import com.nhnacademy.ruleengine.engine.flow.VirtualSensorFlow;
 import com.nhnacademy.ruleengine.engine.repository.VirtualSensorRedisRepository;
@@ -24,7 +24,7 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
 
     private final RedisLeaseLockService redisLeaseLockService;
     private final VirtualSensorRedisRepository virtualSensorRedisRepository;
-    private final FlowLifecycleManager flowLifecycleManager;
+    private final FlowEngine flowEngine;
     private final VirtualSensorFlow virtualSensorFlow;
 
     private final String ownerToken;
@@ -39,12 +39,12 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
             VirtualSensorRedisRepository virtualSensorRedisRepository,
             RedisLeaseLockService redisLeaseLockService,
             RedundancyProperties redundancyProperties,
-            FlowLifecycleManager flowLifecycleManager,
+            FlowEngine flowEngine,
             VirtualSensorFlow virtualSensorFlow
     ) {
         this.virtualSensorRedisRepository = virtualSensorRedisRepository;
         this.redisLeaseLockService = redisLeaseLockService;
-        this.flowLifecycleManager = flowLifecycleManager;
+        this.flowEngine = flowEngine;
         this.virtualSensorFlow = virtualSensorFlow;
 
         RedundancyProperties.VirtualSensor virtualSensor =
@@ -152,9 +152,8 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
                             "가상 센서 설정이 없습니다. sectionId=" + sectionId
                     ));
 
-            flowLifecycleManager.start(
-                    VirtualSensorFlow.flowId(sectionId),
-                    () -> virtualSensorFlow.create(config)
+            flowEngine.ensureStarted(
+                    virtualSensorFlow.create(config)
             );
 
             ownedSectionIds.add(sectionId);
@@ -219,9 +218,7 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
 
     private boolean stopFlowQuietly(Long sectionId) {
         try {
-            flowLifecycleManager.stop(
-                    VirtualSensorFlow.flowId(sectionId)
-            );
+            flowEngine.stopAndRemoveFlow(VirtualSensorFlow.flowId(sectionId));
             return true;
         } catch (RuntimeException exception) {
             log.error(

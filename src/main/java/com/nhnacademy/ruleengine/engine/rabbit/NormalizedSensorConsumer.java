@@ -46,10 +46,10 @@ public class NormalizedSensorConsumer extends AbstractNode {
         }
 
         FlowProcessingCompletion completion = new FlowProcessingCompletion();
-        Message message = new Message(Map.of(
-                MessageFields.SENSOR_PAYLOAD, sensorPayload,
-                MessageFields.FLOW_PROCESSING_COMPLETION, completion
-        ));
+        Message message = new Message(
+                Map.of(MessageFields.SENSOR_PAYLOAD, sensorPayload),
+                completion
+        );
 
         process(message);
         awaitFlowCompletion(completion);

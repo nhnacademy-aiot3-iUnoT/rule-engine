@@ -1,7 +1,5 @@
 package com.nhnacademy.ruleengine.engine.node.impl;
 
-import com.nhnacademy.ruleengine.engine.constants.MessageFields;
-import com.nhnacademy.ruleengine.engine.core.FlowProcessingCompletion;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 
@@ -17,12 +15,6 @@ public class FlowCompletionNode extends AbstractNode {
 
     @Override
     protected void onProcess(Message message) {
-        FlowProcessingCompletion completion = message.get(
-                MessageFields.FLOW_PROCESSING_COMPLETION
-        );
-
-        if (completion != null) {
-            completion.complete();
-        }
+        message.completeProcessing();
     }
 }

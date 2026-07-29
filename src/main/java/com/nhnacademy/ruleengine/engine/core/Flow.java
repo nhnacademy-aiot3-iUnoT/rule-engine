@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 @Slf4j
 // 노드와 Connection을 구성하고 Flow의 생명주기를 관리한다.
@@ -37,7 +38,10 @@ public class Flow {
     }
 
     public Flow(String id, Map<String, Object> transportConfig) {
-        this.id = id;
+        this.id = Objects.requireNonNull(
+                id,
+                "Flow ID는 필수입니다."
+        );
         this.nodes = new HashMap<>();
         this.connections = new ArrayList<>();
         this.transportConfig = transportConfig;

@@ -47,13 +47,13 @@ public class DoorStateFilterNode extends AbstractNode {
 
         //열림
         if(value==1.0){
-            sendRuleResult(RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.OPEN, true, sensorType + ": 열림"));
+            sendRuleResult(message, RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.OPEN, true, sensorType + ": 열림"));
             return;
         }
 
         //닫힘
         if(value==0.0) {
-            sendRuleResult(RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.CLOSED, false, sensorType + ": 닫힘"));
+            sendRuleResult(message, RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.CLOSED, false, sensorType + ": 닫힘"));
             return;
         }
 
@@ -67,11 +67,12 @@ public class DoorStateFilterNode extends AbstractNode {
     }
 
     private void sendRuleResult(
+            Message sourceMessage,
             RuleResultCreateRequest request
     ){
         RuleResultDto ruleResult = RuleResultDto.fromDoorState(request);
 
-        send(OUTPUT_PORT, new Message(Map.of(
+        send(OUTPUT_PORT, sourceMessage.withPayload(Map.of(
                 RULE_RESULT,
                 ruleResult
         )));
