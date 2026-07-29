@@ -7,12 +7,8 @@ import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
 
 @Slf4j
 // 노드와 Connection을 구성하고 Flow의 생명주기를 관리한다.

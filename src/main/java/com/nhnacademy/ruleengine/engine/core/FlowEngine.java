@@ -3,11 +3,7 @@ package com.nhnacademy.ruleengine.engine.core;
 import com.nhnacademy.ruleengine.engine.connection.Connection;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;

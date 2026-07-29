@@ -6,9 +6,9 @@ import com.nhnacademy.ruleengine.engine.connection.InputPort;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.Objects;
 
 @Slf4j
 // 메모리 BlockingQueue를 사용하는 로컬 Connection 구현체다.

@@ -10,7 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
-import static com.nhnacademy.ruleengine.engine.constants.MessageFields.*;
+import static com.nhnacademy.ruleengine.engine.constants.MessageFields.RULE_RESULT;
+import static com.nhnacademy.ruleengine.engine.constants.MessageFields.SENSOR_PAYLOAD;
 
 //문센서 검사 노드
 @Slf4j
