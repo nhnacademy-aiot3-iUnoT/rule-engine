@@ -6,15 +6,16 @@ import com.nhnacademy.ruleengine.engine.connection.InputPort;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
 // 메모리 BlockingQueue를 사용하는 로컬 Connection 구현체다.
 public class LocalConnection implements Connection {
-    String id;
-    InputPort target;
-    BlockingQueue<Message> buffer;
+    private final String id;
+    private final BlockingQueue<Message> buffer;
+    private InputPort target;
 
     public LocalConnection(String id, int capacity) {
         this.id = id;
@@ -30,22 +31,20 @@ public class LocalConnection implements Connection {
     public void deliver(Message message) {
         // 버퍼가 가득 찬 경우 공간이 생길 때까지 대기한다.
         try {
-            buffer.put(message);
-
+            buffer.put(Objects.requireNonNull(message, "메시지는 필수입니다."));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Connection 메시지 전달 중 중단되었습니다. connectionId=" + id,
+                    e
+            );
         }
     }
 
     @Override
-    public Message poll() {
+    public Message poll() throws InterruptedException {
         // 메시지가 들어올 때까지 대기한 후 하나를 반환한다.
-        try {
-            return buffer.take();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
-        }
+        return buffer.take();
     }
 
     @Override

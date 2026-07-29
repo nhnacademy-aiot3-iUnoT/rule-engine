@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.core.FlowLifecycleManager;
+import com.nhnacademy.ruleengine.engine.core.FlowEngine;
 import com.nhnacademy.ruleengine.engine.flow.NormalizedSensorProcessingFlow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -11,14 +11,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NormalizedSensorFlowInitializer implements SmartInitializingSingleton {
 
-    private final FlowLifecycleManager flowLifecycleManager;
+    private final FlowEngine flowEngine;
     private final NormalizedSensorProcessingFlow normalizedSensorProcessingFlow;
 
     @Override
     public void afterSingletonsInstantiated() {
-        flowLifecycleManager.start(
-                NormalizedSensorProcessingFlow.FLOW_ID,
-                normalizedSensorProcessingFlow::create
+        flowEngine.ensureStarted(
+                normalizedSensorProcessingFlow.create()
         );
     }
 }

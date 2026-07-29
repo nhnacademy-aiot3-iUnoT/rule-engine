@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.core.FlowLifecycleManager;
+import com.nhnacademy.ruleengine.engine.core.FlowEngine;
 import com.nhnacademy.ruleengine.engine.flow.ExternalSensorFlow;
 import com.nhnacademy.ruleengine.global.config.RedundancyProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,7 @@ import java.util.UUID;
 public class ExternalIngressCoordinator implements SchedulingConfigurer {
 
     private final RedisLeaseLockService redisLeaseLockService;
-    private final FlowLifecycleManager flowLifecycleManager;
+    private final FlowEngine flowEngine;
     private final ExternalSensorFlow externalSensorFlow;
     private final String ownerToken;
     private final String lockKey;
@@ -32,11 +32,11 @@ public class ExternalIngressCoordinator implements SchedulingConfigurer {
     public ExternalIngressCoordinator(
             RedisLeaseLockService redisLeaseLockService,
             RedundancyProperties redundancyProperties,
-            FlowLifecycleManager flowLifecycleManager,
+            FlowEngine flowEngine,
             ExternalSensorFlow externalSensorFlow
     ) {
         this.redisLeaseLockService = redisLeaseLockService;
-        this.flowLifecycleManager = flowLifecycleManager;
+        this.flowEngine = flowEngine;
         this.externalSensorFlow = externalSensorFlow;
 
         RedundancyProperties.ExternalIngress externalIngress =
@@ -96,9 +96,8 @@ public class ExternalIngressCoordinator implements SchedulingConfigurer {
         }
 
         try {
-            flowLifecycleManager.start(
-                    ExternalSensorFlow.FLOW_ID,
-                    externalSensorFlow::create
+            flowEngine.ensureStarted(
+                    externalSensorFlow.create()
             );
             isExternalIngressLeader = true;
             log.info("외부 데이터 수집 권한을 획득했습니다. owner={}", ownerToken);
@@ -177,9 +176,7 @@ public class ExternalIngressCoordinator implements SchedulingConfigurer {
     // Flow 중지 시도
     private boolean tryStopFlow() {
         try {
-            flowLifecycleManager.stop(
-                    ExternalSensorFlow.FLOW_ID
-            );
+            flowEngine.stopFlow(ExternalSensorFlow.FLOW_ID);
             return true;
         } catch (RuntimeException exception) {
             log.error(

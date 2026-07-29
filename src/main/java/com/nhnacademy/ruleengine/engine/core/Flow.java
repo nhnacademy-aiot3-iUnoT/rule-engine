@@ -7,10 +7,7 @@ import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 @Slf4j
@@ -37,7 +34,10 @@ public class Flow {
     }
 
     public Flow(String id, Map<String, Object> transportConfig) {
-        this.id = id;
+        this.id = Objects.requireNonNull(
+                id,
+                "Flow ID는 필수입니다."
+        );
         this.nodes = new HashMap<>();
         this.connections = new ArrayList<>();
         this.transportConfig = transportConfig;

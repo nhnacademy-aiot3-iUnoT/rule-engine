@@ -3,8 +3,8 @@ package com.nhnacademy.ruleengine.engine.flow;
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.impl.DatabaseSaveNode;
 import com.nhnacademy.ruleengine.engine.node.impl.FlowCompletionNode;
+import com.nhnacademy.ruleengine.engine.node.impl.NormalizedSensorConsumerNode;
 import com.nhnacademy.ruleengine.engine.node.impl.SensorPayloadValidationNode;
-import com.nhnacademy.ruleengine.engine.rabbit.NormalizedSensorConsumer;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ public class NormalizedSensorProcessingFlow {
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
-    private final NormalizedSensorConsumer normalizedSensorConsumer;
+    private final NormalizedSensorConsumerNode normalizedSensorConsumer;
     private final SensorInfluxService sensorInfluxService;
 
     public Flow create() {
@@ -40,7 +40,7 @@ public class NormalizedSensorProcessingFlow {
                         COMPLETION_NODE_ID
                 ))
                 .connect(
-                        NormalizedSensorConsumer.NODE_ID,
+                        NormalizedSensorConsumerNode.NODE_ID,
                         OUTPUT_PORT,
                         VALIDATION_NODE_ID,
                         INPUT_PORT

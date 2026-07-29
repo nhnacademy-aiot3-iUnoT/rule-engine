@@ -19,8 +19,7 @@ public class FlowProcessingCompletion {
         future.completeExceptionally(throwable);
     }
 
-    public void await(Duration timeout)
-            throws InterruptedException, ExecutionException, TimeoutException {
+    public void await(Duration timeout) throws InterruptedException, ExecutionException, TimeoutException {
         future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 }

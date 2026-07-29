@@ -57,7 +57,10 @@ public class AbnormalDecisionNode extends AbstractNode {
         boolean shouldSend = processRuleDecision(ruleResult, key);
 
         if(shouldSend){
-            send(OUTPUT_PORT, new Message(Map.of(MessageFields.RULE_RESULT, ruleResult)));
+            send(
+                    OUTPUT_PORT,
+                    message.withPayload(Map.of(MessageFields.RULE_RESULT, ruleResult))
+            );
         }
     }
 

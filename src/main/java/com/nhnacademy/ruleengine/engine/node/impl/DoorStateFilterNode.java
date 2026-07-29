@@ -10,7 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
-import static com.nhnacademy.ruleengine.engine.constants.MessageFields.*;
+import static com.nhnacademy.ruleengine.engine.constants.MessageFields.RULE_RESULT;
+import static com.nhnacademy.ruleengine.engine.constants.MessageFields.SENSOR_PAYLOAD;
 
 //문센서 검사 노드
 @Slf4j
@@ -47,13 +48,13 @@ public class DoorStateFilterNode extends AbstractNode {
 
         //열림
         if(value==1.0){
-            sendRuleResult(RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.OPEN, true, sensorType + ": 열림"));
+            sendRuleResult(message, RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.OPEN, true, sensorType + ": 열림"));
             return;
         }
 
         //닫힘
         if(value==0.0) {
-            sendRuleResult(RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.CLOSED, false, sensorType + ": 닫힘"));
+            sendRuleResult(message, RuleResultCreateRequest.ofDoorState(sensorPayload, ViolationType.CLOSED, false, sensorType + ": 닫힘"));
             return;
         }
 
@@ -67,11 +68,12 @@ public class DoorStateFilterNode extends AbstractNode {
     }
 
     private void sendRuleResult(
+            Message sourceMessage,
             RuleResultCreateRequest request
     ){
         RuleResultDto ruleResult = RuleResultDto.fromDoorState(request);
 
-        send(OUTPUT_PORT, new Message(Map.of(
+        send(OUTPUT_PORT, sourceMessage.withPayload(Map.of(
                 RULE_RESULT,
                 ruleResult
         )));
