@@ -102,6 +102,11 @@ public class Message {
 
     @Override
     public String toString() {
-        return payload.toString();
+        return "Message{" +
+                "uuid=" + uuid +
+                ", payload=" + payload +
+                ", timestamp=" + timestamp +
+                ", processingCompletion=" + processingCompletion +
+                '}';
     }
 }

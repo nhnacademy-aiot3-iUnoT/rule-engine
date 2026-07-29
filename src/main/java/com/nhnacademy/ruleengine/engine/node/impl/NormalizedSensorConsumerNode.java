@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.rabbit;
+package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Component
-public class NormalizedSensorConsumer extends AbstractNode {
+public class NormalizedSensorConsumerNode extends AbstractNode {
 
     public static final String NODE_ID = "normalized-rabbit-consumer";
 
@@ -30,7 +30,7 @@ public class NormalizedSensorConsumer extends AbstractNode {
 
     private final ObjectMapper objectMapper;
 
-    public NormalizedSensorConsumer(ObjectMapper objectMapper) {
+    public NormalizedSensorConsumerNode(ObjectMapper objectMapper) {
         super(NODE_ID);
         this.objectMapper = objectMapper;
         addOutputPort(OUTPUT_PORT);
@@ -46,6 +46,7 @@ public class NormalizedSensorConsumer extends AbstractNode {
         }
 
         FlowProcessingCompletion completion = new FlowProcessingCompletion();
+
         Message message = new Message(
                 Map.of(MessageFields.SENSOR_PAYLOAD, sensorPayload),
                 completion
