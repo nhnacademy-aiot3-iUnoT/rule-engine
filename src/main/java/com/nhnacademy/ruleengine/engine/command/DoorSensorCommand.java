@@ -9,11 +9,10 @@ import org.springframework.stereotype.Component;
 // 도어의 open/close 상태를 1과 0으로 변환한다.
 public class DoorSensorCommand implements SensorCommand {
 
-    private static final String MEASUREMENT_KEY = "magnet_status";
 
     @Override
     public String getMeasurementKey() {
-        return MEASUREMENT_KEY;
+        return SensorType.DOOR.value();
     }
 
     @Override
