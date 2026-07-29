@@ -12,6 +12,8 @@ public record VirtualSensorConfig(
         double temperatureMax,
         double humidityMin,
         double humidityMax,
+        double illuminationMin,
+        double illuminationMax,
         double doorOpenProbability,
         long measurementIntervalSeconds
 ) {
@@ -32,6 +34,10 @@ public record VirtualSensorConfig(
                 request.humidity(),
                 "습도 범위는 필수입니다."
         );
+        SensorValueRange illumination = Objects.requireNonNull(
+                request.illumination(),
+                "밝기 범위는 필수입니다."
+        );
 
         return new VirtualSensorConfig(
                 organizationId,
@@ -42,6 +48,8 @@ public record VirtualSensorConfig(
                 Objects.requireNonNull(temperature.max(), "온도 최댓값은 필수입니다."),
                 Objects.requireNonNull(humidity.min(), "습도 최솟값은 필수입니다."),
                 Objects.requireNonNull(humidity.max(), "습도 최댓값은 필수입니다."),
+                Objects.requireNonNull(illumination.min(), "밝기 최솟값은 필수입니다."),
+                Objects.requireNonNull(illumination.max(), "밝기 최댓값은 필수입니다."),
                 Objects.requireNonNull(request.doorOpenProbability(), "문 열림 확률은 필수입니다."),
                 Objects.requireNonNull(request.measurementIntervalSeconds(), "측정 주기는 필수입니다.")
         );

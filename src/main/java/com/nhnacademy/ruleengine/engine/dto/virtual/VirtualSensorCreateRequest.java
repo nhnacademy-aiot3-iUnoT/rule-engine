@@ -20,6 +20,10 @@ public record VirtualSensorCreateRequest(
         @NotNull(message = "습도 범위는 필수입니다.")
         SensorValueRange humidity,
 
+        @Valid
+        @NotNull(message = "밝기 범위는 필수입니다.")
+        SensorValueRange illumination,
+
         @NotNull(message = "문 열림 확률은 필수입니다.")
         @DecimalMin(value = "0.0", message = "문 열림 확률은 0 이상이어야 합니다.")
         @DecimalMax(value = "1.0", message = "문 열림 확률은 1 이하여야 합니다.")
