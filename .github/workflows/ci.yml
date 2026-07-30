@@ -67,8 +67,7 @@ jobs:
 
   deploy:
     name: 배포
-    needs: build-test # 빌드·테스트 통과해야 배포
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' # main 직접 push에만 (PR 제외, PR Merge 시 push 트리거)
+    needs: build-push
     runs-on: ubuntu-latest
     steps:
       - name: 배포
