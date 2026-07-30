@@ -58,7 +58,7 @@ influx-db:
   measurement: ${INFLUX_MEASUREMENT}
 
 server:
-  port: 10406
+  port: ${SERVER_PORT:10406}
 
 management:
   endpoints:

@@ -10,7 +10,8 @@ services:
       - .env
 
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 10406
       INSTANCE_ID: rule-engine-1
 
     ports:
@@ -41,11 +42,12 @@ services:
       - .env
 
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 10407
       INSTANCE_ID: rule-engine-2
 
     ports:
-      - "127.0.0.1:10407:10406"
+      - "127.0.0.1:10407:10407"
 
     restart: unless-stopped
 
