@@ -2,10 +2,11 @@
 # 에러 발생 시 스크립트 실행을 즉시 중단
 set -e
 
-git pull origin main
 cd ~/rule-engine
 
-export GHCR_OWNER="nhnacademy-aiot3-iunot"
+set -a
+source ~/infra/common.env
+set +a
 NEW_TAG="${IMAGE_TAG:-latest}"
 LAST_GOOD_FILE=".last-good-tag"
 OLD_TAG=$(cat "$LAST_GOOD_FILE" 2>/dev/null || echo "latest")

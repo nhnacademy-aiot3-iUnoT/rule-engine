@@ -7,7 +7,6 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: 10406
       INSTANCE_ID: rule-engine-1
-
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
       ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
     ports:
@@ -41,7 +40,8 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: 10407
       INSTANCE_ID: rule-engine-2
-
+      EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
+      ZIPKIN_ENDPOINT: ${ZIPKIN_ENDPOINT}
     ports:
       - "127.0.0.1:10407:10407"
 
