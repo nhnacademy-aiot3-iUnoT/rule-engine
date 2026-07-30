@@ -1,6 +1,6 @@
 services:
   rule-engine-1:
-    build: .
+    image: ghcr.io/${GHCR_OWNER}/inventory:${IMAGE_TAG:-latest}
     container_name: team1-rule-engine-1
     env_file: .env
     environment:
@@ -30,9 +30,8 @@ services:
       - team1-network
 
   rule-engine-2:
-    image: team1-rule-engine:latest
+    image: ghcr.io/${GHCR_OWNER}/inventory:${IMAGE_TAG:-latest}
     container_name: team1-rule-engine-2
-
     env_file:
       - .env
 
@@ -61,6 +60,7 @@ services:
 
     networks:
       - team1-network
+
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: team1-mosquitto
