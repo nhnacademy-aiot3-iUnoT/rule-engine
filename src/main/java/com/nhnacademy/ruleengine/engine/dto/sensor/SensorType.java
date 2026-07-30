@@ -10,7 +10,8 @@ import java.util.Optional;
 public enum SensorType {
     TEMPERATURE("temperature", "C"),
     HUMIDITY("humidity", "%"),
-    DOOR("door", "bool");
+    DOOR("door", "bool"),
+    ILLUMINATION("illumination", "lux");
 
     private final String value;
     private final String unit;

@@ -6,18 +6,17 @@ import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import org.springframework.stereotype.Component;
 
 @Component
-// 도어의 open/close 상태를 1과 0으로 변환한다.
-public class DoorSensorCommand implements SensorCommand {
-
+// 온도 측정값을 섭씨 센서 payload로 변환한다.
+public class IlluminationSensorCommand implements SensorCommand {
 
     @Override
     public String getMeasurementKey() {
-        return SensorType.DOOR.value();
+        return SensorType.ILLUMINATION.value();
     }
 
     @Override
     public SensorType getSensorType() {
-        return SensorType.DOOR;
+        return SensorType.ILLUMINATION;
     }
 
     @Override
@@ -31,26 +30,24 @@ public class DoorSensorCommand implements SensorCommand {
                 sensorContext.storageId(),
                 sensorContext.sectionId(),
                 getSensorType().value(),
-                toDoorState(value),
+                toDouble(value),
                 getSensorType().unit(),
                 sensorContext.time()
         );
     }
 
-    private double toDoorState(Object value) {
-        // open은 1, close는 0으로 저장한다.
-        String text = String.valueOf(value).trim();
-
-        if ("open".equalsIgnoreCase(text)) {
-            return 1.0;
+    private double toDouble(Object value) {
+        // 숫자와 숫자 형태의 문자열을 모두 허용한다.
+        if (value == null) {
+            throw new IllegalArgumentException("밝기 값이 null입니다.");
         }
 
-        if ("close".equalsIgnoreCase(text)) {
-            return 0.0;
+        if (value instanceof Number number) {
+            return number.doubleValue();
         }
 
-        throw new IllegalArgumentException(
-                "지원하지 않는 도어 상태입니다: " + value
+        return Double.parseDouble(
+                String.valueOf(value).trim()
         );
     }
 }

@@ -26,6 +26,8 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     private final double tempMax;
     private final double humidityMin;
     private final double humidityMax;
+    private final double illuminationMin;
+    private final double illuminationMax;
     private final double doorOpenProbability;
     private final long measurementInterval;
     private final Long organizationId;
@@ -50,12 +52,15 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
         tempMax = config.temperatureMax();
         humidityMin = config.humidityMin();
         humidityMax = config.humidityMax();
+        illuminationMin = config.illuminationMin();
+        illuminationMax = config.illuminationMax();
         doorOpenProbability = config.doorOpenProbability();
         measurementInterval = config.measurementIntervalSeconds();
         organizationId = config.organizationId();
         storageId = config.storageId();
         sectionId = config.sectionId();
         deviceEui = config.deviceEui();
+
 
         validateConfig();
         addOutputPort(OUTPUT_PORT);
@@ -84,13 +89,23 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     protected void onProcess(Message message) {
         String measuredAt = Instant.now().toString();
 
-        publish(SensorType.TEMPERATURE, randomBetween(tempMin, tempMax), measuredAt);
-        publish(SensorType.HUMIDITY, randomBetween(humidityMin, humidityMax), measuredAt);
-        publish(
-                SensorType.DOOR,
+        publish(SensorType.TEMPERATURE,
+                randomBetween(tempMin, tempMax),
+                measuredAt);
+
+        publish(SensorType.HUMIDITY,
+                randomBetween(humidityMin, humidityMax),
+                measuredAt);
+
+        publish(SensorType.DOOR,
                 ThreadLocalRandom.current().nextDouble() < doorOpenProbability ? 1.0 : 0.0,
                 measuredAt
         );
+
+        publish(SensorType.ILLUMINATION,
+                randomBetween(illuminationMin, illuminationMax),
+                measuredAt);
+
         log.debug("[{}] 가상 센서 데이터 생성", getId());
     }
 
@@ -151,20 +166,14 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     }
 
     private void validateConfig() {
-        if (!Double.isFinite(tempMin) || !Double.isFinite(tempMax)) {
-            throw new IllegalArgumentException("온도 범위는 유한한 숫자여야 합니다.");
-        }
-        if (!Double.isFinite(humidityMin) || !Double.isFinite(humidityMax)) {
-            throw new IllegalArgumentException("습도 범위는 유한한 숫자여야 합니다.");
-        }
-        if (!Double.isFinite(doorOpenProbability)) {
-            throw new IllegalArgumentException("doorOpenProbability는 유한한 숫자여야 합니다.");
-        }
         if (tempMin > tempMax) {
             throw new IllegalArgumentException("tempMin은 tempMax보다 클 수 없습니다.");
         }
         if (humidityMin > humidityMax) {
             throw new IllegalArgumentException("humidityMin은 humidityMax보다 클 수 없습니다.");
+        }
+        if(illuminationMin > illuminationMax) {
+            throw new IllegalArgumentException("illuminationMin은 illuminationMax보다 클 수 없습니다.");
         }
         if (doorOpenProbability < 0 || doorOpenProbability > 1) {
             throw new IllegalArgumentException("doorOpenProbability는 0 이상 1 이하여야 합니다.");
@@ -172,6 +181,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
         if (measurementInterval <= 0) {
             throw new IllegalArgumentException("measurementInterval은 1초 이상이어야 합니다.");
         }
+
         requirePositive(organizationId, "organizationId");
         requirePositive(storageId, "storageId");
         requirePositive(sectionId, "sectionId");
