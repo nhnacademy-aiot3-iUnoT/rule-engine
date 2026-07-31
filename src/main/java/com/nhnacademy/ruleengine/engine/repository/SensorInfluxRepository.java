@@ -6,6 +6,7 @@ import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxRecord;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorDataWriteCommand;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataSaveException;
@@ -72,7 +73,7 @@ public class SensorInfluxRepository {
     /**
      * 특정 구역의 센서 타입별 최신 데이터를 조회한다.
      */
-    public List<SensorPayload> findLatestBySection(Long sectionId) {
+    public List<SensorPayload> findLatestByZone(Long zoneId) {
         String fluxQuery = """
                 from(bucket: "%s")
                     |> range(start: %s)
@@ -87,7 +88,7 @@ public class SensorInfluxRepository {
                 influxDbProperties.bucket(),
                 DEFAULT_LATEST_RANGE,
                 influxDbProperties.measurement(),
-                sectionId,
+                zoneId,
                 VALUE_FIELD
         );
 
@@ -179,8 +180,8 @@ public class SensorInfluxRepository {
     /**
      * 특정 구역의 센서 이력을 조회한다.
      */
-    public List<SensorHistoryResponse> findHistoryBySection(
-            Long sectionId,
+    public List<SensorHistoryResponse> findHistoryByZone(
+            Long zoneId,
             String sensorType,
             Instant from,
             Instant to,
@@ -211,7 +212,7 @@ public class SensorInfluxRepository {
                 from,
                 to,
                 influxDbProperties.measurement(),
-                sectionId,
+                zoneId,
                 sensorTypeFilter,
                 VALUE_FIELD,
                 window
@@ -278,7 +279,7 @@ public class SensorInfluxRepository {
                 parseId(fluxRecord, "section_id"),
                 getStringValue(fluxRecord, SENSOR_TYPE),
                 getNumberValue(fluxRecord),
-                getStringValue(fluxRecord, "unit"),
+                resolveUnit(fluxRecord),
                 fluxRecord.getTime() != null
                         ? fluxRecord.getTime().toString()
                         : null
@@ -296,12 +297,22 @@ public class SensorInfluxRepository {
 
         return new SensorHistoryResponse(
                 getStringValue(fluxRecord, SENSOR_TYPE),
-                getStringValue(fluxRecord, "unit"),
+                resolveUnit(fluxRecord),
                 fluxRecord.getTime(),
                 roundToFirstDecimalPlace(
                         getNumberValue(fluxRecord)
                 )
         );
+    }
+
+    private String resolveUnit(
+            FluxRecord fluxRecord
+    ) {
+        String sensorType = getStringValue(fluxRecord, SENSOR_TYPE);
+
+        return SensorType.findByValue(sensorType)
+                .map(SensorType::unit)
+                .orElseGet(() -> getStringValue(fluxRecord, "unit"));
     }
 
     private double getNumberValue(FluxRecord fluxRecord) {

@@ -36,7 +36,7 @@ class SensorTypeTest {
         assertAll(
                 () -> assertEquals("C", SensorType.TEMPERATURE.unit()),
                 () -> assertEquals("%", SensorType.HUMIDITY.unit()),
-                () -> assertEquals("bool", SensorType.DOOR.unit()),
+                () -> assertEquals("문열림 여부", SensorType.DOOR.unit()),
                 () -> assertEquals("lux", SensorType.ILLUMINATION.unit())
         );
     }

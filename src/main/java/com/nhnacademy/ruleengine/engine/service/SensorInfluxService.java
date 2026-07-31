@@ -60,7 +60,7 @@ public class SensorInfluxService {
                 sensorPayload.sectionId(),
                 sensorType.value(),
                 sensorPayload.value(),
-                sensorPayload.unit(),
+                sensorType.unit(),
                 timestamp
         );
 
@@ -73,13 +73,13 @@ public class SensorInfluxService {
      * 실제 구역 존재 여부는 검증하지 않는다.
      * 조회 결과가 없으면 빈 목록을 반환한다.
      */
-    public List<SensorPayload> findLatestBySection(
-            Long sectionId
+    public List<SensorPayload> findLatestByZone(
+            Long zoneId
     ) {
-        validatePositiveId(sectionId, SECTION_ID);
+        validatePositiveId(zoneId, ZONE_ID);
 
-        return sensorInfluxRepository.findLatestBySection(
-                sectionId
+        return sensorInfluxRepository.findLatestByZone(
+                zoneId
         );
     }
 
@@ -133,14 +133,14 @@ public class SensorInfluxService {
      * window가 없으면 10분 단위로 집계한다.
      * sensorType이 없으면 모든 센서 타입을 조회한다.
      */
-    public List<SensorHistoryResponse> findHistoryBySection(
-            Long sectionId,
+    public List<SensorHistoryResponse> findHistoryByZone(
+            Long zoneId,
             String sensorType,
             Instant from,
             Instant to,
             String window
     ) {
-        validatePositiveId(sectionId, SECTION_ID);
+        validatePositiveId(zoneId, ZONE_ID);
 
         Instant resolvedTo = resolveTo(to);
         Instant resolvedFrom = resolveFrom(from, resolvedTo);
@@ -150,8 +150,8 @@ public class SensorInfluxService {
 
         validateTimeRange(resolvedFrom, resolvedTo);
 
-        return sensorInfluxRepository.findHistoryBySection(
-                sectionId,
+        return sensorInfluxRepository.findHistoryByZone(
+                zoneId,
                 resolvedSensorType,
                 resolvedFrom,
                 resolvedTo,
@@ -179,7 +179,7 @@ public class SensorInfluxService {
 
         validatePositiveId(
                 sensorPayload.sectionId(),
-                SECTION_ID
+                ZONE_ID
         );
     }
 
