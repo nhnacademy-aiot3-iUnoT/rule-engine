@@ -2,7 +2,8 @@ package com.nhnacademy.ruleengine.engine.dto;
 
 import com.nhnacademy.ruleengine.engine.dto.sensor.ViolationType;
 
-public record AbnormalEventDto(
+// 저장/발행될 최종 이벤트 데이터
+public record EnvironmentStatusEventDto(
         Long organizationId,
         String deviceEui,
         Long storageId,
@@ -11,6 +12,7 @@ public record AbnormalEventDto(
         ViolationType violationType,
         EnvironmentStatus previousStatus,
         EnvironmentStatus currentStatus,
+        EnvironmentEventReason reason,
         Double value,
         Double min,
         Double max,
@@ -18,11 +20,11 @@ public record AbnormalEventDto(
         String measuredAt,
         String message
 ) {
-    public static AbnormalEventDto from(
+    public static EnvironmentStatusEventDto from(
             RuleResultDto ruleResultDto,
             EnvironmentEventDecisionDto environmentStatusChangeDto
     ){
-        return new AbnormalEventDto(
+        return new EnvironmentStatusEventDto(
                 ruleResultDto.organizationId(),
                 ruleResultDto.deviceEui(),
                 ruleResultDto.storageId(),
@@ -31,6 +33,7 @@ public record AbnormalEventDto(
                 ruleResultDto.violationType(),
                 environmentStatusChangeDto.previousStatus(),
                 environmentStatusChangeDto.currentStatus(),
+                environmentStatusChangeDto.reason(),
                 ruleResultDto.value(),
                 ruleResultDto.min(),
                 ruleResultDto.max(),

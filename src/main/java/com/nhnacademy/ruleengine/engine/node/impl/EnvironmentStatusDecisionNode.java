@@ -58,7 +58,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                     message.withPayload(
                             Map.of(
                                 MessageFields.RULE_RESULT, ruleResult,
-                                MessageFields.ENVIRONMENT_STATUS_CHANGE, statusChange.get()))
+                                MessageFields.ENVIRONMENT_EVENT_DECISION, statusChange.get()))
             );
         }
     }
