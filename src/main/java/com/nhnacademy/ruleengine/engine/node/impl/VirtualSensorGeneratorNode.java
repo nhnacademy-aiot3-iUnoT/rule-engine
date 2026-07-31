@@ -35,6 +35,10 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     private final Long sectionId;
     private final String deviceEui;
 
+    // 실제 door 센서처럼 "상태가 바뀔 때만" 이벤트를 전송하기 위해 마지막으로 전송한 상태를 기억한다.
+    // 초기값은 "닫힘(0.0)"으로 가정한다.
+    private volatile double lastDoorValue = 0.0;
+
     private ScheduledExecutorService scheduler;
 
     public VirtualSensorGeneratorNode(
@@ -72,6 +76,9 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
             return;
         }
 
+        // 매번 새로 시작할 때는 "닫힘" 상태부터 다시 시작한다.
+        lastDoorValue = 0.0;
+
         scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, getId() + "-sensor-generator");
             thread.setDaemon(true);
@@ -97,10 +104,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
                 randomBetween(humidityMin, humidityMax),
                 measuredAt);
 
-        publish(SensorType.DOOR,
-                ThreadLocalRandom.current().nextDouble() < doorOpenProbability ? 1.0 : 0.0,
-                measuredAt
-        );
+        publishDoorIfChanged(measuredAt);
 
         publish(SensorType.ILLUMINATION,
                 randomBetween(illuminationMin, illuminationMax),
@@ -126,6 +130,28 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
             // 한 번의 생성 실패로 스케줄러의 다음 실행까지 중단되지 않게 한다.
             log.error("[{}] 가상 센서 데이터 생성 실패", getId(), e);
         }
+    }
+
+    /**
+     * 실제 door 센서처럼 상태가 바뀔 때만 이벤트를 전송한다.
+     * <p>
+     * 매 tick마다 doorOpenProbability 확률로 "열림" 여부를 다시 뽑아보고,
+     * 직전에 전송했던 상태와 같으면 아무것도 보내지 않는다(실제 센서가 상태 변화 없을 때
+     * 아무 데이터도 보내지 않는 것과 동일한 동작).
+     * 값이 달라진 경우에만 publish하고 마지막 상태를 갱신한다.
+     */
+    private void publishDoorIfChanged(String measuredAt) {
+        double nextDoorValue = ThreadLocalRandom.current().nextDouble() < doorOpenProbability
+                ? 1.0
+                : 0.0;
+
+        if (Double.compare(nextDoorValue, lastDoorValue) == 0) {
+            return;
+        }
+
+        lastDoorValue = nextDoorValue;
+
+        publish(SensorType.DOOR, nextDoorValue, measuredAt);
     }
 
     private void publish(SensorType sensorType, double value, String measuredAt) {

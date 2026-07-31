@@ -6,7 +6,7 @@ package com.nhnacademy.ruleengine.engine.constants;
 public final class LocationFields {
     public static final String ORGANIZATION_ID = "organizationId";
     public static final String STORAGE_ID = "storageId";
-    public static final String SECTION_ID = "sectionId";
+    public static final String ZONE_ID = "sectionId";
 
     private LocationFields() {
     }

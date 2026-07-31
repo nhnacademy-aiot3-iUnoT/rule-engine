@@ -54,7 +54,7 @@ public class LocationHierarchyValidator {
 
         validatePositiveId(
                 sectionId,
-                SECTION_ID
+                ZONE_ID
         );
 
         // TODO sectionId가 organizationId와 storageId 소속인지 조회
