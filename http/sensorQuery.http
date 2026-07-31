@@ -16,4 +16,4 @@ GET {{host}}/api/rule-engine/zones/1/sensor-data/latest
 GET {{host}}/api/rule-engine/zones/5/sensor-data/history?window=30m
 
 ### 구역의 특정 센서 타입 데이터 조회
-GET {{host}}/api/rule-engine/zones/5/sensor-data/history?window=30m&sensorType=temperature
+GET {{host}}/api/rule-engine/zones/22/sensor-data/history?sensorType=door

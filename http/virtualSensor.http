@@ -13,13 +13,15 @@ Content-Type: application/json
     "min": 50,
     "max": 55
   },
+
   "illumination": {
     "min": 100,
     "max": 150
   },
-  "doorOpenProbability": 0.5,
-  "measurementIntervalSeconds": 10,
-  "deviceEui": "device-eui-virtual-2"
+
+  "doorOpenProbability": 0.01,
+  "measurementIntervalSeconds": 60,
+  "deviceEui": "device-eui-virtual-22"
 }
 
 ### Section에서 Flow 정지

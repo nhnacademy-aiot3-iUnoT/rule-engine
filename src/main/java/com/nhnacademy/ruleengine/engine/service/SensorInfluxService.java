@@ -31,7 +31,7 @@ public class SensorInfluxService {
     private static final Duration DEFAULT_HISTORY_PERIOD =
             Duration.ofHours(24);
 
-    private static final String DEFAULT_AGGREGATION_WINDOW = "10m";
+    private static final String DEFAULT_AGGREGATION_WINDOW = "30m";
 
     private final SensorInfluxRepository sensorInfluxRepository;
 
@@ -130,7 +130,7 @@ public class SensorInfluxService {
      * <p>
      * from이 없으면 종료 시각 기준 최근 24시간을 조회한다.
      * to가 없으면 현재 시각을 사용한다.
-     * window가 없으면 10분 단위로 집계한다.
+     * window가 없으면 30분 단위로 집계한다.
      * sensorType이 없으면 모든 센서 타입을 조회한다.
      */
     public List<SensorHistoryResponse> findHistoryByZone(

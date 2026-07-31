@@ -1,5 +1,9 @@
 services:
   rule-engine-1:
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
     build: .
   rule-engine-2:
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
     build: .

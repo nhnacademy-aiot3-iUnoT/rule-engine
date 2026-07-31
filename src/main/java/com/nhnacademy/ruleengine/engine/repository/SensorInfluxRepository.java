@@ -21,6 +21,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 @Slf4j
 @Repository
@@ -30,6 +31,7 @@ public class SensorInfluxRepository {
     private static final String VALUE_FIELD = "value";
     private static final String DEFAULT_LATEST_RANGE = "-30d";
     private static final String SENSOR_TYPE = "sensor_type";
+    private static final String DOOR_SENSOR_TYPE = "door";
 
     private final InfluxDBClient influxDBClient;
     private final InfluxDbProperties influxDbProperties;
@@ -154,6 +156,7 @@ public class SensorInfluxRepository {
             Long organizationId,
             String sensorType
     ) {
+
         String fluxQuery = """
                 from(bucket: "%s")
                     |> range(start: %s)
@@ -179,6 +182,9 @@ public class SensorInfluxRepository {
 
     /**
      * 특정 구역의 센서 이력을 조회한다.
+     * <p>
+     * door 센서는 이진 상태값(열림/닫힘)이라 평균 집계가 의미 없으므로
+     * 집계 없이 원본 값(0/1) 그대로 조회한다. 그 외 센서는 window 단위로 평균 집계한다.
      */
     public List<SensorHistoryResponse> findHistoryByZone(
             Long zoneId,
@@ -187,9 +193,68 @@ public class SensorInfluxRepository {
             Instant to,
             String window
     ) {
-        String sensorTypeFilter = createSensorTypeFilter(sensorType);
+        // sensorType이 명시적으로 "door"인 경우: 원본 값만 반환한다.
+        if (DOOR_SENSOR_TYPE.equals(sensorType)) {
+            return executeQuery(
+                    doorZoneHistoryQuery(
+                            zoneId,
+                            createSensorTypeFilter(sensorType),
+                            from,
+                            to
+                    ),
+                    this::toHistoryResponse
+            );
+        }
 
-        String fluxQuery = """
+        // sensorType이 door가 아닌 특정 타입이거나 null(전체 조회)인 경우:
+        // door를 제외한 나머지는 평균 집계로 조회한다.
+        List<SensorHistoryResponse> aggregatedHistory = executeQuery(
+                defaultZoneHistoryQuery(
+                        zoneId,
+                        createSensorTypeFilter(sensorType),
+                        from,
+                        to,
+                        window
+                ),
+                this::toHistoryResponse
+        );
+
+        // 특정 센서 타입(door 제외)만 조회한 경우는 그대로 반환한다.
+        if (sensorType != null) {
+            return aggregatedHistory;
+        }
+
+        // sensorType이 null(전체 조회)인 경우, door는 반드시 원본 값으로 별도 조회해서 합친다.
+        // 그렇지 않으면 door가 defaultZoneHistoryQuery의 10분 평균 집계에 걸려
+        // "10분 간격으로 열렸다"는 식의 부정확한 타임스탬프/값이 만들어진다.
+        List<SensorHistoryResponse> doorHistory = executeQuery(
+                doorZoneHistoryQuery(
+                        zoneId,
+                        createSensorTypeFilter(DOOR_SENSOR_TYPE),
+                        from,
+                        to
+                ),
+                this::toHistoryResponse
+        );
+
+        return Stream.concat(
+                aggregatedHistory.stream(),
+                doorHistory.stream()
+        ).toList();
+    }
+
+    /**
+     * door 센서의 원본(raw) 이력을 집계·필터 없이 조회한다.
+     * 열림(1)/닫힘(0) 전환 시점을 정확히 판별하려면 두 값 모두 필요하므로
+     * 값에 대한 필터를 걸지 않는다.
+     */
+    private String doorZoneHistoryQuery(
+            Long zoneId,
+            String sensorTypeFilter,
+            Instant from,
+            Instant to
+    ) {
+        return """
                 from(bucket: "%s")
                     |> range(
                         start: time(v: "%s"),
@@ -197,6 +262,36 @@ public class SensorInfluxRepository {
                     )
                     |> filter(fn: (r) => r._measurement == "%s")
                     |> filter(fn: (r) => r.section_id == "%s")
+                    %s
+                    |> filter(fn: (r) => r._field == "%s")
+                    |> group()
+                    |> sort(columns: ["_time"])
+                """.formatted(
+                influxDbProperties.bucket(),
+                from,
+                to,
+                influxDbProperties.measurement(),
+                zoneId,
+                sensorTypeFilter,
+                VALUE_FIELD
+        );
+    }
+
+    private String defaultZoneHistoryQuery(
+            Long zoneId,
+            String sensorTypeFilter,
+            Instant from,
+            Instant to,
+            String window) {
+        return """
+                from(bucket: "%s")
+                    |> range(
+                        start: time(v: "%s"),
+                        stop: time(v: "%s")
+                    )
+                    |> filter(fn: (r) => r._measurement == "%s")
+                    |> filter(fn: (r) => r.section_id == "%s")
+                    |> filter(fn: (r) => r.sensor_type != "%s")
                     %s
                     |> filter(fn: (r) => r._field == "%s")
                     |> group(columns: ["sensor_type", "unit"])
@@ -213,14 +308,10 @@ public class SensorInfluxRepository {
                 to,
                 influxDbProperties.measurement(),
                 zoneId,
+                DOOR_SENSOR_TYPE,
                 sensorTypeFilter,
                 VALUE_FIELD,
                 window
-        );
-
-        return executeQuery(
-                fluxQuery,
-                this::toHistoryResponse
         );
     }
 
