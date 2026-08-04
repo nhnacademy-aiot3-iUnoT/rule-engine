@@ -28,7 +28,7 @@ public record EnvironmentStatusEventDto(
                 ruleResultDto.organizationId(),
                 ruleResultDto.deviceEui(),
                 ruleResultDto.storageId(),
-                ruleResultDto.sectionId(),
+                ruleResultDto.zoneId(),
                 ruleResultDto.sensorType(),
                 ruleResultDto.violationType(),
                 environmentStatusChangeDto.previousStatus(),
