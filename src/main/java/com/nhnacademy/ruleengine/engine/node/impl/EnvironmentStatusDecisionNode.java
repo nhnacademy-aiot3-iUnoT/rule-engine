@@ -13,12 +13,12 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-// RuleResultDto를 받아 NORMAL / PENDING / ALERT 상태 판단하여 환경상태 전이 , EnvironmentEventDecisionDto 생성
+// RuleResultDto를 받아 NORMAL / WARNING / CRITICAL 상태 판단하여 환경상태 전이 , EnvironmentEventDecisionDto 생성
 @Slf4j
 public class EnvironmentStatusDecisionNode extends AbstractNode {
 
     private record DecisionState(
-            RuleStates state,
+            EnvironmentStatus state,
             LocalDateTime firstViolatedAt,
             LocalDateTime lastAlertAt,
             LocalDateTime lastMeasuredAt
@@ -70,7 +70,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
         AtomicReference<EnvironmentEventDecisionDto> result = new AtomicReference<>();
 
         decisionStates.compute(key, (k, oldState) -> {
-            EnvironmentStatus previousStatus = oldState == null ? EnvironmentStatus.NORMAL : toEnvironmentStatus(oldState.state());
+            EnvironmentStatus previousStatus = oldState == null ? EnvironmentStatus.NORMAL : oldState.state();
 
             // 측정 시간 역전
             if (oldState!=null
@@ -87,7 +87,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
             // 정상 결과
             if(!ruleResult.violated()){
                 if (previousStatus == EnvironmentStatus.NORMAL) {
-                    return new DecisionState(RuleStates.NORMAL, null, null, measuredAt);
+                    return new DecisionState(EnvironmentStatus.NORMAL, null, null, measuredAt);
                 }
 
                 EnvironmentEventDecisionDto change =
@@ -97,12 +97,12 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                                 EnvironmentEventReason.STATUS_CHANGED
                         );
                 result.set(change);
-                return new DecisionState(RuleStates.NORMAL, null, null, measuredAt);
+                return new DecisionState(EnvironmentStatus.NORMAL, null, null, measuredAt);
             }
 
             // 위반 지속시간 조건이 없는 경우(door open)는 바로 ALERT
             if(durationMinutes == null || durationMinutes<=0){
-                if(oldState == null || oldState.state() == RuleStates.NORMAL){
+                if(oldState == null || oldState.state() == EnvironmentStatus.NORMAL){
                     EnvironmentEventDecisionDto change =
                             new EnvironmentEventDecisionDto(
                                     previousStatus,
@@ -110,10 +110,10 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                                     EnvironmentEventReason.STATUS_CHANGED
                             );
                     result.set(change);
-                    return new DecisionState(RuleStates.ALERT, null, measuredAt, measuredAt);
+                    return new DecisionState(EnvironmentStatus.CRITICAL, null, measuredAt, measuredAt);
                 }
 
-                if (oldState.state() == RuleStates.ALERT) {
+                if (oldState.state() == EnvironmentStatus.CRITICAL) {
                     if (oldState.lastAlertAt() != null
                             && Duration.between(oldState.lastAlertAt(), measuredAt).toMinutes() >= ALERT_INTERVAL) {
                         EnvironmentEventDecisionDto change =
@@ -123,12 +123,12 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                                         EnvironmentEventReason.CRITICAL_REPEATED
                                 );
                         result.set(change);
-                        return new DecisionState(RuleStates.ALERT, null, measuredAt, measuredAt);
+                        return new DecisionState(EnvironmentStatus.CRITICAL, null, measuredAt, measuredAt);
                     }
                     return updateLastMeasuredAt(oldState, measuredAt);
                 }
 
-                if(oldState.state() == RuleStates.PENDING){
+                if(oldState.state() == EnvironmentStatus.WARNING){
                     EnvironmentEventDecisionDto change =
                             new EnvironmentEventDecisionDto(
                                     previousStatus,
@@ -136,12 +136,12 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                                     EnvironmentEventReason.STATUS_CHANGED
                             );
                     result.set(change);
-                    return new DecisionState(RuleStates.ALERT, null, measuredAt, measuredAt);
+                    return new DecisionState(EnvironmentStatus.CRITICAL, null, measuredAt, measuredAt);
                 }
             }
 
-            // 첫 위반 발생(door는 위 조건에서 걸려짐) or 상태가 NORMAL 일때 PENDING로 저장
-            if(oldState == null || oldState.state() == RuleStates.NORMAL){
+            // 첫 위반 발생(door는 위 조건에서 걸려짐) or 상태가 NORMAL 일때 WARNING로 저장
+            if(oldState == null || oldState.state() == EnvironmentStatus.NORMAL){
                 EnvironmentEventDecisionDto change =
                         new EnvironmentEventDecisionDto(
                                 previousStatus,
@@ -149,11 +149,11 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                                 EnvironmentEventReason.STATUS_CHANGED
                         );
                 result.set(change);
-                return new DecisionState(RuleStates.PENDING, measuredAt, null, measuredAt);
+                return new DecisionState(EnvironmentStatus.WARNING, measuredAt, null, measuredAt);
             }
 
-            // 위반 지속시간 초과시 ALERT 전환
-            if(oldState.state() == RuleStates.PENDING){
+            // 위반 지속시간 초과시 CRITICAL 전환
+            if(oldState.state() == EnvironmentStatus.WARNING){
                 long elapsedMinutes = Duration.between(oldState.firstViolatedAt(), measuredAt).toMinutes();
 
                 if(elapsedMinutes >= durationMinutes){
@@ -163,14 +163,14 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                                     EnvironmentStatus.CRITICAL,
                                     EnvironmentEventReason.STATUS_CHANGED);
                     result.set(change);
-                    return new DecisionState(RuleStates.ALERT, oldState.firstViolatedAt(), measuredAt, measuredAt);
+                    return new DecisionState(EnvironmentStatus.CRITICAL, oldState.firstViolatedAt(), measuredAt, measuredAt);
                 }
 
                 return updateLastMeasuredAt(oldState, measuredAt);
             }
 
-            // 기존 상태가 ALERT일 경우
-            if(oldState.state() == RuleStates.ALERT){
+            // 기존 상태가 CRITICAL일 경우
+            if(oldState.state() == EnvironmentStatus.CRITICAL){
                 long elapsedMinutes = Duration.between(oldState.lastAlertAt(), measuredAt).toMinutes();
 
                 // lastAlertAt 갱신 (ALERT_INTERVAL 마다)
@@ -189,14 +189,6 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
             return updateLastMeasuredAt(oldState, measuredAt);
         });
         return Optional.ofNullable(result.get());
-    }
-
-    private EnvironmentStatus toEnvironmentStatus(RuleStates states){
-        return switch (states) {
-            case NORMAL -> EnvironmentStatus.NORMAL;
-            case PENDING -> EnvironmentStatus.WARNING;
-            case ALERT -> EnvironmentStatus.CRITICAL;
-        };
     }
 
     private DecisionState updateLastMeasuredAt(
