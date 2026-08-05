@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.rabbit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorKeys;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.global.config.RabbitMqConfig;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class NormalizedSensorPublisher {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
+    private final RabbitMqConfig rabbitMqConfig;
 
     public void publish(SensorPayload sensorPayload) {
         try {
@@ -33,15 +35,16 @@ public class NormalizedSensorPublisher {
     }
 
     // 같은 센서는 항상 같은 파티션 큐로 가도록 라우팅 키를 계산한다.
-    // EnvironmentStatusDecisionNode의 상태 키와 동일한 구성요소를 사용해야 한다.
     private String normalizedRoutingKeyFor(SensorPayload sensorPayload) {
-        String sensorKey = sensorPayload.organizationId() + ":" +
-                sensorPayload.storageId() + ":" +
-                sensorPayload.sectionId() + ":" +
-                sensorPayload.deviceEui() + ":" +
-                sensorPayload.sensorType();
+        String sensorKey = SensorKeys.of(
+                sensorPayload.organizationId(),
+                sensorPayload.storageId(),
+                sensorPayload.sectionId(),
+                sensorPayload.deviceEui(),
+                sensorPayload.sensorType()
+        );
 
         int partition = RabbitMqConfig.normalizedPartitionOf(sensorKey);
-        return RabbitMqConfig.normalizedRoutingKey(partition);
+        return rabbitMqConfig.normalizedRoutingKey(partition);
     }
 }

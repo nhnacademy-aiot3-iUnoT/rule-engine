@@ -1,7 +1,14 @@
 package com.nhnacademy.ruleengine.global.config;
 
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Declarable;
+import org.springframework.amqp.core.Declarables;
+import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,13 +20,17 @@ public class RabbitMqConfig {
 
     public static final String SENSOR_EXCHANGE = "iunot.sensor_exchange";
 
-    public static final String SENSOR_RAW_QUEUE = "iunot.sensor.raw.queue";
+    private static final String SENSOR_RAW_QUEUE_BASE = "iunot.sensor.raw.queue";
 
-    public static final String SENSOR_RAW_ROUTING_KEY = "iunot.sensor.raw";
+    private static final String SENSOR_RAW_ROUTING_KEY_BASE = "iunot.sensor.raw";
 
     private static final String SENSOR_NORMALIZED_QUEUE_PREFIX = "iunot.sensor.normalized.queue.";
     private static final String SENSOR_NORMALIZED_ROUTING_KEY_PREFIX = "iunot.sensor.normalized.";
-    public static final int SENSOR_NORMALIZED_PARTITION_COUNT = 4;
+    public static final int SENSOR_NORMALIZED_PARTITION_COUNT = 2;
+
+    // 로컬/테스트 환경을 운영과 같은 브로커에서 격리하기 위한 큐/라우팅 키 접미사
+    @Value("${rule-engine.rabbitmq.queue-suffix:}")
+    private String queueSuffix;
 
     @Bean
     public DirectExchange sensorExchange() {
@@ -32,7 +43,7 @@ public class RabbitMqConfig {
 
     @Bean
     public Queue sensorRawQueue() {
-        return QueueBuilder.durable(SENSOR_RAW_QUEUE)
+        return QueueBuilder.durable(sensorRawQueueName())
                 .build();
     }
 
@@ -41,7 +52,7 @@ public class RabbitMqConfig {
         return BindingBuilder
                 .bind(sensorRawQueue)
                 .to(sensorExchange)
-                .with(SENSOR_RAW_ROUTING_KEY);
+                .with(sensorRawRoutingKey());
     }
 
     @Bean
@@ -71,15 +82,23 @@ public class RabbitMqConfig {
         return Math.floorMod(sensorKey.hashCode(), SENSOR_NORMALIZED_PARTITION_COUNT);
     }
 
-    public static String normalizedQueueName(int partition) {
-        return SENSOR_NORMALIZED_QUEUE_PREFIX + partition;
+    public String normalizedRoutingKey(int partition) {
+        return SENSOR_NORMALIZED_ROUTING_KEY_PREFIX + partition + queueSuffix;
     }
 
-    public static String normalizedRoutingKey(int partition) {
-        return SENSOR_NORMALIZED_ROUTING_KEY_PREFIX + partition;
+    public String sensorRawRoutingKey() {
+        return SENSOR_RAW_ROUTING_KEY_BASE + queueSuffix;
     }
 
-    public static String[] allNormalizedQueueNames() {
+    public String sensorRawQueueName() {
+        return SENSOR_RAW_QUEUE_BASE + queueSuffix;
+    }
+
+    public String normalizedQueueName(int partition) {
+        return SENSOR_NORMALIZED_QUEUE_PREFIX + partition + queueSuffix;
+    }
+
+    public String[] allNormalizedQueueNames() {
         String[] names = new String[SENSOR_NORMALIZED_PARTITION_COUNT];
         for (int partition = 0; partition < SENSOR_NORMALIZED_PARTITION_COUNT; partition++) {
             names[partition] = normalizedQueueName(partition);

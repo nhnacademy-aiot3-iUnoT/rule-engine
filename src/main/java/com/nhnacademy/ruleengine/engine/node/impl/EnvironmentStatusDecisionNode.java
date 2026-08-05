@@ -2,8 +2,12 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
-import com.nhnacademy.ruleengine.engine.dto.environment.*;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentDecisionState;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventDecisionDto;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
 import com.nhnacademy.ruleengine.engine.dto.rule.RuleResultDto;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorKeys;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
 import com.nhnacademy.ruleengine.engine.service.RedisLeaseLockService;
@@ -41,6 +45,9 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
     private static final int LOCK_MAX_ATTEMPTS = 10;
     private static final Duration LOCK_RETRY_DELAY = Duration.ofMillis(50);
 
+    // 외부 장치/게이트웨이의 시계가 앞서있는 경우, 미래 타임스탬프 하나가 상태를 영구히 막아버리는 것을 방지한다.
+    private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(1);
+
     private final EnvironmentDecisionStateRedisRepository stateRepository;
     private final RedisLeaseLockService lockService;
 
@@ -67,11 +74,13 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
             return;
         }
 
-        String key = ruleResult.organizationId() + ':' +
-                ruleResult.storageId() + ':' +
-                ruleResult.zoneId() + ':' +
-                ruleResult.deviceEui() + ':' +
-                ruleResult.sensorType();
+        String key = SensorKeys.of(
+                ruleResult.organizationId(),
+                ruleResult.storageId(),
+                ruleResult.zoneId(),
+                ruleResult.deviceEui(),
+                ruleResult.sensorType()
+        );
 
         Optional<EnvironmentEventDecisionDto> statusChange = processRuleDecision(ruleResult, key);
 
@@ -113,7 +122,9 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                 return Optional.empty();
             }
 
-            stateRepository.save(key, transition.nextState());
+            if (transition.nextState() != null) {
+                stateRepository.save(key, transition.nextState());
+            }
             return Optional.ofNullable(transition.event());
         } finally {
             lockService.release(lockKey, ownerToken); // 락해제
@@ -152,9 +163,23 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
         if (oldState != null
                 && oldState.lastMeasuredAt() != null
                 && measuredAt.isBefore(oldState.lastMeasuredAt())) {
-            log.info("[{}] 과거 측정 메시지라 상태 전이를 건너뜁니다. lastMeasuredAt={}, measuredAt={},zone: {}, sensorType: {}",
+            log.info("[{}] 과거 측정 메시지라 상태 전이를 건너뜁니다. lastMeasuredAt={}, measuredAt={}, zoneId={}, sensorType={}",
                     getId(),
                     oldState.lastMeasuredAt(),
+                    measuredAt,
+                    ruleResult.zoneId(),
+                    ruleResult.sensorType()
+            );
+            return new Transition(oldState, null);
+        }
+
+        // 외부 장치/게이트웨이 시계가 앞서있는 미래 타임스탬프는 신뢰하지 않고 버린다.
+        // 그대로 저장하면 그 이후 정상 시각의 메시지가 전부 "과거"로 취급되어 영구히 막히기 때문이다.
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        if (measuredAt.isAfter(now.plus(FUTURE_TOLERANCE))) {
+            log.warn("[{}] 미래 측정 메시지라 상태 전이를 건너뜁니다. now={}, measuredAt={}, zoneId={}, sensorType={}",
+                    getId(),
+                    now,
                     measuredAt,
                     ruleResult.zoneId(),
                     ruleResult.sensorType()

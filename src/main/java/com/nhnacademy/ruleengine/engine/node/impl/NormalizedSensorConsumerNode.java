@@ -7,7 +7,6 @@ import com.nhnacademy.ruleengine.engine.core.FlowProcessingCompletion;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
-import com.nhnacademy.ruleengine.global.config.RabbitMqConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
@@ -37,7 +36,7 @@ public class NormalizedSensorConsumerNode extends AbstractNode {
     }
 
     @RabbitListener(
-            queues = "#{T(com.nhnacademy.ruleengine.global.config.RabbitMqConfig).allNormalizedQueueNames()}"
+            queues = "#{@rabbitMqConfig.allNormalizedQueueNames()}"
     )
     public void consume(String rawPayload) {
         SensorPayload sensorPayload = deserialize(rawPayload);
