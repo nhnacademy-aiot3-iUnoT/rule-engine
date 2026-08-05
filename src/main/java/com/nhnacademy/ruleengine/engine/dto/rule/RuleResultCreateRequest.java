@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.rule;
 
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ViolationType;

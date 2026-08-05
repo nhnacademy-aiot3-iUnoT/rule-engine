@@ -5,6 +5,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -22,6 +25,9 @@ class ExternalSensorMessageTest {
                 MessageFields.TOPIC, "test-topic",
                 MessageFields.MQTT_RECEIVED_AT, 1L,
                 "time", "test-time",
+                "rxInfo", List.of(
+                        Map.of("nsTime", "2026-08-05T00:00:00Z")
+                ),
                 "deviceInfo", Map.of(
                         "applicationName", "test-app",
                         "devEui", "test-devEui",
@@ -44,7 +50,7 @@ class ExternalSensorMessageTest {
                 ExternalSensorMessage.from(payload);
 
         assertAll(
-                () -> assertEquals("test-time", result.time()),
+                () -> assertEquals("2026-08-05T00:00:00Z", result.time()),
                 () -> assertEquals("test-topic", result.topic()),
                 () -> assertEquals(1L, result.receivedAt()),
                 () -> assertEquals("test-app", result.applicationName()),
@@ -53,6 +59,26 @@ class ExternalSensorMessageTest {
                 () -> assertEquals("test-point", result.point()),
                 () -> assertEquals(20.5, result.measurements().get("temperature")),
                 () -> assertEquals(60.0, result.measurements().get("humidity"))
+        );
+    }
+
+    @Test
+    @DisplayName("rxInfo가 없으면 최상위 time 대신 처리 시각으로 대체한다")
+    void fallBackToNowWhenRxInfoIsMissing() {
+        Map<String, Object> payloadWithoutRxInfo =
+                new java.util.HashMap<>(payload);
+        payloadWithoutRxInfo.remove("rxInfo");
+
+        Instant before = Instant.now();
+        ExternalSensorMessage result =
+                ExternalSensorMessage.from(payloadWithoutRxInfo);
+        Instant after = Instant.now();
+
+        Instant resolvedTime = Instant.parse(result.time());
+
+        assertAll(
+                () -> assertTrue(!resolvedTime.isBefore(before.minus(1, ChronoUnit.SECONDS))),
+                () -> assertTrue(!resolvedTime.isAfter(after.plus(1, ChronoUnit.SECONDS)))
         );
     }
 

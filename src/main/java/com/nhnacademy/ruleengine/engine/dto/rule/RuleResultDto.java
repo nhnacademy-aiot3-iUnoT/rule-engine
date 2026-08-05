@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.rule;
 
 import com.nhnacademy.ruleengine.engine.dto.sensor.ViolationType;
 
@@ -7,7 +7,7 @@ public record RuleResultDto(
         Long organizationId,
         String deviceEui,
         Long storageId,
-        Long sectionId,
+        Long zoneId,
         String sensorType,
         ViolationType violationType, //이상 타입
         boolean violated,

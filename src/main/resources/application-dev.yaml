@@ -6,3 +6,19 @@ management:
   tracing:
     export:
       enabled: false
+
+rule-engine:
+  rabbitmq:
+    queue-suffix: -test
+
+  redundancy:
+    instance-id: ${INSTANCE_ID}
+    external-ingress:
+      lock-key: rule-engine:lock:external-ingress-test
+      lease-duration: 10s
+      renew-interval: 3s
+
+    virtual-sensor:
+      lock-key-prefix: rule-engine:lock:virtual-sensor-test
+      lease-duration: 10s
+      renew-interval: 3s

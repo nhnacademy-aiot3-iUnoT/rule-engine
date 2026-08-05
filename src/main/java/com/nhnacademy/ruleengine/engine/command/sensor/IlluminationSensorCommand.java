@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.command;
+package com.nhnacademy.ruleengine.engine.command.sensor;
 
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
@@ -6,17 +6,17 @@ import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import org.springframework.stereotype.Component;
 
 @Component
-// 습도 측정값을 백분율 센서 payload로 변환한다.
-public class HumiditySensorCommand implements SensorCommand {
+// 온도 측정값을 섭씨 센서 payload로 변환한다.
+public class IlluminationSensorCommand implements SensorCommand {
 
     @Override
     public String getMeasurementKey() {
-        return SensorType.HUMIDITY.value();
+        return SensorType.ILLUMINATION.value();
     }
 
     @Override
     public SensorType getSensorType() {
-        return SensorType.HUMIDITY;
+        return SensorType.ILLUMINATION;
     }
 
     @Override
@@ -37,7 +37,11 @@ public class HumiditySensorCommand implements SensorCommand {
     }
 
     private double toDouble(Object value) {
-        // 숫자와 숫자 형태의 문자열을 동일하게 변환한다.
+        // 숫자와 숫자 형태의 문자열을 모두 허용한다.
+        if (value == null) {
+            throw new IllegalArgumentException("밝기 값이 null입니다.");
+        }
+
         if (value instanceof Number number) {
             return number.doubleValue();
         }

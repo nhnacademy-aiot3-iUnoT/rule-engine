@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.repository;
 
-import com.nhnacademy.ruleengine.engine.dto.ThresholdPolicyDto;
+import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
 
 import java.util.Optional;
 

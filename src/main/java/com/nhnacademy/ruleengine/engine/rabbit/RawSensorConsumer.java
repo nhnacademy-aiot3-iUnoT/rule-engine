@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.service.SensorTransformService;
-import com.nhnacademy.ruleengine.global.config.RabbitMqConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -23,7 +22,7 @@ public class RawSensorConsumer {
     private final NormalizedSensorPublisher normalizedSensorPublisher;
 
     @RabbitListener(
-            queues = RabbitMqConfig.SENSOR_RAW_QUEUE
+            queues = "#{@rabbitMqConfig.sensorRawQueueName()}"
     )
     public void consume(String rawPayload) {
         ExternalSensorMessage externalSensorMessage;
@@ -41,7 +40,6 @@ public class RawSensorConsumer {
 
         List<SensorPayload> sensorPayloads = sensorTransformService.transform(externalSensorMessage);
 
-
         sensorPayloads.forEach(
                 normalizedSensorPublisher::publish
         );
@@ -50,6 +48,5 @@ public class RawSensorConsumer {
                 "외부 센서 메시지 변환 완료. normalizedCount={}",
                 sensorPayloads.size()
         );
-
     }
 }

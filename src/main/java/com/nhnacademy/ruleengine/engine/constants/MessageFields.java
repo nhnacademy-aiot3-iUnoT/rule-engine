@@ -13,6 +13,9 @@ public final class MessageFields {
     public static final String QOS = "qos";
     public static final String CLIENT_ID = "clientId";
     public static final String BROKER_URL = "brokerUrl";
+    public static final String ENVIRONMENT_EVENT_DECISION = "environmentEventDecision";
+    public static final String ENVIRONMENT_STATUS_EVENT = "environmentStatusEvent";
+
     private MessageFields() {
     }
 }

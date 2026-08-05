@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class RawSensorPublisher {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
+    private final RabbitMqConfig rabbitMqConfig;
 
     public void publish(ExternalSensorMessage externalSensorMessage) {
         try {
@@ -21,7 +22,7 @@ public class RawSensorPublisher {
 
             rabbitTemplate.convertAndSend(
                     RabbitMqConfig.SENSOR_EXCHANGE,
-                    RabbitMqConfig.SENSOR_RAW_ROUTING_KEY,
+                    rabbitMqConfig.sensorRawRoutingKey(),
                     payload
             );
 

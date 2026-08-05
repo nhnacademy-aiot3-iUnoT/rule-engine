@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.repository.impl;
 
-import com.nhnacademy.ruleengine.engine.dto.ThresholdPolicyDto;
+import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
 import com.nhnacademy.ruleengine.engine.repository.ThresholdPolicyRepository;
 import org.springframework.stereotype.Repository;
 

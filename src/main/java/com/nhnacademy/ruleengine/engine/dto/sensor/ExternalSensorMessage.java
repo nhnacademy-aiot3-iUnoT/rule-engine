@@ -2,8 +2,10 @@ package com.nhnacademy.ruleengine.engine.dto.sensor;
 
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 // 외부 MQTT payload에서 Rule Engine이 사용할 필드만 정리한 DTO다.
@@ -23,16 +25,34 @@ public record ExternalSensorMessage(
         Map<String, Object> deviceInfo = mapValue(payload.get("deviceInfo"));
         Map<String, Object> tags = mapValue(deviceInfo.get("tags"));
 
+        // 외부 시간데이터는 오차가 심해 rxInfo를 받아오도록 변경
+        String time = resolveTime(payload);
+
         return new ExternalSensorMessage(
                 stringValue(payload.get(MessageFields.TOPIC)),
                 longValue(payload.get(MessageFields.MQTT_RECEIVED_AT)),
-                stringValue(payload.get("time")),
+                time,
                 stringValue(deviceInfo.get("applicationName")),
                 stringValue(deviceInfo.get("devEui")),
                 stringValue(tags.get("location")),
                 stringValue(tags.get("point")),
                 mapValue(payload.get("object"))
         );
+    }
+
+    private static String resolveTime(Map<String, Object> payload) {
+        Object rxInfoValue = payload.get("rxInfo");
+
+        if (rxInfoValue instanceof List<?> rxInfoList && !rxInfoList.isEmpty()) {
+            Map<String, Object> firstRxInfo = mapValue(rxInfoList.get(0));
+            String nsTime = stringValue(firstRxInfo.get("nsTime"));
+
+            if (nsTime != null) {
+                return nsTime;
+            }
+        }
+
+        return Instant.now().toString();
     }
 
     @SuppressWarnings("unchecked")
@@ -43,9 +63,11 @@ public record ExternalSensorMessage(
         }
         return Map.of();
     }
+
     private static String stringValue(Object value) {
         return value == null ? null : value.toString();
     }
+
     private static Long longValue(Object value) {
         if (value instanceof Number number) {
             return number.longValue();
@@ -57,5 +79,4 @@ public record ExternalSensorMessage(
 
         return null;
     }
-
 }

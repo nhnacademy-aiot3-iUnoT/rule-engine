@@ -1,0 +1,274 @@
+package com.nhnacademy.ruleengine.engine.node.impl;
+
+import com.nhnacademy.ruleengine.engine.constants.MessageFields;
+import com.nhnacademy.ruleengine.engine.core.Message;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentDecisionState;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventDecisionDto;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
+import com.nhnacademy.ruleengine.engine.dto.rule.RuleResultDto;
+import com.nhnacademy.ruleengine.engine.dto.sensor.SensorKeys;
+import com.nhnacademy.ruleengine.engine.node.AbstractNode;
+import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
+import com.nhnacademy.ruleengine.engine.service.RedisLeaseLockService;
+import lombok.extern.slf4j.Slf4j;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+// RuleResultDto를 받아 NORMAL / WARNING / CRITICAL 상태 판단하여 환경상태 전이, EnvironmentEventDecisionDto 생성
+// 서버가 이중화되어 같은 센서의 메시지가 서로 다른 인스턴스로 분배될 수 있으므로,
+// 판단 상태(EnvironmentDecisionState)는 로컬 메모리가 아닌 Redis에 저장해 인스턴스 간 공유하고,
+// 센서 키 단위 Redis Lock으로 읽기-판단-쓰기 구간의 원자성을 보장한다.
+@Slf4j
+public class EnvironmentStatusDecisionNode extends AbstractNode {
+
+    // decide()의 결과: 다음 상태와, 발행할 이벤트(없으면 null)
+    private record Transition(
+            EnvironmentDecisionState nextState,
+            EnvironmentEventDecisionDto event
+    ) {
+    }
+
+    private static final String INPUT_PORT = "in";
+    private static final String OUTPUT_PORT = "out";
+    private static final int ALERT_INTERVAL = 30;  //lastAlertAt 타임 갱신주기
+
+    private static final String LOCK_KEY_PREFIX = "rule-engine:env-status:lock:";
+    private static final Duration LOCK_LEASE = Duration.ofSeconds(3);
+    private static final int LOCK_MAX_ATTEMPTS = 10;
+    private static final Duration LOCK_RETRY_DELAY = Duration.ofMillis(50);
+
+    // 외부 장치/게이트웨이의 시계가 앞서있는 경우, 미래 타임스탬프 하나가 상태를 영구히 막아버리는 것을 방지한다.
+    private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(1);
+
+    private final EnvironmentDecisionStateRedisRepository stateRepository;
+    private final RedisLeaseLockService lockService;
+
+    public EnvironmentStatusDecisionNode(
+            String id,
+            EnvironmentDecisionStateRedisRepository stateRepository,
+            RedisLeaseLockService lockService
+    ) {
+        super(id);
+        addInputPort(INPUT_PORT);
+        addOutputPort(OUTPUT_PORT);
+
+        this.stateRepository = stateRepository;
+        this.lockService = lockService;
+    }
+
+    @Override
+    protected void onProcess(Message message) {
+        RuleResultDto ruleResult = message.get(MessageFields.RULE_RESULT);
+
+        if (ruleResult == null) {
+            log.info("[{}] ruleResult가 없어 상태판단을 건너뜁니다.", getId());
+            message.completeProcessing();
+            return;
+        }
+
+        String key = SensorKeys.of(
+                ruleResult.organizationId(),
+                ruleResult.storageId(),
+                ruleResult.zoneId(),
+                ruleResult.deviceEui(),
+                ruleResult.sensorType()
+        );
+
+        Optional<EnvironmentEventDecisionDto> statusChange = processRuleDecision(ruleResult, key);
+
+        // 상태 변화가 없으면(가장 흔한 케이스) 다음 Node로 보낼 게 없으니 여기서 Flow를 완료시킨다.
+        // 그냥 return만 하면 아무도 completeProcessing()을 호출하지 않아 요청자가 타임아웃날 때까지 대기하게 된다.
+        statusChange.ifPresentOrElse(
+                environmentEventDecisionDto -> send(
+                        OUTPUT_PORT,
+                        message.withPayload(
+                                Map.of(
+                                        MessageFields.RULE_RESULT, ruleResult,
+                                        MessageFields.ENVIRONMENT_EVENT_DECISION, environmentEventDecisionDto))
+                ),
+                message::completeProcessing
+        );
+    }
+
+    private Optional<EnvironmentEventDecisionDto> processRuleDecision(RuleResultDto ruleResult, String key) {
+        LocalDateTime measuredAt = parseMeasuredAt(ruleResult.measuredAt()); // 측정한 시간
+
+        String lockKey = LOCK_KEY_PREFIX + key;
+        String ownerToken = UUID.randomUUID().toString();
+
+        // 상태를 변경하기위해 Lock을 시도
+        if (!acquireLock(lockKey, ownerToken)) {
+            log.warn("[{}] key={} 상태에 대한 Redis Lock 획득에 실패해 상태판단을 건너뜁니다.", getId(), key);
+            return Optional.empty();
+        }
+
+        try {
+            EnvironmentDecisionState oldState = stateRepository.find(key).orElse(null); // 이전상태 불러오기
+            Transition transition = decide(oldState, ruleResult, measuredAt);
+
+            /* 저장 직전 Lock 소유권을 재확인/연장한다.
+             decide()가 오래 걸려 TTL이 만료되고 다른 인스턴스가 Lock을 가져간 경우,여기서 덮어쓰지 않고 포기한다.
+             */
+            if (!lockService.renew(lockKey, ownerToken, LOCK_LEASE)) {
+                log.warn("[{}] key={} 처리 중 Lock 소유권을 잃어 상태 저장을 건너뜁니다.", getId(), key);
+                return Optional.empty();
+            }
+
+            if (transition.nextState() != null) {
+                stateRepository.save(key, transition.nextState());
+            }
+            return Optional.ofNullable(transition.event());
+        } finally {
+            lockService.release(lockKey, ownerToken); // 락해제
+        }
+    }
+
+    // 형식이 깨진 경우 메시지 처리 자체가 죽지 않도록 현재 시간으로 대체한다.
+    private LocalDateTime parseMeasuredAt(String measuredAt) {
+        try {
+            return LocalDateTime.ofInstant(Instant.parse(measuredAt), ZoneOffset.UTC);
+        } catch (DateTimeParseException | NullPointerException exception) {
+            log.warn("[{}] measuredAt 형식이 올바르지 않아 현재 시간으로 처리합니다. measuredAt={}", getId(), measuredAt);
+            return LocalDateTime.now(ZoneOffset.UTC);
+        }
+    }
+
+    // Lock이 다른 인스턴스에 점유되어 있을 경우 짧게 재시도한다.
+    private boolean acquireLock(String lockKey, String ownerToken) {
+        for (int attempt = 0; attempt < LOCK_MAX_ATTEMPTS; attempt++) {
+            if (lockService.acquire(lockKey, ownerToken, LOCK_LEASE)) {
+                return true;
+            }
+
+            try {
+                Thread.sleep(LOCK_RETRY_DELAY.toMillis()); // 락 재시도
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private Transition decide(EnvironmentDecisionState oldState, RuleResultDto ruleResult, LocalDateTime measuredAt) {
+        // 들아온 데이터가 기존 데이터보다 과거인 경우 데이터 버림
+        if (oldState != null
+                && oldState.lastMeasuredAt() != null
+                && measuredAt.isBefore(oldState.lastMeasuredAt())) {
+            log.info("[{}] 과거 측정 메시지라 상태 전이를 건너뜁니다. lastMeasuredAt={}, measuredAt={}, zoneId={}, sensorType={}",
+                    getId(),
+                    oldState.lastMeasuredAt(),
+                    measuredAt,
+                    ruleResult.zoneId(),
+                    ruleResult.sensorType()
+            );
+            return new Transition(oldState, null);
+        }
+
+        // 외부 장치/게이트웨이 시계가 앞서있는 미래 타임스탬프는 신뢰하지 않고 버린다.
+        // 그대로 저장하면 그 이후 정상 시각의 메시지가 전부 "과거"로 취급되어 영구히 막히기 때문이다.
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        if (measuredAt.isAfter(now.plus(FUTURE_TOLERANCE))) {
+            log.warn("[{}] 미래 측정 메시지라 상태 전이를 건너뜁니다. now={}, measuredAt={}, zoneId={}, sensorType={}",
+                    getId(),
+                    now,
+                    measuredAt,
+                    ruleResult.zoneId(),
+                    ruleResult.sensorType()
+            );
+            return new Transition(oldState, null);
+        }
+
+        EnvironmentStatus previousStatus = oldState == null ? EnvironmentStatus.NORMAL : oldState.state(); // 이전 상태불러오기
+
+        // 정상 결과인경우
+        if (!ruleResult.violated()) {
+            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvironmentStatus.NORMAL, null, null, measuredAt);
+            if (previousStatus == EnvironmentStatus.NORMAL) {
+                return new Transition(next, null); // Normal 상태 유지인경우 event 생성안함
+            }
+            return new Transition(next, createEventDecision(previousStatus, EnvironmentStatus.NORMAL, EnvironmentEventReason.STATUS_CHANGED));
+        }
+
+        Integer durationMinutes = ruleResult.durationMinutes(); // 임계시간 불러오기
+
+        // 임계시간 조건이 없는경우 NORMAL -> CRITICAL 로 변경
+        if (durationMinutes == null || durationMinutes <= 0) {
+            return decideInstantViolation(oldState, previousStatus, measuredAt);
+        }
+
+        // 임계시간 조건이 있는경우 NORMAL -> WARNING -> CRITICAL로 변경
+        return decideDurationBasedViolation(oldState, previousStatus, durationMinutes, measuredAt);
+    }
+
+    // 위반 지속시간 조건이 없는 경우 즉시 CRITICAL
+    private Transition decideInstantViolation(EnvironmentDecisionState oldState, EnvironmentStatus previousStatus, LocalDateTime measuredAt) {
+        // 최초 CRITICAL 상태 변화시 다음노드로 전송
+        if (oldState == null || oldState.state() != EnvironmentStatus.CRITICAL) {
+            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvironmentStatus.CRITICAL, null, measuredAt, measuredAt);
+            return new Transition(next, createEventDecision(previousStatus, EnvironmentStatus.CRITICAL, EnvironmentEventReason.STATUS_CHANGED));
+        }
+
+        // 이미 CRITICAL이면 ALERT_INTERVAL마다 반복 알림
+        if (Duration.between(oldState.lastAlertAt(), measuredAt).toMinutes() >= ALERT_INTERVAL) {
+            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvironmentStatus.CRITICAL, null, measuredAt, measuredAt);
+            return new Transition(next, createEventDecision(previousStatus, EnvironmentStatus.CRITICAL, EnvironmentEventReason.CRITICAL_REPEATED));
+        }
+        return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
+    }
+
+    // 위반 지속시간 조건이 있는 경우 NORMAL -> WARNING -> CRITICAL 순으로 전이
+    private Transition decideDurationBasedViolation(
+            EnvironmentDecisionState oldState,
+            EnvironmentStatus previousStatus,
+            int durationMinutes,
+            LocalDateTime measuredAt
+    ) {
+        // 첫 위반 발생 또는 상태가 NORMAL일 때 WARNING으로 진입
+        if (oldState == null || oldState.state() == EnvironmentStatus.NORMAL) {
+            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvironmentStatus.WARNING, measuredAt, null, measuredAt);
+            return new Transition(next, createEventDecision(previousStatus, EnvironmentStatus.WARNING, EnvironmentEventReason.STATUS_CHANGED));
+        }
+
+        // 위반 지속시간 초과시 CRITICAL 전환
+        if (oldState.state() == EnvironmentStatus.WARNING) {
+            long elapsedMinutes = Duration.between(oldState.firstViolatedAt(), measuredAt).toMinutes();
+            if (elapsedMinutes >= durationMinutes) {
+                EnvironmentDecisionState next = new EnvironmentDecisionState(EnvironmentStatus.CRITICAL, oldState.firstViolatedAt(), measuredAt, measuredAt);
+                return new Transition(next, createEventDecision(previousStatus, EnvironmentStatus.CRITICAL, EnvironmentEventReason.STATUS_CHANGED));
+            }
+            return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
+        }
+
+        // 기존 상태가 CRITICAL인 경우, ALERT_INTERVAL마다 반복 알림
+        long elapsedMinutes = Duration.between(oldState.lastAlertAt(), measuredAt).toMinutes();
+        if (elapsedMinutes >= ALERT_INTERVAL) {
+            EnvironmentDecisionState next = new EnvironmentDecisionState(oldState.state(), oldState.firstViolatedAt(), measuredAt, measuredAt);
+            return new Transition(next, createEventDecision(previousStatus, EnvironmentStatus.CRITICAL, EnvironmentEventReason.CRITICAL_REPEATED));
+        }
+        return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
+    }
+
+    private EnvironmentEventDecisionDto createEventDecision(
+            EnvironmentStatus previousStatus,
+            EnvironmentStatus currentStatus,
+            EnvironmentEventReason reason
+    ) {
+        return new EnvironmentEventDecisionDto(previousStatus, currentStatus, reason);
+    }
+
+    private EnvironmentDecisionState updateLastMeasuredAt(
+            EnvironmentDecisionState oldState,
+            LocalDateTime measuredAt
+    ) {
+        return new EnvironmentDecisionState(oldState.state(), oldState.firstViolatedAt(), oldState.lastAlertAt(), measuredAt);
+    }
+}
