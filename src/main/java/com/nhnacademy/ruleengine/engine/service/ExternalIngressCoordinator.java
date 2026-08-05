@@ -123,7 +123,11 @@ public class ExternalIngressCoordinator implements SchedulingConfigurer {
             );
 
             if (!acquired) {
-                log.debug("다른 인스턴스가 외부 수집 Lock을 소유하고 있습니다. owner={}", ownerToken);
+                log.debug(
+                        "다른 인스턴스가 외부 수집 Lock을 소유하고 있습니다. currentOwner={}, me={}",
+                        redisLeaseLockService.getOwner(lockKey),
+                        ownerToken
+                );
             }
 
             return acquired;

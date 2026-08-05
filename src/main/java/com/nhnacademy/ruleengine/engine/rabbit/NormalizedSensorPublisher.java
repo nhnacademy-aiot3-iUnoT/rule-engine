@@ -17,10 +17,11 @@ public class NormalizedSensorPublisher {
     public void publish(SensorPayload sensorPayload) {
         try {
             String payload = objectMapper.writeValueAsString(sensorPayload);
+            String routingKey = normalizedRoutingKeyFor(sensorPayload);
 
             rabbitTemplate.convertAndSend(
                     RabbitMqConfig.SENSOR_EXCHANGE,
-                    RabbitMqConfig.SENSOR_NORMALIZED_ROUTING_KEY,
+                    routingKey,
                     payload
             );
         } catch (JsonProcessingException e) {
@@ -31,4 +32,16 @@ public class NormalizedSensorPublisher {
         }
     }
 
+    // 같은 센서는 항상 같은 파티션 큐로 가도록 라우팅 키를 계산한다.
+    // EnvironmentStatusDecisionNode의 상태 키와 동일한 구성요소를 사용해야 한다.
+    private String normalizedRoutingKeyFor(SensorPayload sensorPayload) {
+        String sensorKey = sensorPayload.organizationId() + ":" +
+                sensorPayload.storageId() + ":" +
+                sensorPayload.sectionId() + ":" +
+                sensorPayload.deviceEui() + ":" +
+                sensorPayload.sensorType();
+
+        int partition = RabbitMqConfig.normalizedPartitionOf(sensorKey);
+        return RabbitMqConfig.normalizedRoutingKey(partition);
+    }
 }

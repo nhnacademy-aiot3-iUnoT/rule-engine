@@ -152,10 +152,12 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
         if (oldState != null
                 && oldState.lastMeasuredAt() != null
                 && measuredAt.isBefore(oldState.lastMeasuredAt())) {
-            log.info("[{}] 과거 측정 메시지라 상태 전이를 건너뜁니다. lastMeasuredAt={}, measuredAt={}",
+            log.info("[{}] 과거 측정 메시지라 상태 전이를 건너뜁니다. lastMeasuredAt={}, measuredAt={},zone: {}, sensorType: {}",
                     getId(),
                     oldState.lastMeasuredAt(),
-                    measuredAt
+                    measuredAt,
+                    ruleResult.zoneId(),
+                    ruleResult.sensorType()
             );
             return new Transition(oldState, null);
         }

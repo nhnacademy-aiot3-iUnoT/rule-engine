@@ -80,6 +80,11 @@ public class RedisLeaseLockService {
         );
     }
 
+    // Lock을 현재 누가 소유하고 있는지 조회한다 (진단/로깅 용도).
+    public String getOwner(String lockKey) {
+        return redisTemplate.opsForValue().get(lockKey);
+    }
+
     // 소유권 확인 Lua 스크립트의 공통 실행 결과를 boolean으로 변환한다.
     private boolean executeOwnershipScript(
             DefaultRedisScript<Long> script,

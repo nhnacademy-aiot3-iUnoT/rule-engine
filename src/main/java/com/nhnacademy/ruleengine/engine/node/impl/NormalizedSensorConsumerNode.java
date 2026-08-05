@@ -37,7 +37,7 @@ public class NormalizedSensorConsumerNode extends AbstractNode {
     }
 
     @RabbitListener(
-            queues = RabbitMqConfig.SENSOR_NORMALIZED_QUEUE
+            queues = "#{T(com.nhnacademy.ruleengine.global.config.RabbitMqConfig).allNormalizedQueueNames()}"
     )
     public void consume(String rawPayload) {
         SensorPayload sensorPayload = deserialize(rawPayload);
