@@ -140,8 +140,10 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
 
             if (!acquired) {
                 log.debug(
-                        "다른 인스턴스가 가상 센서 Lock을 소유하고 있습니다. sectionId={}",
-                        sectionId
+                        "다른 인스턴스가 가상 센서 Lock을 소유하고 있습니다. sectionId={}, currentOwner={}, me={}",
+                        sectionId,
+                        redisLeaseLockService.getOwner(lockKey(sectionId)),
+                        ownerToken
                 );
                 return;
             }

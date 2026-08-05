@@ -68,6 +68,10 @@ public class SensorTransformService {
         List<SensorPayload> results = new ArrayList<>();
 
         externalMessage.measurements().forEach((key, value) -> {
+
+            if (key.equals("magnet_status"))
+                key = "door";
+
             SensorCommand command = commands.get(key);
 
             if (command == null) {
