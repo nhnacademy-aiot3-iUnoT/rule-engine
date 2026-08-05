@@ -1,10 +1,12 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.dto.NotificationChannel;
-import com.nhnacademy.ruleengine.engine.dto.NotificationPreference;
+import com.nhnacademy.ruleengine.engine.dto.notification.NotificationChannel;
+import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class NotificationPreferenceService {
     public List<NotificationPreference> findPreferences(
             Long organizationId,

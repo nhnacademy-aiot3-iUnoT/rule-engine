@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.engine.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.ruleengine.engine.dto.EnvironmentDecisionState;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentDecisionState;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;

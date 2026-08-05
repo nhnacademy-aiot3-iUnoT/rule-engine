@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.environment;
 
 public enum EnvironmentEventReason {
     STATUS_CHANGED,

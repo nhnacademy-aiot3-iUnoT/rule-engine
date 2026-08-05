@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
 import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
-import com.nhnacademy.ruleengine.engine.command.SensorCommand;
+import com.nhnacademy.ruleengine.engine.command.sensor.SensorCommand;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;

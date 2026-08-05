@@ -2,9 +2,9 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
-import com.nhnacademy.ruleengine.engine.dto.EnvironmentEventDecisionDto;
-import com.nhnacademy.ruleengine.engine.dto.EnvironmentStatusEventDto;
-import com.nhnacademy.ruleengine.engine.dto.RuleResultDto;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventDecisionDto;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
+import com.nhnacademy.ruleengine.engine.dto.rule.RuleResultDto;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,11 +28,13 @@ public class EventCreateNode extends AbstractNode {
 
         if(ruleResult==null){
             log.info("[{}] ruleResult가 없어 이벤트 생성을 건너뜁니다.", getId());
+            message.completeProcessing();
             return;
         }
 
         if(eventDecision==null){
             log.info("[{}] environmentEventDecision가 없어 이벤트 생성을 건너뜁니다.", getId());
+            message.completeProcessing();
             return;
         }
 

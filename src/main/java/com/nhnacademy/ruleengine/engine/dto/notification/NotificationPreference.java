@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.notification;
 
 // 알림 옵션 설정
 public record NotificationPreference(

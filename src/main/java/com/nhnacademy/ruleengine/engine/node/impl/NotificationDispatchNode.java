@@ -2,9 +2,9 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
-import com.nhnacademy.ruleengine.engine.dto.EnvironmentStatusEventDto;
-import com.nhnacademy.ruleengine.engine.dto.NotificationPreference;
-import com.nhnacademy.ruleengine.engine.dto.NotificationRequest;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
+import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
+import com.nhnacademy.ruleengine.engine.dto.notification.NotificationRequest;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,8 @@ public class NotificationDispatchNode extends AbstractNode {
         EnvironmentStatusEventDto event = message.get(MessageFields.ENVIRONMENT_STATUS_EVENT);
 
         if(event == null){
-            log.info("[{}] event가 없어 상태판단을 건너뜁니다.", getId());
+            log.info("[{}] event가 없어 알림 발송을 건너뜁니다.", getId());
+            message.completeProcessing();
             return;
         }
 
@@ -40,7 +41,7 @@ public class NotificationDispatchNode extends AbstractNode {
         List<NotificationPreference> preferences = notificationPreferenceService.findPreferences(request.organizationId(), request.storageId(), request.sectionId());
 
         for(NotificationPreference preference : preferences){
-            if(!preference.enabled()){
+            if(preference.enabled()){
                 log.info(
                         "[{}] 알림 발송 시뮬레이션. userId={}, channel={}, recipient={}, title={}, content={}",
                         getId(),
@@ -53,7 +54,6 @@ public class NotificationDispatchNode extends AbstractNode {
             }
         }
 
-
-
+        send(OUTPUT_PORT, message);
     }
 }

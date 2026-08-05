@@ -1,4 +1,8 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.notification;
+
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
 
 import java.util.HashMap;
 import java.util.Map;

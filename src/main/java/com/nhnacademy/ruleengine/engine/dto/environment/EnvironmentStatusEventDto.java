@@ -1,5 +1,6 @@
-package com.nhnacademy.ruleengine.engine.dto;
+package com.nhnacademy.ruleengine.engine.dto.environment;
 
+import com.nhnacademy.ruleengine.engine.dto.rule.RuleResultDto;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ViolationType;
 
 // 저장/발행될 최종 이벤트 데이터

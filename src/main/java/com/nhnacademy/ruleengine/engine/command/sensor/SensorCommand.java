@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.command;
+package com.nhnacademy.ruleengine.engine.command.sensor;
 
 
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;

@@ -1,15 +1,18 @@
 package com.nhnacademy.ruleengine.engine.flow;
 
+import com.nhnacademy.ruleengine.engine.command.rule.EnvironmentRuleCommand;
 import com.nhnacademy.ruleengine.engine.core.Flow;
-import com.nhnacademy.ruleengine.engine.node.impl.DatabaseSaveNode;
-import com.nhnacademy.ruleengine.engine.node.impl.FlowCompletionNode;
-import com.nhnacademy.ruleengine.engine.node.impl.NormalizedSensorConsumerNode;
-import com.nhnacademy.ruleengine.engine.node.impl.SensorPayloadValidationNode;
+import com.nhnacademy.ruleengine.engine.node.impl.*;
+import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
+import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
+import com.nhnacademy.ruleengine.engine.service.RedisLeaseLockService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-// 정규화 센서 메시지의 검증과 저장 파이프라인을 구성한다.
+import java.util.List;
+
+// 정규화 센서 메시지의 검증과 저장, 룰 판단, 상태전이, 이벤트 생성 파이프라인을 구성한다.
 @Component
 @RequiredArgsConstructor
 public class NormalizedSensorProcessingFlow {
@@ -19,11 +22,20 @@ public class NormalizedSensorProcessingFlow {
     private static final String VALIDATION_NODE_ID = "sensor-payload-validation";
     private static final String DATABASE_SAVE_NODE_ID = "sensor-database-save";
     private static final String COMPLETION_NODE_ID = "flow-completion";
+    private static final String RULE_EVALUATION_NODE_ID = "flow-rule-evaluation";
+    private static final String ENVIRONMENT_STATUS_NODE_ID = "flow-environment-status";
+    private static final String EVENT_CREATE_NODE_ID = "flow-event-create";
+    private static final String NOTIFICATION_NODE_ID = "flow-notification";
+
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
     private final NormalizedSensorConsumerNode normalizedSensorConsumer;
     private final SensorInfluxService sensorInfluxService;
+    private final List<EnvironmentRuleCommand> environmentRuleCommands;
+    private final EnvironmentDecisionStateRedisRepository environmentDecisionStateRedisRepository;
+    private final RedisLeaseLockService redisLeaseLockService;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     public Flow create() {
         return new Flow(FLOW_ID)
@@ -35,7 +47,22 @@ public class NormalizedSensorProcessingFlow {
                         DATABASE_SAVE_NODE_ID,
                         sensorInfluxService
                 ))
-                // 룰과 알림 Node는 DatabaseSaveNode와 CompletionNode 사이에 추가한다.
+                .addNode(new EnvironmentRuleEvaluationNode(
+                        RULE_EVALUATION_NODE_ID,
+                        environmentRuleCommands
+                ))
+                .addNode(new EnvironmentStatusDecisionNode(
+                        ENVIRONMENT_STATUS_NODE_ID,
+                        environmentDecisionStateRedisRepository,
+                        redisLeaseLockService
+                ))
+                .addNode(new EventCreateNode(
+                        EVENT_CREATE_NODE_ID
+                ))
+                .addNode(new NotificationDispatchNode(
+                        NOTIFICATION_NODE_ID,
+                        notificationPreferenceService
+                ))
                 .addNode(new FlowCompletionNode(
                         COMPLETION_NODE_ID
                 ))
@@ -54,8 +81,33 @@ public class NormalizedSensorProcessingFlow {
                 .connect(
                         DATABASE_SAVE_NODE_ID,
                         OUTPUT_PORT,
+                        RULE_EVALUATION_NODE_ID,
+                        INPUT_PORT
+                )
+                .connect(
+                        RULE_EVALUATION_NODE_ID,
+                        OUTPUT_PORT,
+                        ENVIRONMENT_STATUS_NODE_ID,
+                        INPUT_PORT
+                )
+                .connect(
+                        ENVIRONMENT_STATUS_NODE_ID,
+                        OUTPUT_PORT,
+                        EVENT_CREATE_NODE_ID,
+                        INPUT_PORT
+                )
+                .connect(
+                        EVENT_CREATE_NODE_ID,
+                        OUTPUT_PORT,
+                        NOTIFICATION_NODE_ID,
+                        INPUT_PORT
+                )
+                .connect(
+                        NOTIFICATION_NODE_ID,
+                        OUTPUT_PORT,
                         COMPLETION_NODE_ID,
                         INPUT_PORT
                 );
+
     }
 }
