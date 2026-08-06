@@ -39,9 +39,12 @@ public class SectionCatalog {
             String point
     ) {
         if (applicationName == null || applicationName.isBlank()
-                || location == null || location.isBlank()
-                || point == null || point.isBlank()) {
+                || location == null || location.isBlank()) {
             return Optional.empty();
+        }
+
+        if (point == null || point.isBlank()) {
+            point = "구역";
         }
 
         Long organizationId = organizationIdsByApplicationName.get(applicationName.trim());
@@ -56,13 +59,11 @@ public class SectionCatalog {
                 sectionIdsByPoint.get("구역")
         );
 
-        return Optional.of(
-                new ResolvedSection(
-                        organizationId,
-                        storageId,
-                        sectionId
-                )
-        );
+        return Optional.of(new ResolvedSection(
+                organizationId,
+                storageId,
+                sectionId
+        ));
     }
 
     public record ResolvedSection(
