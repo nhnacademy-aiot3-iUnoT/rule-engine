@@ -13,7 +13,9 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -32,6 +34,8 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
     private final Duration leaseDuration;
     private final Duration checkInterval;
     private final Set<Long> ownedSectionIds = new HashSet<>();
+    // 소유 중인 섹션에서 현재 Flow가 실행 중인 설정 - 최신 설정과 달라지면 Flow를 재시작한다.
+    private final Map<Long, VirtualSensorConfig> ownedSectionConfigs = new HashMap<>();
 
     private boolean shutdownInProgress;
 
@@ -114,6 +118,39 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
             }
 
             renewOwnedSectionLock(sectionId);
+
+            // Lock 갱신에 실패해 소유권을 잃은 경우는 재시작 대상에서 제외한다.
+            if (ownedSectionIds.contains(sectionId)) {
+                restartFlowIfConfigChanged(sectionId);
+            }
+        }
+    }
+
+    // 설정이 변경된 경우에만 Flow를 중지 후 다시 시작해 최신 설정을 반영한다.
+    private void restartFlowIfConfigChanged(Long sectionId) {
+        try {
+            VirtualSensorConfig latestConfig = virtualSensorRedisRepository
+                    .getVirtualSensorConfig(sectionId)
+                    .orElse(null);
+
+            if (latestConfig == null || latestConfig.equals(ownedSectionConfigs.get(sectionId))) {
+                return;
+            }
+
+            log.info(
+                    "가상 센서 설정이 변경되어 Flow를 재시작합니다. sectionId={}",
+                    sectionId
+            );
+
+            flowEngine.stopAndRemoveFlow(VirtualSensorFlow.flowId(sectionId));
+            flowEngine.ensureStarted(virtualSensorFlow.create(latestConfig));
+            ownedSectionConfigs.put(sectionId, latestConfig);
+        } catch (RuntimeException exception) {
+            log.error(
+                    "가상 센서 Flow 재시작에 실패했습니다. sectionId={}",
+                    sectionId,
+                    exception
+            );
         }
     }
 
@@ -159,6 +196,7 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
             );
 
             ownedSectionIds.add(sectionId);
+            ownedSectionConfigs.put(sectionId, config);
             log.info(
                     "가상 센서 실행 권한을 획득했습니다. sectionId={}, owner={}",
                     sectionId,
@@ -206,6 +244,7 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
         }
 
         ownedSectionIds.remove(sectionId);
+        ownedSectionConfigs.remove(sectionId);
         stopFlowQuietly(sectionId);
     }
 
@@ -240,6 +279,7 @@ public class VirtualSensorCoordinator implements SchedulingConfigurer {
             );
 
             ownedSectionIds.remove(sectionId);
+            ownedSectionConfigs.remove(sectionId);
 
             if (released) {
                 log.info(
