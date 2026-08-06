@@ -6,8 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+//임시 클래스 추후 삭제예정
 @Component
-// 외부 MQTT의 이름 기반 위치 정보를 룰엔진 내부 ID로 변환한다.(추후수정)
 public class SectionCatalog {
 
     private final Map<String, Long> organizationIdsByApplicationName = new HashMap<>();
@@ -15,7 +15,6 @@ public class SectionCatalog {
     private final Map<String, Long> sectionIdsByPoint = new HashMap<>();
 
     public SectionCatalog() {
-
         organizationIdsByApplicationName.put("광주 캠퍼스", 1L);
 
         storageIdsByLocation.put("사무실 밖", 1L);
@@ -39,29 +38,31 @@ public class SectionCatalog {
             String location,
             String point
     ) {
-        if (isBlank(applicationName) || isBlank(location) || isBlank(point)) {
+        if (applicationName == null || applicationName.isBlank()
+                || location == null || location.isBlank()
+                || point == null || point.isBlank()) {
             return Optional.empty();
         }
 
         Long organizationId = organizationIdsByApplicationName.get(applicationName.trim());
         Long storageId = storageIdsByLocation.get(location.trim());
-        Long sectionId = sectionIdsByPoint.get(point.trim());
 
         if (organizationId == null || storageId == null) {
             return Optional.empty();
         }
 
-        //외부 센서 데이터중 sectionID 없는경우
-        if(sectionId == null) {
-            sectionId = sectionIdsByPoint.get("구역");
-        }
+        Long sectionId = sectionIdsByPoint.getOrDefault(
+                point.trim(),
+                sectionIdsByPoint.get("구역")
+        );
 
-        return Optional.of(new ResolvedSection(organizationId, storageId, sectionId));
-    }
-
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
+        return Optional.of(
+                new ResolvedSection(
+                        organizationId,
+                        storageId,
+                        sectionId
+                )
+        );
     }
 
     public record ResolvedSection(

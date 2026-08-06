@@ -31,6 +31,9 @@ logging:
     com.influx-db: INFO
 
 rule-engine:
+  inventory:
+    base-url: lb://inventory
+
   redundancy:
     instance-id: ${INSTANCE_ID}
     external-ingress:
