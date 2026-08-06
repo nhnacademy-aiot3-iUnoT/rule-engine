@@ -42,7 +42,7 @@ rule-engine:
       renew-interval: 3s
 
     virtual-sensor:
-      lock-key-prefix: rule-engine:lock:virtual-sensor
+      lock-key: rule-engine:lock:virtual-sensor
       lease-duration: 10s
       renew-interval: 3s
 

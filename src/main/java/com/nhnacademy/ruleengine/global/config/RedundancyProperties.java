@@ -10,73 +10,55 @@ import java.time.Duration;
 // application.yaml의 룰엔진 이중화 설정을 타입 안전하게 관리한다.
 public record RedundancyProperties(
         String instanceId,
-        ExternalIngress externalIngress,
-        VirtualSensor virtualSensor
+        LeaseSettings externalIngress,
+        LeaseSettings virtualSensor
 ) {
-    public record ExternalIngress(
+    public RedundancyProperties {
+        if (instanceId == null || instanceId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "rule-engine.redundancy.instance-id는 필수입니다."
+            );
+        }
+
+        if (externalIngress == null) {
+            throw new IllegalArgumentException(
+                    "rule-engine.redundancy.external-ingress 설정이 필요합니다."
+            );
+        }
+
+        if (virtualSensor == null) {
+            throw new IllegalArgumentException(
+                    "rule-engine.redundancy.virtual-sensor 설정이 필요합니다."
+            );
+        }
+    }
+
+    public record LeaseSettings(
             String lockKey,
             Duration leaseDuration,
             Duration renewInterval
-    )
-    {
-        // 잘못된 TTL과 갱신 주기는 애플리케이션 시작 단계에서 차단한다.
-        public ExternalIngress {
-            if (leaseDuration != null
-                    && (leaseDuration.isZero() || leaseDuration.isNegative())) {
+    ) {
+        public LeaseSettings {
+            if (lockKey == null || lockKey.isBlank()) {
                 throw new IllegalArgumentException(
-                        "lease-duration은 0보다 커야 합니다."
+                        "lock-key는 필수입니다."
                 );
             }
 
-            if (renewInterval != null
-                    && (renewInterval.isZero() || renewInterval.isNegative())) {
-                throw new IllegalArgumentException(
-                        "renew-interval은 0보다 커야 합니다."
-                );
-            }
+            requirePositive(leaseDuration, "lease-duration");
+            requirePositive(renewInterval, "renew-interval");
 
-            if (leaseDuration != null
-                    && renewInterval != null
-                    && renewInterval.compareTo(leaseDuration) >= 0) {
+            if (renewInterval.compareTo(leaseDuration) >= 0) {
                 throw new IllegalArgumentException(
-                        "renew-interval은 lease-duration보다 짧아야 합니다."
+                        "renew-interval은 lease-duration보다 짧아야 합니다. lockKey=" + lockKey
                 );
             }
         }
 
-    }
-
-    public record VirtualSensor(
-            String lockKeyPrefix,
-            Duration leaseDuration,
-            Duration renewInterval
-    ) {
-        public VirtualSensor {
-            if (lockKeyPrefix == null || lockKeyPrefix.isBlank()) {
+        private static void requirePositive(Duration value, String propertyName) {
+            if (value == null || value.isZero() || value.isNegative()) {
                 throw new IllegalArgumentException(
-                        "virtual-sensor.lock-key-prefix는 필수입니다."
-                );
-            }
-
-            if (leaseDuration == null
-                    || leaseDuration.isZero()
-                    || leaseDuration.isNegative()) {
-                throw new IllegalArgumentException(
-                        "virtual-sensor.lease-duration은 0보다 커야 합니다."
-                );
-            }
-
-            if (renewInterval == null
-                    || renewInterval.isZero()
-                    || renewInterval.isNegative()) {
-                throw new IllegalArgumentException(
-                        "virtual-sensor.renew-interval은 0보다 커야 합니다."
-                );
-            }
-
-            if (renewInterval.compareTo(leaseDuration) >= 0) {
-                throw new IllegalArgumentException(
-                        "virtual-sensor.renew-interval은 lease-duration보다 짧아야 합니다."
+                        propertyName + "은 0보다 커야 합니다."
                 );
             }
         }
