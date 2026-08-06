@@ -7,7 +7,11 @@ import com.nhnacademy.ruleengine.engine.core.Message;
 public interface OutputPort {
 
     String getName();
-    void send(Message message);
+
+    // 실제로 메시지를 전달한 Connection 수를 반환한다.
+    // 0이면 아무도 이어받지 않았다는 뜻이라, 노드가 처리 완료를 스스로 알릴 수 있다.
+    int send(Message message);
+
     void connect(Connection connection);
     void disconnect(Connection connection);
 

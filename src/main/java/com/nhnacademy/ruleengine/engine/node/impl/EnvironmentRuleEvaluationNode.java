@@ -13,8 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 // 센서타입에 맞는 EnvironmentRuleCommand를 찾아 룰 판단을 위임한다.
-// 담당 Command가 없거나 판단할 룰이 없는 경우에도, Flow가 끝나지 않고 타임아웃 나지 않도록
-// 반드시 completeProcessing()을 호출해 요청자를 풀어준다.
+// 담당 Command가 없거나 판단할 룰이 없으면 다음 노드로 보내지 않고 끝낸다.
 @Slf4j
 public class EnvironmentRuleEvaluationNode extends AbstractNode {
 
@@ -36,7 +35,6 @@ public class EnvironmentRuleEvaluationNode extends AbstractNode {
 
         if (sensorPayload == null) {
             log.info("[{}] sensorPayload가 없어 룰 판단을 건너뜁니다.", getId());
-            message.completeProcessing();
             return;
         }
 
@@ -51,14 +49,12 @@ public class EnvironmentRuleEvaluationNode extends AbstractNode {
                     sensorType,
                     sensorPayload.deviceEui()
             );
-            message.completeProcessing();
             return;
         }
 
         Optional<RuleResultDto> ruleResult = command.get().evaluate(sensorPayload);
 
         if (ruleResult.isEmpty()) {
-            message.completeProcessing();
             return;
         }
 

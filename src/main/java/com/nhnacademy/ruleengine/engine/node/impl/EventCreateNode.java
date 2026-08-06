@@ -28,13 +28,11 @@ public class EventCreateNode extends AbstractNode {
 
         if(ruleResult==null){
             log.info("[{}] ruleResult가 없어 이벤트 생성을 건너뜁니다.", getId());
-            message.completeProcessing();
             return;
         }
 
         if(eventDecision==null){
             log.info("[{}] environmentEventDecision가 없어 이벤트 생성을 건너뜁니다.", getId());
-            message.completeProcessing();
             return;
         }
 

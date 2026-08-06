@@ -11,11 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+// 정규화 센서 파이프라인의 종단 노드다. 출력 포트가 없으므로 여기서 처리가 끝난다.
 @Slf4j
 public class NotificationDispatchNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
-    private static final String OUTPUT_PORT = "out";
 
     private final NotificationPreferenceService notificationPreferenceService;
 
@@ -23,7 +23,6 @@ public class NotificationDispatchNode extends AbstractNode {
         super(id);
         this.notificationPreferenceService = notificationPreferenceService;
         addInputPort(INPUT_PORT);
-        addOutputPort(OUTPUT_PORT);
     }
 
     @Override
@@ -32,7 +31,6 @@ public class NotificationDispatchNode extends AbstractNode {
 
         if(event == null){
             log.info("[{}] event가 없어 알림 발송을 건너뜁니다.", getId());
-            message.completeProcessing();
             return;
         }
 
@@ -53,7 +51,5 @@ public class NotificationDispatchNode extends AbstractNode {
                 );
             }
         }
-
-        send(OUTPUT_PORT, message);
     }
 }
