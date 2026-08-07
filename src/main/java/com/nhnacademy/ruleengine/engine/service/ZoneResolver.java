@@ -30,7 +30,7 @@ public class ZoneResolver {
 
             return Optional.of(
                     new ResolvedSection(
-                            response.storageId(),
+                            response.organizationId(),
                             response.storageId(),
                             response.zoneId()
                     )
