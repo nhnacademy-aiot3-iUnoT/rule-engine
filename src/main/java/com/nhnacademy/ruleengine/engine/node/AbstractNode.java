@@ -91,6 +91,13 @@ public abstract class AbstractNode implements Node {
                 .toList();
     }
 
+    public List<OutputPort> getOutputPorts() {
+        return this.outputPorts
+                .values()
+                .stream()
+                .toList();
+    }
+
 
     @Override
     public void initialize() {
