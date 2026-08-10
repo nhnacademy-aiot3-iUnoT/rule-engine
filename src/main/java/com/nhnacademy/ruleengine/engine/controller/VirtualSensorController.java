@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/rule-engine/organizations/{organizationId}/storages/{storageId}/sections")
+@RequestMapping("/api/core/rule-engine/organizations/{organizationId}/storages/{storageId}/sections")
 @RequiredArgsConstructor
 public class VirtualSensorController {
 
