@@ -2,10 +2,12 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationRequest;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
+import com.nhnacademy.ruleengine.engine.notification.NotificationSender;
 import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,10 +20,17 @@ public class NotificationDispatchNode extends AbstractNode {
     private static final String INPUT_PORT = "in";
 
     private final NotificationPreferenceService notificationPreferenceService;
+    private final List<NotificationSender> senders;
 
-    public NotificationDispatchNode(String id, NotificationPreferenceService notificationPreferenceService) {
+
+    public NotificationDispatchNode(
+            String id,
+            NotificationPreferenceService notificationPreferenceService,
+            List<NotificationSender> senders
+    ) {
         super(id);
         this.notificationPreferenceService = notificationPreferenceService;
+        this.senders = senders;
         addInputPort(INPUT_PORT);
     }
 
@@ -38,16 +47,48 @@ public class NotificationDispatchNode extends AbstractNode {
 
         List<NotificationPreference> preferences = notificationPreferenceService.findPreferences(request.organizationId(), request.storageId(), request.sectionId());
 
+        if (preferences==null || preferences.isEmpty()) {
+            log.info(
+                    "[{}] preferences(알림 설정)이 없어 발송을 건너뜁니다. organizationId={}, storageId={}, sectionId={}",
+                    getId(),
+                    request.organizationId(),
+                    request.storageId(),
+                    request.sectionId()
+            );
+            message.completeProcessing();
+            return;
+        }
+
+        if(event.currentStatus()==EnvironmentStatus.WARNING){
+            message.completeProcessing();
+            return;
+        }
+
         for(NotificationPreference preference : preferences){
-            if(preference.enabled()){
-                log.info(
-                        "[{}] 알림 발송 시뮬레이션. userId={}, channel={}, recipient={}, title={}, content={}",
+            if(!preference.enabled()){
+                continue;
+            }
+
+            try {
+                senders.stream()
+                        .filter(sender -> sender.channel().equals(preference.channel()))
+                        .findFirst()
+                        .ifPresentOrElse(
+                                sender -> sender.send(request, preference),
+                                () -> log.info(
+                                        "[{}] 지원하지 않는 채널이라 알림 발송을 건너뜁니다. userId={}, channel={}",
+                                        getId(),
+                                        preference.userId(),
+                                        preference.channel()
+                                )
+                        );
+                message.completeProcessing();
+            } catch (Exception e) {
+                log.warn("[{}] 알림 발송 중 예외가 발생했습니다. userId={}, channel={}",
                         getId(),
                         preference.userId(),
                         preference.channel(),
-                        preference.recipient(),
-                        request.title(),
-                        request.content()
+                        e
                 );
             }
         }

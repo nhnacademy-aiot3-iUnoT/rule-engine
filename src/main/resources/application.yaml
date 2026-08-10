@@ -71,3 +71,8 @@ management:
   endpoint:
     health:
       show-details: never
+
+notification:
+  telegram:
+    bot-token: ${TELEGRAM_BOT_TOKEN}
+    api-base-url: https://api.telegram.org

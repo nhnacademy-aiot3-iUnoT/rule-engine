@@ -3,6 +3,7 @@ package com.nhnacademy.ruleengine.engine.flow;
 import com.nhnacademy.ruleengine.engine.command.rule.EnvironmentRuleCommand;
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.impl.*;
+import com.nhnacademy.ruleengine.engine.notification.NotificationSender;
 import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
 import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
@@ -33,6 +34,7 @@ public class NormalizedSensorProcessingFlow {
     private final List<EnvironmentRuleCommand> environmentRuleCommands;
     private final EnvironmentDecisionStateRedisRepository environmentDecisionStateRedisRepository;
     private final NotificationPreferenceService notificationPreferenceService;
+    private final List<NotificationSender> senders;
 
     public Flow create() {
         return new Flow(FLOW_ID)
@@ -57,7 +59,8 @@ public class NormalizedSensorProcessingFlow {
                 ))
                 .addNode(new NotificationDispatchNode(
                         NOTIFICATION_NODE_ID,
-                        notificationPreferenceService
+                        notificationPreferenceService,
+                        senders
                 ))
                 .connect(
                         NormalizedSensorConsumerNode.NODE_ID,

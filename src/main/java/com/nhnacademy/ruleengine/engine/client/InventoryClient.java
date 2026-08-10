@@ -42,8 +42,8 @@ public class InventoryClient {
                 storageId,
                 zoneId,
                 Map.of(
-                        SensorType.TEMPERATURE.value(), new ThresholdRange(20.0, 30.0),
-                        SensorType.HUMIDITY.value(), new ThresholdRange(10.0, 70.0),
+                        SensorType.TEMPERATURE.value(), new ThresholdRange(4.0, 5.0),
+                        SensorType.HUMIDITY.value(), new ThresholdRange(1.0, 2.0),
                         SensorType.ILLUMINATION.value(), new ThresholdRange(0.0, 100.0)
                 ), 1
         );
