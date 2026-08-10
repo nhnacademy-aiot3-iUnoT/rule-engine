@@ -54,8 +54,9 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
     protected void onProcess(Message message) {
         RuleResultDto ruleResult = message.get(MessageFields.RULE_RESULT);
 
+        // 상위 노드는 ruleResult가 있을 때만 전달하므로 여기 걸리면 배선이나 payload 계약이 깨진 것이다.
         if (ruleResult == null) {
-            log.info("[{}] ruleResult가 없어 상태판단을 건너뜁니다.", getId());
+            log.error("[{}] ruleResult가 없습니다. 상위 노드의 payload 계약이 깨졌습니다.", getId());
             return;
         }
 
@@ -67,7 +68,6 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
                 ruleResult.sensorType()
         );
 
-        // 상태 변화가 없으면(가장 흔한 케이스) 다음 노드로 보낼 게 없다.
         processRuleDecision(ruleResult, key).ifPresent(
                 environmentEventDecisionDto -> send(
                         OUTPUT_PORT,
