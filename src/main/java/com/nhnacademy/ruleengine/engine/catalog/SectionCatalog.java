@@ -18,11 +18,11 @@ public class SectionCatalog {
         sectionMap.put("24e124141d180806", new ResolvedSection(1L, 1L, 1L));
 
         sectionMap.put("24e124128c140101", new ResolvedSection(1L, 1L, 2L));
-        sectionMap.put("24e124136d151836", new ResolvedSection(1L, 1L, 2L));
+        sectionMap.put("24e124136d151836", new ResolvedSection(1L, 2L, 4L));
 
         sectionMap.put("24e124785c389010", new ResolvedSection(1L, 1L, 3L));
 
-        sectionMap.put("24e124141d189196", new ResolvedSection(1L, 2L, 4L));
+        sectionMap.put("24e124141d189196", new ResolvedSection(1L, 1L, 2L));
         sectionMap.put("24e124126d152862", new ResolvedSection(1L, 2L, 5L));
 
         sectionMap.put("24e124126d152590", new ResolvedSection(1L, 3L, 6L));
@@ -31,6 +31,9 @@ public class SectionCatalog {
 
         sectionMap.put("24e124725d081175", new ResolvedSection(1L, 4L, 9L));
         sectionMap.put("24e124725d089152", new ResolvedSection(1L, 4L, 10L));
+
+        sectionMap.put("24e124785c389818", new ResolvedSection(2L, 5L, 11L));
+        sectionMap.put("24e124743d012436", new ResolvedSection(2L, 5L, 12L));
 
 
     }
