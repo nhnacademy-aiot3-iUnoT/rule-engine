@@ -16,16 +16,12 @@ public class ZoneResolver {
     private final InventoryClient inventoryClient;
 
     public Optional<ResolvedSection> resolve(
-            String applicationName,
-            String location,
-            String point
+            String deviceEui
     ) {
         try {
             ResolvedZoneResponse response =
                     inventoryClient.getZoneResponse(
-                            applicationName,
-                            location,
-                            point
+                            deviceEui
                     );
 
             return Optional.of(

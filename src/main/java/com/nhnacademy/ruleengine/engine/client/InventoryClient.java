@@ -50,13 +50,11 @@ public class InventoryClient {
     }
 
     public ResolvedZoneResponse getZoneResponse(
-            String applicationName,
-            String location,
-            String point
+            String deviceEui
     ) {
         // 추후 API 요청로직으로 변경
         SectionCatalog.ResolvedSection section = sectionCatalog
-                .resolveSection(applicationName, location, point)
+                .resolveSection(deviceEui)
                 .orElseThrow(() -> new ApiException(
                         ErrorCode.SECTION_NOT_FOUND,
                         "섹션을 찾을 수 없습니다."
