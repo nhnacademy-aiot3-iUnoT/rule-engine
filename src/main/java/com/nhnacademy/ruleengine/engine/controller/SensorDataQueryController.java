@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/rule-engine")
+@RequestMapping("/api/core/rule-engine")
 public class SensorDataQueryController {
 
     private final SensorInfluxService sensorInfluxService;
