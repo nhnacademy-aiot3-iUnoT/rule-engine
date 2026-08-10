@@ -24,8 +24,22 @@ Content-Type: application/json
   "deviceEui": "device-eui-virtual-22"
 }
 
+### 가상데이터 생성정보 조회
+GET {{host}}/api/rule-engine/organizations/2/storages/1/sections/22/virtual-sensor
+
+### 가상데이터 생성정보 변경
+PUT {{host}}/api/rule-engine/organizations/2/storages/1/sections/22/virtual-sensor
+Content-Type: application/json
+
+{
+  "temperature": {
+    "min": 20,
+    "max": 30
+  }
+}
+
 ### Section에서 Flow 정지
-PATCH {{host}}/api/rule-engine/organizations/2/storages/1/sections/2/status
+PUT {{host}}/api/rule-engine/organizations/2/storages/1/sections/2/status
 Content-Type: application/json
 
 {

@@ -31,10 +31,12 @@ public class DefaultOutputPort implements OutputPort {
     }
 
     @Override
-    public void send(Message message) {
+    public int send(Message message) {
         for (Connection connection : connections) {
             connection.deliver(message);
         }
+
+        return connections.size();
     }
 
     @Override

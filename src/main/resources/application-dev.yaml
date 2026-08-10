@@ -8,6 +8,10 @@ management:
       enabled: false
 
 rule-engine:
+  # Eureka가 꺼져 있어 서비스명을 해석할 수 없으므로 실제 주소로 호출한다.
+  inventory:
+    base-url: ${INVENTORY_BASE_URL:http://localhost:10401}
+
   rabbitmq:
     queue-suffix: -test
 
@@ -19,6 +23,6 @@ rule-engine:
       renew-interval: 3s
 
     virtual-sensor:
-      lock-key-prefix: rule-engine:lock:virtual-sensor-test
+      lock-key: rule-engine:lock:virtual-sensor-test
       lease-duration: 10s
       renew-interval: 3s

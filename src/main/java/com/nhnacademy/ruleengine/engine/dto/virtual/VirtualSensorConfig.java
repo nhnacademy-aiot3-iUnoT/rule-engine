@@ -54,4 +54,27 @@ public record VirtualSensorConfig(
                 Objects.requireNonNull(request.measurementIntervalSeconds(), "측정 주기는 필수입니다.")
         );
     }
+    public static VirtualSensorConfig merge(VirtualSensorConfig existing, VirtualSensorUpdateRequest request) {
+        Objects.requireNonNull(existing, "기존 가상 센서 설정은 필수입니다.");
+        Objects.requireNonNull(request, "변경할 가상 센서 설정은 필수입니다.");
+
+        SensorValueRange temperature = request.temperature();
+        SensorValueRange humidity = request.humidity();
+        SensorValueRange illumination = request.illumination();
+
+        return new VirtualSensorConfig(
+                existing.organizationId(),
+                existing.storageId(),
+                existing.sectionId(),
+                existing.deviceEui(),
+                temperature != null ? temperature.min() : existing.temperatureMin(),
+                temperature != null ? temperature.max() : existing.temperatureMax(),
+                humidity != null ? humidity.min() : existing.humidityMin(),
+                humidity != null ? humidity.max() : existing.humidityMax(),
+                illumination != null ? illumination.min() : existing.illuminationMin(),
+                illumination != null ? illumination.max() : existing.illuminationMax(),
+                request.doorOpenProbability() != null ? request.doorOpenProbability() : existing.doorOpenProbability(),
+                request.measurementIntervalSeconds() != null ? request.measurementIntervalSeconds() : existing.measurementIntervalSeconds()
+        );
+    }
 }

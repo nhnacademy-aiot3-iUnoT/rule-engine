@@ -5,7 +5,6 @@ import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.impl.*;
 import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
 import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
-import com.nhnacademy.ruleengine.engine.service.RedisLeaseLockService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,7 +20,6 @@ public class NormalizedSensorProcessingFlow {
 
     private static final String VALIDATION_NODE_ID = "sensor-payload-validation";
     private static final String DATABASE_SAVE_NODE_ID = "sensor-database-save";
-    private static final String COMPLETION_NODE_ID = "flow-completion";
     private static final String RULE_EVALUATION_NODE_ID = "flow-rule-evaluation";
     private static final String ENVIRONMENT_STATUS_NODE_ID = "flow-environment-status";
     private static final String EVENT_CREATE_NODE_ID = "flow-event-create";
@@ -34,7 +32,6 @@ public class NormalizedSensorProcessingFlow {
     private final SensorInfluxService sensorInfluxService;
     private final List<EnvironmentRuleCommand> environmentRuleCommands;
     private final EnvironmentDecisionStateRedisRepository environmentDecisionStateRedisRepository;
-    private final RedisLeaseLockService redisLeaseLockService;
     private final NotificationPreferenceService notificationPreferenceService;
 
     public Flow create() {
@@ -53,8 +50,7 @@ public class NormalizedSensorProcessingFlow {
                 ))
                 .addNode(new EnvironmentStatusDecisionNode(
                         ENVIRONMENT_STATUS_NODE_ID,
-                        environmentDecisionStateRedisRepository,
-                        redisLeaseLockService
+                        environmentDecisionStateRedisRepository
                 ))
                 .addNode(new EventCreateNode(
                         EVENT_CREATE_NODE_ID
@@ -62,9 +58,6 @@ public class NormalizedSensorProcessingFlow {
                 .addNode(new NotificationDispatchNode(
                         NOTIFICATION_NODE_ID,
                         notificationPreferenceService
-                ))
-                .addNode(new FlowCompletionNode(
-                        COMPLETION_NODE_ID
                 ))
                 .connect(
                         NormalizedSensorConsumerNode.NODE_ID,
@@ -101,13 +94,6 @@ public class NormalizedSensorProcessingFlow {
                         OUTPUT_PORT,
                         NOTIFICATION_NODE_ID,
                         INPUT_PORT
-                )
-                .connect(
-                        NOTIFICATION_NODE_ID,
-                        OUTPUT_PORT,
-                        COMPLETION_NODE_ID,
-                        INPUT_PORT
                 );
-
     }
 }

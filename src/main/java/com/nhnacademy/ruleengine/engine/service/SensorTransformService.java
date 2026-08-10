@@ -45,18 +45,14 @@ public class SensorTransformService {
         }
 
         ResolvedSection section = sectionCatalog.resolveSection(
-                        externalMessage.applicationName(),
-                        externalMessage.location(),
-                        externalMessage.point()
+                        externalMessage.devEui()
                 )
                 .orElse(null);
 
         if (section == null) {
             log.warn(
-                    "등록되지 않은 센서 위치입니다. application={}, location={}, point={}",
-                    externalMessage.applicationName(),
-                    externalMessage.location(),
-                    externalMessage.point()
+                    "등록되지 않은 센서 입니다. devEui={}",
+                    externalMessage.devEui()
             );
 
             return List.of();

@@ -173,14 +173,23 @@ public class Flow {
 
     public void shutdown() {
         // Connection을 먼저 정지한 뒤 각 노드를 종료한다.
+        // 하나가 실패해도 나머지는 반드시 정리해야 한다. 중간에 멈추면 MQTT 구독이나 스케줄러가 살아남아
+        // 소유권을 넘긴 뒤에도 계속 동작하게 된다.
         for (Connection connection : connections) {
-            connection.stop();
+            shutdownQuietly(connection.getId(), connection::stop);
         }
         for (AbstractNode node : nodes.values()) {
-            node.shutdown();
+            shutdownQuietly(node.getId(), node::shutdown);
         }
         flowState = FlowState.STOPPED;
+    }
 
+    private void shutdownQuietly(String componentId, Runnable shutdownAction) {
+        try {
+            shutdownAction.run();
+        } catch (RuntimeException exception) {
+            log.error("[{}] 종료에 실패했습니다. componentId={}", id, componentId, exception);
+        }
     }
 
     public void initialize() {

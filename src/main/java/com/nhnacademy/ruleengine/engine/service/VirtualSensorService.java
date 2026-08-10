@@ -1,33 +1,32 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
-import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
-import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
+import com.nhnacademy.ruleengine.engine.dto.virtual.*;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.repository.VirtualSensorRedisRepository;
-import com.nhnacademy.ruleengine.engine.validation.LocationHierarchyValidator;
+
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class VirtualSensorService {
-    private final LocationHierarchyValidator locationHierarchyValidator;
+
     private final VirtualSensorRedisRepository virtualSensorRedisRepository;
 
     public void createVirtualSensor(
             Long organizationId,
             Long storageId,
-            Long sectionId,
+            Long zoneId,
             VirtualSensorCreateRequest request
     ) {
-        locationHierarchyValidator.validateSection(organizationId, storageId, sectionId);
+        // 생성시 검증?
 
         VirtualSensorConfig sensorConfig = VirtualSensorConfig.from(
                 organizationId,
                 storageId,
-                sectionId,
+                zoneId,
                 request
         );
 
@@ -38,30 +37,58 @@ public class VirtualSensorService {
         }
 
         // Coordinator가 활성 목록을 확인한 뒤 Lock 소유 서버에서 Flow를 시작한다.
-        virtualSensorRedisRepository.activate(sectionId);
+        virtualSensorRedisRepository.activate(zoneId);
+    }
+
+    public VirtualSensorInfoResponse getVirtualSensor(
+            Long organizationId,
+            Long storageId,
+            Long zoneId
+    ) {
+        //정보 조회시 검증?
+        return VirtualSensorInfoResponse.from(virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
+                .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND)));
+    }
+
+    public void updateVirtualSensor(
+            Long organizationId,
+            Long storageId,
+            Long zoneId,
+            VirtualSensorUpdateRequest request
+    ) {
+        // 변경시 검증?
+        VirtualSensorConfig existing = virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
+                .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND));
+
+        VirtualSensorConfig sensorConfig = VirtualSensorConfig.merge(existing, request);
+
+        boolean updated = virtualSensorRedisRepository.update(sensorConfig);
+
+        if (!updated) {
+            throw new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND);
+        }
     }
 
     public void changeFlowStatus(
             Long organizationId,
             Long storageId,
-            Long sectionId,
+            Long zoneId,
             VirtualSensorStatus status
     ) {
+        //  상태변경시 검증?
 
-        locationHierarchyValidator.validateSection(organizationId, storageId, sectionId);
-
-        virtualSensorRedisRepository.getVirtualSensorConfig(sectionId)
+        virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
                 .orElseThrow(() -> new VirtualSensorFlowException(
                         ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND
                 ));
 
         if (status == VirtualSensorStatus.ACTIVE) {
-            virtualSensorRedisRepository.activate(sectionId);
+            virtualSensorRedisRepository.activate(zoneId);
             return;
         }
 
         if (status == VirtualSensorStatus.INACTIVE) {
-            virtualSensorRedisRepository.deactivate(sectionId);
+            virtualSensorRedisRepository.deactivate(zoneId);
         }
     }
 }
