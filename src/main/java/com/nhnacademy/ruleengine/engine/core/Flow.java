@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.core;
 
 
 import com.nhnacademy.ruleengine.engine.connection.Connection;
+import com.nhnacademy.ruleengine.engine.connection.OutputPort;
 import com.nhnacademy.ruleengine.engine.connection.impl.LocalConnection;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.Getter;
@@ -219,7 +220,48 @@ public class Flow {
             );
         }
 
+        addUnconnectedOutputPortErrors(errors);
+
         return errors;
+    }
+
+    /**
+     * 연결된 Connection이 하나도 없는 출력 포트를 찾는다.
+     * <p>
+     * 노드가 이런 포트로 send()하면 메시지가 조용히 사라진다.
+     * AbstractNode는 전달된 Connection 수가 0이면 "다음 노드로 넘기지 않았다"로 보고 완료 처리하므로,
+     * 요청자에게는 정상 처리로 응답하면서 데이터만 유실된다.
+     * 배선 실수가 런타임에 드러나지 않으므로 기동 시점에 막는다.
+     * <p>
+     * 종단 노드는 출력 포트 자체를 만들지 않으므로 여기에 걸리지 않는다.
+     */
+    private void addUnconnectedOutputPortErrors(List<String> errors) {
+        Set<String> connectedOutputPorts = new HashSet<>();
+
+        for (Connection connection : connections) {
+            ConnectionEndpoint source = parseConnectionId(connection).source();
+            connectedOutputPorts.add(outputPortKey(source.nodeId(), source.port()));
+        }
+
+        for (AbstractNode node : nodes.values()) {
+            for (OutputPort outputPort : node.getOutputPorts()) {
+                if (connectedOutputPorts.contains(outputPortKey(node.getId(), outputPort.getName()))) {
+                    continue;
+                }
+
+                errors.add(
+                        String.format(
+                                "에러: 노드(%s)의 출력 포트(%s)에 연결된 Connection이 없습니다.",
+                                node.getId(),
+                                outputPort.getName()
+                        )
+                );
+            }
+        }
+    }
+
+    private String outputPortKey(String nodeId, String portName) {
+        return nodeId + ":" + portName;
     }
 
     private Map<String, List<String>> createNodeGraph(
