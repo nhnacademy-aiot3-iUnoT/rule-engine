@@ -26,13 +26,14 @@ public class EventCreateNode extends AbstractNode {
         RuleResultDto ruleResult = message.get(MessageFields.RULE_RESULT);
         EnvironmentEventDecisionDto eventDecision = message.get(MessageFields.ENVIRONMENT_EVENT_DECISION);
 
+        // 상위 노드가 둘 다 채워 보내므로 여기 걸리면 배선이나 payload 계약이 깨진 것이다.
         if(ruleResult==null){
-            log.info("[{}] ruleResult가 없어 이벤트 생성을 건너뜁니다.", getId());
+            log.error("[{}] ruleResult가 없습니다. 상위 노드의 payload 계약이 깨졌습니다.", getId());
             return;
         }
 
         if(eventDecision==null){
-            log.info("[{}] environmentEventDecision가 없어 이벤트 생성을 건너뜁니다.", getId());
+            log.error("[{}] environmentEventDecision이 없습니다. 상위 노드의 payload 계약이 깨졌습니다.", getId());
             return;
         }
 

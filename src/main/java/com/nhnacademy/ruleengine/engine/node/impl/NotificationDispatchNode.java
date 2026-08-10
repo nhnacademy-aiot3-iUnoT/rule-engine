@@ -29,8 +29,9 @@ public class NotificationDispatchNode extends AbstractNode {
     protected void onProcess(Message message) {
         EnvironmentStatusEventDto event = message.get(MessageFields.ENVIRONMENT_STATUS_EVENT);
 
+        // 상위 노드가 event를 채워 보내므로 여기 걸리면 배선이나 payload 계약이 깨진 것이다.
         if(event == null){
-            log.info("[{}] event가 없어 알림 발송을 건너뜁니다.", getId());
+            log.error("[{}] event가 없습니다. 상위 노드의 payload 계약이 깨졌습니다.", getId());
             return;
         }
 
