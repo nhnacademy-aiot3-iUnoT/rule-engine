@@ -1,7 +1,9 @@
 package com.nhnacademy.ruleengine.engine.dto.virtual;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 
 public record VirtualSensorUpdateRequest(
 
