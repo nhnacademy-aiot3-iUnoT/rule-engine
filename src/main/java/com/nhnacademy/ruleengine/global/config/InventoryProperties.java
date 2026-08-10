@@ -2,8 +2,6 @@ package com.nhnacademy.ruleengine.global.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.time.Duration;
-
 
 @ConfigurationProperties(prefix = "rule-engine.inventory")
 public record InventoryProperties(
