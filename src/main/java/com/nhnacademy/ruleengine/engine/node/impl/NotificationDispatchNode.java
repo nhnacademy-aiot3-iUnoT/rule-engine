@@ -30,7 +30,7 @@ public class NotificationDispatchNode extends AbstractNode {
         EnvironmentStatusEventDto event = message.get(MessageFields.ENVIRONMENT_STATUS_EVENT);
 
         if(event == null){
-            log.info("[{}] event가 없어 알림 발송을 건너뜁니다.", getId());
+            log.error("[{}] event가 없습니다. 상위 노드의 payload 계약이 깨졌습니다.", getId());
             return;
         }
 

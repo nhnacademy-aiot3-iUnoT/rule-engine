@@ -15,7 +15,7 @@ public class VirtualSensorService {
 
     private final VirtualSensorRedisRepository virtualSensorRedisRepository;
 
-    public void createVirtualSensor(
+    public VirtualSensorCreateResponse createVirtualSensor(
             Long organizationId,
             Long storageId,
             Long zoneId,
@@ -38,19 +38,11 @@ public class VirtualSensorService {
 
         // Coordinator가 활성 목록을 확인한 뒤 Lock 소유 서버에서 Flow를 시작한다.
         virtualSensorRedisRepository.activate(zoneId);
+
+        return VirtualSensorCreateResponse.from(zoneId, request.deviceEui());
     }
 
-    public VirtualSensorInfoResponse getVirtualSensor(
-            Long organizationId,
-            Long storageId,
-            Long zoneId
-    ) {
-        //정보 조회시 검증?
-        return VirtualSensorInfoResponse.from(virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
-                .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND)));
-    }
-
-    public void updateVirtualSensor(
+    public VirtualSensorUpdateResponse updateVirtualSensor(
             Long organizationId,
             Long storageId,
             Long zoneId,
@@ -67,7 +59,37 @@ public class VirtualSensorService {
         if (!updated) {
             throw new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND);
         }
+
+        return VirtualSensorUpdateResponse.from(updated);
     }
+
+    public void deleteVirtualSensor(
+            Long organizationId,
+            Long storageId,
+            Long zoneId
+    ) {
+        // 삭제시 검증?
+        VirtualSensorConfig sensorConfig = virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
+                .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND));
+
+        virtualSensorRedisRepository.delete(zoneId);
+    }
+
+    public VirtualSensorInfoResponse getVirtualSensor(
+            Long organizationId,
+            Long storageId,
+            Long zoneId
+    ) {
+        //정보 조회시 검증?
+        VirtualSensorConfig sensorConfig = virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
+                .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND));
+
+        return VirtualSensorInfoResponse.from(
+                sensorConfig,
+                virtualSensorRedisRepository.isActive(zoneId)
+        );
+    }
+
 
     public void changeFlowStatus(
             Long organizationId,

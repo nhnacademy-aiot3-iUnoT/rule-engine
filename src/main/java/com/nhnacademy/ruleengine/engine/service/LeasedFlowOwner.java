@@ -27,6 +27,7 @@ public abstract class LeasedFlowOwner<K> implements SchedulingConfigurer {
     private final String ownerToken;
     private final Duration leaseDuration;
     private final Duration renewInterval;
+
     /** 마지막 갱신 성공 이후 이 시간이 지나면 소유권을 잃었다고 보고 스스로 Flow를 중지한다. */
     private final Duration fenceAfter;
 
@@ -103,7 +104,6 @@ public abstract class LeasedFlowOwner<K> implements SchedulingConfigurer {
             return;
         }
 
-        // Redis 조회보다 먼저 실행해야 한다. 조회가 실패하는 상황이야말로 자기 차단이 필요한 상황이다.
         fenceExpiredLeases();
 
         Set<K> desiredKeys;

@@ -10,6 +10,10 @@ logging:
     com.nhnacademy.ruleengine: INFO
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health, service-registry, prometheus
   tracing:
     export:
       zipkin:

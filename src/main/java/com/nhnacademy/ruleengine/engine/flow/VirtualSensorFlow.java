@@ -35,7 +35,7 @@ public class VirtualSensorFlow {
                 "가상 센서 설정은 필수입니다."
         );
 
-        return new Flow(flowId(config.sectionId()))
+        return new Flow(flowId(config.zoneId()))
                 .addNode(new VirtualSensorGeneratorNode(
                         SENSOR_GENERATOR_NODE_ID,
                         config
