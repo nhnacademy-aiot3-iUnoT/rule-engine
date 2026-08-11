@@ -1,9 +1,6 @@
 package com.nhnacademy.ruleengine.engine.controller;
 
-import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorCreateRequest;
-import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorInfoResponse;
-import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatusRequest;
-import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorUpdateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.*;
 import com.nhnacademy.ruleengine.engine.service.VirtualSensorService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -11,26 +8,49 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/core/rule-engine/organizations/{organizationId}/storages/{storageId}/sections")
+@RequestMapping("/api/rule-engine/organizations/{organizationId}/storages/{storageId}/zones")
 @RequiredArgsConstructor
 public class VirtualSensorController {
 
     private final VirtualSensorService virtualSensorService;
 
     @PostMapping("/{zoneId}/virtual-sensor")
-    public ApiResponse<Void> createVirtualSensor(
+    public ApiResponse<VirtualSensorCreateResponse> createVirtualSensor(
             @PathVariable Long organizationId,
             @PathVariable Long storageId,
             @PathVariable Long zoneId,
             @Valid @RequestBody VirtualSensorCreateRequest request
     ) {
-        virtualSensorService.createVirtualSensor(
+        VirtualSensorCreateResponse response = virtualSensorService.createVirtualSensor(
                 organizationId,
                 storageId,
                 zoneId,
                 request
         );
 
+        return ApiResponse.success(response);
+    }
+
+
+    @PutMapping("/{zoneId}/virtual-sensor")
+    public ApiResponse<VirtualSensorUpdateResponse> updateVirtualSensor(
+            @PathVariable Long organizationId,
+            @PathVariable Long storageId,
+            @PathVariable Long zoneId,
+            @Valid @RequestBody VirtualSensorUpdateRequest request
+    ) {
+        VirtualSensorUpdateResponse response = virtualSensorService.updateVirtualSensor(organizationId, storageId, zoneId, request);
+        return ApiResponse.success(response);
+
+    }
+
+    @DeleteMapping("/{zoneId}/virtual-sensor")
+    public ApiResponse<Void> deleteVirtualSensor(
+            @PathVariable Long organizationId,
+            @PathVariable Long storageId,
+            @PathVariable Long zoneId
+    ) {
+        virtualSensorService.deleteVirtualSensor(organizationId, storageId, zoneId);
         return ApiResponse.successNodata();
     }
 
@@ -44,16 +64,6 @@ public class VirtualSensorController {
         return ApiResponse.success(response);
     }
 
-    @PutMapping("/{zoneId}/virtual-sensor")
-    public ApiResponse<Void> updateVirtualSensor(
-            @PathVariable Long organizationId,
-            @PathVariable Long storageId,
-            @PathVariable Long zoneId,
-            @Valid @RequestBody VirtualSensorUpdateRequest request
-    ) {
-        virtualSensorService.updateVirtualSensor(organizationId, storageId, zoneId, request);
-        return ApiResponse.successNodata();
-    }
 
     @PutMapping("/{zoneId}/status")
     public ApiResponse<Void> changeVirtualSensorStatus(

@@ -32,7 +32,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     private final long measurementInterval;
     private final Long organizationId;
     private final Long storageId;
-    private final Long sectionId;
+    private final Long zoneId;
     private final String deviceEui;
 
     // 실제 door 센서처럼 "상태가 바뀔 때만" 이벤트를 전송하기 위해 마지막으로 전송한 상태를 기억한다.
@@ -62,7 +62,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
         measurementInterval = config.measurementIntervalSeconds();
         organizationId = config.organizationId();
         storageId = config.storageId();
-        sectionId = config.sectionId();
+        zoneId = config.zoneId();
         deviceEui = config.deviceEui();
 
 
@@ -159,7 +159,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
                 organizationId,
                 deviceEui,
                 storageId,
-                sectionId,
+                zoneId,
                 sensorType.value(),
                 value,
                 sensorType.unit(),
@@ -170,7 +170,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
                 "%d/%d/%d/%s/%s",
                 organizationId,
                 storageId,
-                sectionId,
+                zoneId,
                 sanitize(deviceEui),
                 sanitize(sensorType.value())
         );
@@ -210,7 +210,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
         requirePositive(organizationId, "organizationId");
         requirePositive(storageId, "storageId");
-        requirePositive(sectionId, "sectionId");
+        requirePositive(zoneId, "zoneId");
         if (deviceEui == null || deviceEui.isBlank()) {
             throw new IllegalArgumentException("deviceEui는 비어 있을 수 없습니다.");
         }
