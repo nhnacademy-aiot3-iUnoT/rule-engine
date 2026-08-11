@@ -13,4 +13,11 @@ public class NotificationConfig {
                 .baseUrl(properties.apiBaseUrl())
                 .build();
     }
+
+    @Bean
+    public RestClient kakaoRestClient(KakaoTalkProperties properties){
+        return RestClient.builder()
+                .baseUrl(properties.apiBaseUrl())
+                .build();
+    }
 }
