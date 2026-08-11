@@ -12,16 +12,19 @@ public record VirtualSensorInfoResponse(
 
         SensorValueRange illumination,
 
-        Double doorOpenProbability
+        Double doorOpenProbability,
+
+        VirtualSensorStatus status
 ) {
-    public static VirtualSensorInfoResponse from(VirtualSensorConfig config) {
+    public static VirtualSensorInfoResponse from(VirtualSensorConfig config, boolean active) {
         return new VirtualSensorInfoResponse(
                 config.deviceEui(),
                 config.measurementIntervalSeconds(),
                 new SensorValueRange(config.temperatureMin(), config.temperatureMax()),
                 new SensorValueRange(config.humidityMin(), config.humidityMax()),
                 new SensorValueRange(config.illuminationMin(), config.illuminationMax()),
-                config.doorOpenProbability()
+                config.doorOpenProbability(),
+                active ? VirtualSensorStatus.ACTIVE : VirtualSensorStatus.INACTIVE
         );
     }
 }

@@ -6,7 +6,7 @@ import java.util.Objects;
 public record VirtualSensorConfig(
         Long organizationId,
         Long storageId,
-        Long sectionId,
+        Long zoneId,
         String deviceEui,
         double temperatureMin,
         double temperatureMax,
@@ -21,7 +21,7 @@ public record VirtualSensorConfig(
     public static VirtualSensorConfig from(
             Long organizationId,
             Long storageId,
-            Long sectionId,
+            Long zoneId,
             VirtualSensorCreateRequest request
     ) {
         Objects.requireNonNull(request, "가상 센서 설정은 필수입니다.");
@@ -42,7 +42,7 @@ public record VirtualSensorConfig(
         return new VirtualSensorConfig(
                 organizationId,
                 storageId,
-                sectionId,
+                zoneId,
                 request.deviceEui(),
                 Objects.requireNonNull(temperature.min(), "온도 최솟값은 필수입니다."),
                 Objects.requireNonNull(temperature.max(), "온도 최댓값은 필수입니다."),
@@ -54,6 +54,7 @@ public record VirtualSensorConfig(
                 Objects.requireNonNull(request.measurementIntervalSeconds(), "측정 주기는 필수입니다.")
         );
     }
+
     public static VirtualSensorConfig merge(VirtualSensorConfig existing, VirtualSensorUpdateRequest request) {
         Objects.requireNonNull(existing, "기존 가상 센서 설정은 필수입니다.");
         Objects.requireNonNull(request, "변경할 가상 센서 설정은 필수입니다.");
@@ -65,7 +66,7 @@ public record VirtualSensorConfig(
         return new VirtualSensorConfig(
                 existing.organizationId(),
                 existing.storageId(),
-                existing.sectionId(),
+                existing.zoneId(),
                 existing.deviceEui(),
                 temperature != null ? temperature.min() : existing.temperatureMin(),
                 temperature != null ? temperature.max() : existing.temperatureMax(),
