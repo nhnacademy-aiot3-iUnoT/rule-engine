@@ -49,11 +49,9 @@ class DoorRuleCommandTest {
         Optional<RuleResultDto> result = command.evaluate(payload);
 
         // then
-        assertAll(
-                () -> assertTrue(result.isPresent()),
-                () -> assertEquals(ViolationType.OPEN, result.get().violationType())
-        );
 
+        assertTrue(result.isPresent());
+        assertEquals(ViolationType.OPEN, result.get().violationType());
     }
 
     @Test
@@ -66,10 +64,8 @@ class DoorRuleCommandTest {
         Optional<RuleResultDto> result = command.evaluate(payload);
 
         // then
-        assertAll(
-                () -> assertTrue(result.isPresent()),
-                () -> assertEquals(ViolationType.CLOSED, result.get().violationType())
-        );
+        assertTrue(result.isPresent());
+        assertEquals(ViolationType.CLOSED, result.get().violationType());
     }
 
     @Test

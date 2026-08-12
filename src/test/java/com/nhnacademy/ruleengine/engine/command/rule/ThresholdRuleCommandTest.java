@@ -56,10 +56,7 @@ class ThresholdRuleCommandTest {
     @DisplayName("최솟값 미만인 경우 위반 결과를 반환한다")
     void evaluateBelowMin() {
         // given
-        ThresholdPolicyDto policy = createPolicy(
-                20.0,
-                25.0
-        );
+        ThresholdPolicyDto policy = createPolicy();
 
         SensorPayload payload = createSensorPayload(19.0);
 
@@ -80,10 +77,7 @@ class ThresholdRuleCommandTest {
     @DisplayName("최댓값을 초과하는 경우 위반 결과를 반환한다")
     void evaluateAboveMax() {
         // given
-        ThresholdPolicyDto policy = createPolicy(
-                20.0,
-                25.0
-        );
+        ThresholdPolicyDto policy = createPolicy();
 
         SensorPayload payload = createSensorPayload(25.5);
 
@@ -105,8 +99,7 @@ class ThresholdRuleCommandTest {
     void evaluateNormal() {
         // given
         ThresholdPolicyDto policy = createPolicy(
-                20.0,
-                25.0
+
         );
 
         SensorPayload payload = createSensorPayload(22.0);
@@ -152,14 +145,13 @@ class ThresholdRuleCommandTest {
     }
 
     private ThresholdPolicyDto createPolicy(
-            Double min,
-            Double max
+
     ) {
         Map<String, ThresholdRange> ranges = new HashMap<>();
 
         ranges.put(
                 SensorType.TEMPERATURE.value(),
-                new ThresholdRange(min, max)
+                new ThresholdRange(20.0, 25.5)
         );
 
         return new ThresholdPolicyDto(
