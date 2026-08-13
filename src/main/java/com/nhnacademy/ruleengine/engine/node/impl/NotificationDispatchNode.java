@@ -55,12 +55,10 @@ public class NotificationDispatchNode extends AbstractNode {
                     request.storageId(),
                     request.sectionId()
             );
-            message.completeProcessing();
             return;
         }
 
         if(event.currentStatus()==EnvironmentStatus.WARNING){
-            message.completeProcessing();
             return;
         }
 
@@ -71,7 +69,7 @@ public class NotificationDispatchNode extends AbstractNode {
 
             try {
                 senders.stream()
-                        .filter(sender -> sender.channel().equals(preference.channel()))
+                        .filter(sender -> preference.channel().equals(sender.channel()))
                         .findFirst()
                         .ifPresentOrElse(
                                 sender -> sender.send(request, preference),
