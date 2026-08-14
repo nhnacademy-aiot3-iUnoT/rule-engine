@@ -14,6 +14,24 @@ public record VirtualSensorConfig(
         VirtualSensorValues virtualSensorValues,
         Long measurementIntervalSeconds
 ) {
+    public VirtualSensorConfig {
+        requirePositive(organizationId, "organizationId");
+        requirePositive(storageId, "storageId");
+        requirePositive(zoneId, "zoneId");
+
+        if (deviceEui == null || deviceEui.isBlank()) {
+            throw new IllegalArgumentException("deviceEui는 비어 있을 수 없습니다.");
+        }
+
+        Objects.requireNonNull(
+                virtualSensorValues,
+                "가상 센서 값 설정은 필수입니다."
+        );
+
+        if (measurementIntervalSeconds == null || measurementIntervalSeconds < 1) {
+            throw new IllegalArgumentException("측정 주기는 1초 이상이어야 합니다.");
+        }
+    }
 
     public static VirtualSensorConfig from(
             Long organizationId,
@@ -47,5 +65,11 @@ public record VirtualSensorConfig(
                 request.virtualSensorValues() != null ? request.virtualSensorValues() : existing.virtualSensorValues(),
                 request.measurementIntervalSeconds() != null ? request.measurementIntervalSeconds() : existing.measurementIntervalSeconds()
         );
+    }
+
+    private static void requirePositive(Long value, String fieldName) {
+        if (value == null || value <= 0) {
+            throw new IllegalArgumentException(fieldName + "는 양수여야 합니다.");
+        }
     }
 }
