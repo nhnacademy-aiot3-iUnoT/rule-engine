@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class LocalConnectionTest {
 
@@ -22,6 +23,40 @@ class LocalConnectionTest {
         );
     }
 
+    @Test
+    @DisplayName("큐 용량을 설정하여 Connection 생성할수있다")
+    void createConnectionWithBufferSize() {
+        LocalConnection connection = new LocalConnection("test", 10);
+
+        assertNotNull(connection);
+    }
+
+    @Test
+    @DisplayName("버퍼가 가득 찬 상태에서 스레드가 중단되면 IllegalStateException이 발생한다")
+    void deliverInterrupted() {
+        // given
+        LocalConnection connection = new LocalConnection("test", 1);
+
+        Message message = mock(Message.class);
+
+        connection.deliver(message);
+
+        Thread.currentThread().interrupt();
+
+        // when
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> connection.deliver(message)
+        );
+
+        // then
+        assertEquals(
+                "Connection 메시지 전달 중 중단되었습니다. connectionId=test",
+                exception.getMessage()
+        );
+
+        assertTrue(Thread.interrupted());
+    }
 
     @Test
     @DisplayName("deliver한 메시지는 poll로 조회할 수 있다")
