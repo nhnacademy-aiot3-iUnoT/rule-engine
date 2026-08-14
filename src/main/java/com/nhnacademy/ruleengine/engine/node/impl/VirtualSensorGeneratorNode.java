@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
@@ -22,14 +23,14 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
     private static final String OUTPUT_PORT = "out";
 
-    private final double tempMin;
-    private final double tempMax;
-    private final double humidityMin;
-    private final double humidityMax;
-    private final double illuminationMin;
-    private final double illuminationMax;
-    private final double doorOpenProbability;
-    private final long measurementInterval;
+    private final Double tempMin;
+    private final Double tempMax;
+    private final Double humidityMin;
+    private final Double humidityMax;
+    private final Double illuminationMin;
+    private final Double illuminationMax;
+    private final Double doorOpenProbability;
+    private final Long measurementInterval;
     private final Long organizationId;
     private final Long storageId;
     private final Long zoneId;
@@ -96,19 +97,27 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     protected void onProcess(Message message) {
         String measuredAt = Instant.now().toString();
 
-        publish(SensorType.TEMPERATURE,
-                randomBetween(tempMin, tempMax),
-                measuredAt);
+        if (tempMin != null && tempMax != null) {
+            publish(SensorType.TEMPERATURE,
+                    randomBetween(tempMin, tempMax),
+                    measuredAt);
+        }
 
-        publish(SensorType.HUMIDITY,
-                randomBetween(humidityMin, humidityMax),
-                measuredAt);
+        if (humidityMin != null && humidityMax != null) {
+            publish(SensorType.HUMIDITY,
+                    randomBetween(humidityMin, humidityMax),
+                    measuredAt);
+        }
 
-        publishDoorIfChanged(measuredAt);
+        if  (illuminationMin != null && illuminationMax != null) {
+            publish(SensorType.ILLUMINATION,
+                    randomBetween(illuminationMin, illuminationMax),
+                    measuredAt);
+        }
 
-        publish(SensorType.ILLUMINATION,
-                randomBetween(illuminationMin, illuminationMax),
-                measuredAt);
+        if (doorOpenProbability != null && doorOpenProbability > 0) {
+            publishDoorIfChanged(measuredAt);
+        }
 
         log.debug("[{}] 가상 센서 데이터 생성", getId());
     }
