@@ -16,8 +16,6 @@ import org.springframework.web.client.RestClientException;
 import java.net.URI;
 import java.util.function.Supplier;
 
-// ApiResponse 규약(success/data/error)을 벗겨내고, 호출 실패를 ApiException으로 바꿔주는 공통 HTTP 클라이언트다.
-// baseUrl은 각 서비스 클라이언트(InventoryClient 등)가 소유하므로 여기서는 절대 URL을 그대로 받는다.
 @Slf4j
 @Component
 public class ApiClient {
@@ -33,12 +31,12 @@ public class ApiClient {
         this.objectMapper = objectMapper;
     }
 
-    // 단건 DTO
+
     public <T> T get(String url, Class<T> dataType) {
         return get(url, responseTypeOf(dataType));
     }
 
-    // List, Page 등 제네릭 타입
+
     public <T> T get(String url, ParameterizedTypeReference<ApiResponse<T>> responseType) {
         return execute(() ->
                 restClient.get()
@@ -60,7 +58,6 @@ public class ApiClient {
                         .body(responseType));
     }
 
-    // 응답 본문이 없는 API(204 No Content 등)용
     public void post(String url, Object body) {
         executeBodiless(() ->
                 restClient.post()
