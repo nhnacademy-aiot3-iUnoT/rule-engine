@@ -2,10 +2,10 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentDecisionState;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventDecisionDto;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
-import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.rule.RuleResultDto;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorKeys;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
