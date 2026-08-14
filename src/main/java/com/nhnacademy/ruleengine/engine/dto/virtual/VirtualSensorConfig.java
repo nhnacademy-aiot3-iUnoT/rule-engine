@@ -1,9 +1,9 @@
 package com.nhnacademy.ruleengine.engine.dto.virtual;
 
-import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorCreateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorUpdateRequest;
 
 import java.util.Objects;
-import java.util.Set;
 
 // 가상 센서 Flow 실행에 필요한 설정을 명확한 타입으로 전달한다.
 public record VirtualSensorConfig(
@@ -11,14 +11,7 @@ public record VirtualSensorConfig(
         Long storageId,
         Long zoneId,
         String deviceEui,
-        Set<SensorType> enabledSensorTypes,
-        Double temperatureMin,
-        Double temperatureMax,
-        Double humidityMin,
-        Double humidityMax,
-        Double illuminationMin,
-        Double illuminationMax,
-        Double doorOpenProbability,
+        VirtualSensorValues virtualSensorValues,
         Long measurementIntervalSeconds
 ) {
 
@@ -30,42 +23,12 @@ public record VirtualSensorConfig(
     ) {
         Objects.requireNonNull(request, "가상 센서 설정은 필수입니다.");
 
-        SensorValueRange temperature = null;
-        SensorValueRange humidity = null;
-        SensorValueRange illumination = null;
-
-        if (request.enabledSensorTypes().contains(SensorType.TEMPERATURE)) {
-            temperature = Objects.requireNonNull(
-                    request.temperature(),
-                    "온도 범위는 필수입니다."
-            );
-        }
-
-        if (request.enabledSensorTypes().contains(SensorType.HUMIDITY)) {
-            humidity = Objects.requireNonNull(
-                    request.humidity(),
-                    "습도 범위는 필수입니다."
-            );
-        }
-        if (request.enabledSensorTypes().contains(SensorType.ILLUMINATION)) {
-            illumination = Objects.requireNonNull(
-                    request.illumination(),
-                    "밝기 범위는 필수입니다."
-            );
-        }
         return new VirtualSensorConfig(
                 organizationId,
                 storageId,
                 zoneId,
                 request.deviceEui(),
-                request.enabledSensorTypes(),
-                temperature != null ? temperature.min() : null,
-                temperature != null ? temperature.max() : null,
-                humidity !=  null ? humidity.min() : null,
-                humidity != null ? humidity.max() : null,
-                illumination != null ? illumination.min() : null,
-                illumination != null ? illumination.max() : null,
-                request.doorOpenProbability(),
+                request.virtualSensorValues(),
                 request.measurementIntervalSeconds()
         );
     }
@@ -74,23 +37,14 @@ public record VirtualSensorConfig(
         Objects.requireNonNull(existing, "기존 가상 센서 설정은 필수입니다.");
         Objects.requireNonNull(request, "변경할 가상 센서 설정은 필수입니다.");
 
-        SensorValueRange temperature = request.temperature();
-        SensorValueRange humidity = request.humidity();
-        SensorValueRange illumination = request.illumination();
+
 
         return new VirtualSensorConfig(
                 existing.organizationId(),
                 existing.storageId(),
                 existing.zoneId(),
                 existing.deviceEui(),
-                request.enabledSensorTypes() != null ? request.enabledSensorTypes() : existing.enabledSensorTypes(),
-                temperature != null ? temperature.min() : existing.temperatureMin(),
-                temperature != null ? temperature.max() : existing.temperatureMax(),
-                humidity != null ? humidity.min() : existing.humidityMin(),
-                humidity != null ? humidity.max() : existing.humidityMax(),
-                illumination != null ? illumination.min() : existing.illuminationMin(),
-                illumination != null ? illumination.max() : existing.illuminationMax(),
-                request.doorOpenProbability() != null ? request.doorOpenProbability() : existing.doorOpenProbability(),
+                request.virtualSensorValues() != null ? request.virtualSensorValues() : existing.virtualSensorValues(),
                 request.measurementIntervalSeconds() != null ? request.measurementIntervalSeconds() : existing.measurementIntervalSeconds()
         );
     }

@@ -1,5 +1,6 @@
-package com.nhnacademy.ruleengine.engine.dto.virtual;
+package com.nhnacademy.ruleengine.engine.dto.virtual.request;
 
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
 import jakarta.validation.constraints.NotNull;
 
 public record VirtualSensorStatusRequest(
