@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.engine.client;
 
 import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto.ThresholdRange;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
@@ -12,7 +13,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.Map;
 
 // 인벤토리 서비스의 내부 전용 API(/api/core/internal/**)를 호출한다.
-// 내부 API는 게이트웨이의 JWT 필터 대상이라, 게이트웨이를 거치지 않고 인벤토리로 직접 호출한다.
 @Slf4j
 @Component
 public class InventoryClient {
@@ -58,6 +58,17 @@ public class InventoryClient {
                 .toUriString();
 
         return apiClient.get(url, ResolvedZoneResponse.class);
+    }
+
+    // 구역의 환경 상태를 갱신한다.
+    public void updateEnvStatus(Long zoneId, EnvStatus envStatus) {
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl + INVENTORY_URL + "/zones/" + zoneId + "/env-status")
+                .queryParam("env-status", envStatus.name())
+                .encode()
+                .toUriString();
+
+        apiClient.put(url);
     }
 
 }

@@ -89,6 +89,15 @@ public class ApiClient {
                         .toBodilessEntity());
     }
 
+    // 요청 본문 없이 쿼리 파라미터만 넘기는 PUT(예: env-status 갱신)
+    public void put(String url) {
+        executeBodiless(() ->
+                restClient.put()
+                        .uri(URI.create(url))
+                        .retrieve()
+                        .toBodilessEntity());
+    }
+
     public <T> T delete(String url, ParameterizedTypeReference<ApiResponse<T>> responseType) {
         return execute(() ->
                 restClient.delete()
