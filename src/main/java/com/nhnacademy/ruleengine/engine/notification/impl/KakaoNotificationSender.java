@@ -1,5 +1,6 @@
 package com.nhnacademy.ruleengine.engine.notification.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationChannel;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -76,7 +78,12 @@ public class KakaoNotificationSender implements NotificationSender {
                     preference.userId(),
                     request.title());
 
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
+            log.warn("카카오톡 메시지 템플릿 생성 실패. userId={}",
+                    preference.userId(),
+                    e);
+
+        } catch (RestClientException e) {
             log.warn("카카오톡 알림 발송 중 예외 발생. userId={}",
                     preference.userId(),
                     e);

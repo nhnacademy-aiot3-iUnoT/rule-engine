@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 @Component
 @Slf4j
@@ -62,7 +63,7 @@ public class TelegramNotificationSender implements NotificationSender {
                     preference.recipient(),
                     request.title()
             );
-        } catch (Exception e){
+        } catch (RestClientException e){
             log.warn("Telegram 알림 발송 중 예외 발생. userId={}, chatId={}",
                     preference.userId(),
                     preference.recipient(),
