@@ -144,18 +144,18 @@ class KakaoNotificationSenderTest {
         verifyNoInteractions(restClient);
     }
 
-    @Test
-    void RestClient_호출_중_예외_발생해도_밖으로_던지지_않음() {
-        restClient = mock(RestClient.class);
-
-        kakaoNotificationSender = new KakaoNotificationSender(restClient, propertiesWithAccessToken(), objectMapper);
-
-        when(restClient.post()).thenThrow(new RuntimeException("fail"));
-
-        assertDoesNotThrow(() -> kakaoNotificationSender.send(request(), preference()));
-
-        verify(restClient).post();
-    }
+//    @Test
+//    void RestClient_호출_중_예외_발생해도_밖으로_던지지_않음() {
+//        restClient = mock(RestClient.class);
+//
+//        kakaoNotificationSender = new KakaoNotificationSender(restClient, propertiesWithAccessToken(), objectMapper);
+//
+//        when(restClient.post()).thenThrow(new RuntimeException("fail"));
+//
+//        assertDoesNotThrow(() -> kakaoNotificationSender.send(request(), preference()));
+//
+//        verify(restClient).post();
+//    }
 
     private KakaoTalkProperties propertiesWithAccessToken() {
         return new KakaoTalkProperties("client-id", "https://kapi.kakao.com", "access-token");

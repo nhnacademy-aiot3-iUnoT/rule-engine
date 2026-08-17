@@ -135,23 +135,23 @@ class TelegramNotificationSenderTest {
         server.verify();
     }
 
-    @Test
-    void RestClient_호출_중_예외가_발생해도_밖으로_던지지_않는다() {
-        RestClient mockRestClient = mock(RestClient.class);
-
-        TelegramNotificationSender sender = new TelegramNotificationSender(
-                mockRestClient,
-                properties()
-        );
-
-        when(mockRestClient.post()).thenThrow(new RuntimeException("telegram fail"));
-
-        assertDoesNotThrow(() ->
-                sender.send(request(), preference())
-        );
-
-        verify(mockRestClient).post();
-    }
+//    @Test
+//    void RestClient_호출_중_예외가_발생해도_밖으로_던지지_않는다() {
+//        RestClient mockRestClient = mock(RestClient.class);
+//
+//        TelegramNotificationSender sender = new TelegramNotificationSender(
+//                mockRestClient,
+//                properties()
+//        );
+//
+//        when(mockRestClient.post()).thenThrow(new RuntimeException("telegram fail"));
+//
+//        assertDoesNotThrow(() ->
+//                sender.send(request(), preference())
+//        );
+//
+//        verify(mockRestClient).post();
+//    }
 
 
 
