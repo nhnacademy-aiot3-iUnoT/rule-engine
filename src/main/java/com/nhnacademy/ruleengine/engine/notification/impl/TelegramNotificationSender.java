@@ -1,10 +1,6 @@
 package com.nhnacademy.ruleengine.engine.notification.impl;
 
-import com.nhnacademy.ruleengine.engine.dto.notification.NotificationChannel;
-import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
-import com.nhnacademy.ruleengine.engine.dto.notification.NotificationRequest;
-import com.nhnacademy.ruleengine.engine.dto.notification.TelegramSendMessageRequest;
-import com.nhnacademy.ruleengine.engine.dto.notification.TelegramApiResponse;
+import com.nhnacademy.ruleengine.engine.dto.notification.*;
 import com.nhnacademy.ruleengine.engine.notification.NotificationSender;
 import com.nhnacademy.ruleengine.global.config.TelegramProperties;
 import lombok.extern.slf4j.Slf4j;
