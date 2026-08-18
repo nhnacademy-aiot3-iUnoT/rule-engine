@@ -1,5 +1,7 @@
 package com.nhnacademy.ruleengine.engine.notification.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
@@ -16,12 +18,13 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
+import java.io.IOException;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
@@ -130,12 +133,12 @@ class KakaoNotificationSenderTest {
     }
 
     @Test
-    void ObjectMapper_writeValueAsString에서_예외_발생해도_밖으로_던지지_않음() throws Exception {
+    void ObjectMapper_writeValueAsString에서_예외_발생하면_잡음() throws Exception {
         restClient = mock(RestClient.class);
         objectMapper = mock(ObjectMapper.class);
         kakaoNotificationSender = new KakaoNotificationSender(restClient, propertiesWithAccessToken(), objectMapper);
 
-        when(objectMapper.writeValueAsString(any())).thenThrow(new RuntimeException("json fail"));
+        when(objectMapper.writeValueAsString(any())).thenThrow(JsonProcessingException.class);
 
         assertDoesNotThrow(() -> kakaoNotificationSender.send(request(), preference()));
 
@@ -143,18 +146,18 @@ class KakaoNotificationSenderTest {
         verifyNoInteractions(restClient);
     }
 
-//    @Test
-//    void RestClient_호출_중_예외_발생해도_밖으로_던지지_않음() {
-//        restClient = mock(RestClient.class);
-//
-//        kakaoNotificationSender = new KakaoNotificationSender(restClient, propertiesWithAccessToken(), objectMapper);
-//
-//        when(restClient.post()).thenThrow(new RuntimeException("fail"));
-//
-//        assertDoesNotThrow(() -> kakaoNotificationSender.send(request(), preference()));
-//
-//        verify(restClient).post();
-//    }
+    @Test
+    void RestClient_호출_중_예외_발생하면_잡음() {
+        restClient = mock(RestClient.class);
+
+        kakaoNotificationSender = new KakaoNotificationSender(restClient, propertiesWithAccessToken(), objectMapper);
+
+        when(restClient.post()).thenThrow(new RestClientException("fail"));
+
+        assertDoesNotThrow(() -> kakaoNotificationSender.send(request(), preference()));
+
+        verify(restClient).post();
+    }
 
     private KakaoTalkProperties propertiesWithAccessToken() {
         return new KakaoTalkProperties("client-id", "https://kapi.kakao.com", "access-token");
