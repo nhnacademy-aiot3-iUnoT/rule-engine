@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.notification.impl;
 
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
-import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationChannel;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationRequest;
@@ -168,8 +168,8 @@ class TelegramNotificationSenderTest {
                 3L,
                 "device-1",
                 "temperature",
-                EnvironmentStatus.NORMAL,
-                EnvironmentStatus.CRITICAL,
+                EnvStatus.NORMAL,
+                EnvStatus.CRITICAL,
                 EnvironmentEventReason.STATUS_CHANGED,
                 "온도 이상",
                 "현재 온도가 기준치를 초과했습니다.",

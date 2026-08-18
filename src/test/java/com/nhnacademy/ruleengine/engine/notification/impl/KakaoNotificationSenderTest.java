@@ -1,8 +1,8 @@
 package com.nhnacademy.ruleengine.engine.notification.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
-import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationChannel;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationRequest;
@@ -10,7 +10,6 @@ import com.nhnacademy.ruleengine.global.config.KakaoTalkProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -63,7 +62,7 @@ class KakaoNotificationSenderTest {
 
     @Test
     void accessToken이_null이면_발송_skip() throws Exception {
-        objectMapper = Mockito.mock(ObjectMapper.class);
+        objectMapper = mock(ObjectMapper.class);
 
         kakaoNotificationSender = new KakaoNotificationSender(restClient, propertiesWithoutAccessToken(), objectMapper);
 
@@ -74,7 +73,7 @@ class KakaoNotificationSenderTest {
 
     @Test
     void accessToken이_blank면_발송_skip() throws Exception {
-        objectMapper = Mockito.mock(ObjectMapper.class);
+        objectMapper = mock(ObjectMapper.class);
 
         KakaoTalkProperties properties =
                 new KakaoTalkProperties("client-id", "https://kapi.kakao.com", " ");
@@ -172,8 +171,8 @@ class KakaoNotificationSenderTest {
                 3L,
                 "device-1",
                 "temperature",
-                EnvironmentStatus.NORMAL,
-                EnvironmentStatus.CRITICAL,
+                EnvStatus.NORMAL,
+                EnvStatus.CRITICAL,
                 EnvironmentEventReason.STATUS_CHANGED,
                 "온도 이상",
                 "현재 온도가 기준치를 초과했습니다.",

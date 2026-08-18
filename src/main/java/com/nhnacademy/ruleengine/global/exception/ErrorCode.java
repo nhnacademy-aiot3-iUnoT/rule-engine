@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
+import java.util.Arrays;
+
 @RequiredArgsConstructor
 @Getter
 public enum ErrorCode {
@@ -21,9 +23,24 @@ public enum ErrorCode {
     VIRTUAL_SENSOR_CONFIG_NOT_FOUND(HttpStatus.NOT_FOUND, "R009", "해당 Section의 가상 센서 설정이 존재하지 않습니다."),
 
     SENSOR_DATA_QUERY_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "센서 데이터 조회에 실패했습니다."),
-    INVALID_SENSOR_DATA(HttpStatus.BAD_REQUEST, "S002", "잘못된 센서 데이터입니다.");
+    INVALID_SENSOR_DATA(HttpStatus.BAD_REQUEST, "S002", "잘못된 센서 데이터입니다."),
+
+    EXTERNAL_API_ERROR(HttpStatus.BAD_GATEWAY, "E001", "외부 서비스 호출에 실패했습니다."),
+    EXTERNAL_API_EMPTY_RESPONSE(HttpStatus.BAD_GATEWAY, "E002", "외부 서비스 응답이 비어 있습니다.");
 
     private final HttpStatus status;
     private final String code;
     private final String message;
+
+    // 외부 서비스의 에러 코드 체계는 이 서비스와 다를 수 있어, 모르는 코드는 EXTERNAL_API_ERROR로 취급한다.
+    public static ErrorCode from(String code) {
+        if (code == null || code.isBlank()) {
+            return EXTERNAL_API_ERROR;
+        }
+
+        return Arrays.stream(values())
+                .filter(errorCode -> errorCode.code.equals(code) || errorCode.name().equals(code))
+                .findFirst()
+                .orElse(EXTERNAL_API_ERROR);
+    }
 }

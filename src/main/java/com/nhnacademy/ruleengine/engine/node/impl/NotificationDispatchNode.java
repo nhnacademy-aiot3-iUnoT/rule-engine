@@ -2,7 +2,7 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
-import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationRequest;
@@ -58,7 +58,7 @@ public class NotificationDispatchNode extends AbstractNode {
             return;
         }
 
-        if(event.currentStatus()==EnvironmentStatus.WARNING){
+        if(event.currentStatus()== EnvStatus.WARNING){
             return;
         }
 

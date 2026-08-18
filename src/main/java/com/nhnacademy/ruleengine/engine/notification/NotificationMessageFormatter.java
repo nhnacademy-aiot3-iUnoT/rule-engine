@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.notification;
 
-import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
 
 import java.util.HashMap;
@@ -28,7 +28,7 @@ public class NotificationMessageFormatter {
         return String.format(
                 "저장소: %s\n구역: %s\n장치: %s\n%s",
                 event.storageId(),
-                event.sectionId(),
+                event.zoneId(),
                 event.deviceEui(),
                 doorStatusMessage(event)
         );
@@ -38,7 +38,7 @@ public class NotificationMessageFormatter {
         return String.format(
                 "저장소: %s\n구역: %s\n장치: %s\n %s 상태가 %s \n현재값: %.2f%s, \n사유: %s",
                 event.storageId(),
-                event.sectionId(),
+                event.zoneId(),
                 event.deviceEui(),
                 event.sensorType(),
                 statusText(event.currentStatus()),
@@ -57,18 +57,18 @@ public class NotificationMessageFormatter {
     }
 
     private static String doorStatusMessage(EnvironmentStatusEventDto event) {
-        if (event.currentStatus() == EnvironmentStatus.NORMAL) {
+        if (event.currentStatus() == EnvStatus.NORMAL) {
             return "문이 닫혀 정상으로 복귀했습니다.";
         }
 
-        if (event.currentStatus() == EnvironmentStatus.CRITICAL) {
+        if (event.currentStatus() == EnvStatus.CRITICAL) {
             return "문이 열렸습니다.";
         }
 
         return "문 상태 확인이 필요합니다.";
     }
 
-    private static String statusText(EnvironmentStatus status) {
+    private static String statusText(EnvStatus status) {
         return switch (status) {
             case NORMAL -> "정상으로 복귀했습니다.";
             case WARNING -> "주의가 필요합니다.";

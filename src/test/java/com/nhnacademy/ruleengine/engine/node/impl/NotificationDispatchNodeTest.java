@@ -4,8 +4,8 @@ package com.nhnacademy.ruleengine.engine.node.impl;
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.FlowProcessingCompletion;
 import com.nhnacademy.ruleengine.engine.core.Message;
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
-import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationChannel;
 import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
@@ -63,7 +63,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void preferences가_비었으면_알림_발송_안함() throws Exception {
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.CRITICAL);
+        EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
@@ -76,7 +76,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void 이벤트_상태가_WARNING이면_preference가_있어도_발송_안함() throws Exception {
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.WARNING);
+        EnvironmentStatusEventDto event = event(EnvStatus.WARNING);
         Message message = message(event);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
@@ -98,7 +98,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void enabled가_False면_preference는_발송하지_않음() throws Exception{
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.CRITICAL);
+        EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
@@ -120,7 +120,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void enabled가_True면_해당_sender만_호출() {
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.CRITICAL);
+        EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
@@ -154,7 +154,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void sender가_없는_채널이면_예외_없이_skip(){
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.CRITICAL);
+        EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
@@ -180,7 +180,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void 여러_preference_중_활성화되고_sender_매칭되는_것만_발송() {
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.CRITICAL);
+        EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
@@ -215,7 +215,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void send가_예외를_던져도_다음_preference_처리_계속() {
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.CRITICAL);
+        EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 
 
@@ -252,7 +252,7 @@ class NotificationDispatchNodeTest {
 
     @Test
     void 이벤트의_organization_storage_section_id로_preference를_조회한다(){
-        EnvironmentStatusEventDto event = event(EnvironmentStatus.CRITICAL);
+        EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
@@ -267,7 +267,7 @@ class NotificationDispatchNodeTest {
         return new Message(Map.of(MessageFields.ENVIRONMENT_STATUS_EVENT, event), completion);
     }
 
-    private EnvironmentStatusEventDto event(EnvironmentStatus currentStatus) {
+    private EnvironmentStatusEventDto event(EnvStatus currentStatus) {
         return new EnvironmentStatusEventDto(
                 1L,
                 "device-1",
@@ -275,7 +275,7 @@ class NotificationDispatchNodeTest {
                 3L,
                 "temperature",
                 ViolationType.ABOVE_MAX,
-                EnvironmentStatus.NORMAL,
+                EnvStatus.NORMAL,
                 currentStatus,
                 EnvironmentEventReason.STATUS_CHANGED,
                 35.0,

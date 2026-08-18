@@ -1,8 +1,7 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog;
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
 import com.nhnacademy.ruleengine.engine.command.sensor.SensorCommand;
+import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorContext;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
@@ -12,27 +11,27 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class SensorTransformService {
-
-    private final SectionCatalog sectionCatalog;
     private final Map<String, SensorCommand> commands;
+    private final ZoneResolver zoneResolver;
 
     public SensorTransformService(
-            SectionCatalog sectionCatalog,
-            List<SensorCommand> sensorCommands
+            List<SensorCommand> sensorCommands,
+            ZoneResolver zoneResolver
     ) {
-        this.sectionCatalog = sectionCatalog;
 
         this.commands = sensorCommands.stream()
                 .collect(Collectors.toUnmodifiableMap(
                         SensorCommand::getMeasurementKey,
                         Function.identity()
                 ));
+        this.zoneResolver = zoneResolver;
     }
 
     public List<SensorPayload> transform(
@@ -44,14 +43,12 @@ public class SensorTransformService {
             return List.of();
         }
 
-        ResolvedSection section = sectionCatalog.resolveSection(
-                        externalMessage.devEui()
-                )
-                .orElse(null);
+        Optional<ResolvedZoneResponse> resolvedZone =
+                zoneResolver.resolve(externalMessage.devEui());
 
-        if (section == null) {
+        if (resolvedZone.isEmpty()) {
             log.warn(
-                    "등록되지 않은 센서 입니다. devEui={}",
+                    "구역 정보를 찾을 수 없어 메시지를 버립니다. devEui={}",
                     externalMessage.devEui()
             );
 
@@ -59,7 +56,7 @@ public class SensorTransformService {
         }
 
         SensorContext context =
-                SensorContext.from(externalMessage, section);
+                SensorContext.from(externalMessage, resolvedZone.get());
 
         List<SensorPayload> results = new ArrayList<>();
 

@@ -12,14 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-// 센서타입에 맞는 EnvironmentRuleCommand를 찾아 룰 판단을 위임한다.
-// 담당 Command가 없거나 판단할 룰이 없으면 다음 노드로 보내지 않고 끝낸다.
+// 센서 타입에 맞는 룰 Command를 찾아 룰 판단을 수행하는 노드
 @Slf4j
 public class EnvironmentRuleEvaluationNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
 
+    // 센서별 룰 판단을 담당하는 Command 목록
     private final List<EnvironmentRuleCommand> commands;
 
     public EnvironmentRuleEvaluationNode(String id, List<EnvironmentRuleCommand> commands) {
@@ -31,34 +31,44 @@ public class EnvironmentRuleEvaluationNode extends AbstractNode {
 
     @Override
     protected void onProcess(Message message) {
+
+        // Message에서 센서 데이터 가져오기
         SensorPayload sensorPayload = message.get(MessageFields.SENSOR_PAYLOAD);
 
-        // 상위 노드가 sensorPayload를 보장하므로 여기 걸리면 배선이나 payload 계약이 깨진 것이다.
+        // 센서 데이터가 없으면 종료
         if (sensorPayload == null) {
-            log.error("[{}] sensorPayload가 없습니다. 상위 노드의 payload 계약이 깨졌습니다.", getId());
+            log.error("[{}] sensorPayload가 없습니다.", getId());
             return;
         }
 
+        // 센서 타입 확인
         String sensorType = sensorPayload.sensorType();
+
+        // 센서 타입을 처리할 Command 찾기
         Optional<EnvironmentRuleCommand> command = commands.stream()
                 .filter(candidate -> candidate.supports(sensorType))
                 .findFirst();
 
+        // 처리할 Command가 없으면 종료
         if (command.isEmpty()) {
-            log.warn("[{}] 처리 대상이 아닌 sensorType이라 룰 판단을 건너뜁니다. sensorType={}, deviceEui={}",
-                    getId(),
-                    sensorType,
-                    sensorPayload.deviceEui()
-            );
+            log.warn("[{}] 처리할 수 없는 sensorType={}", getId(), sensorType);
             return;
         }
 
+        // Command에게 룰 판단 위임
         Optional<RuleResultDto> ruleResult = command.get().evaluate(sensorPayload);
 
+        // 판단 결과가 없으면 종료
         if (ruleResult.isEmpty()) {
             return;
         }
 
-        send(OUTPUT_PORT, message.withPayload(Map.of(MessageFields.RULE_RESULT, ruleResult.get())));
+        // 룰 결과를 Message에 담아 다음 노드로 전달
+        send(
+                OUTPUT_PORT,
+                message.withPayload(
+                        Map.of(MessageFields.RULE_RESULT, ruleResult.get())
+                )
+        );
     }
 }

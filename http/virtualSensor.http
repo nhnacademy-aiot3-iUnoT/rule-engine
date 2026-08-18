@@ -37,7 +37,7 @@ Content-Type: application/json
 }
 
 ### 가상데이터 생성정보 삭제
-DELETE {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/virtual-sensor
+DELETE {{host}}/api/rule-engine/organizations/2/storages/1/zones/23/virtual-sensor
 
 
 ### Zone에서 Flow 정지

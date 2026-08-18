@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.dto.notification;
 
+import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentEventReason;
-import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentStatusEventDto;
 
 import java.util.Map;
@@ -16,8 +16,8 @@ public record NotificationRequest(
         String deviceEui,
         String sensorType,
 
-        EnvironmentStatus previousStatus,
-        EnvironmentStatus currentStatus,
+        EnvStatus previousStatus,
+        EnvStatus currentStatus,
         EnvironmentEventReason reason,
 
         String title,
@@ -29,7 +29,7 @@ public record NotificationRequest(
         return new NotificationRequest(
                 event.organizationId(),
                 event.storageId(),
-                event.sectionId(),
+                event.zoneId(),
                 event.deviceEui(),
                 event.sensorType(),
                 event.previousStatus(),
