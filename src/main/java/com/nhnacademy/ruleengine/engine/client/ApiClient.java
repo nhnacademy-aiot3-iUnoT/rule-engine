@@ -8,12 +8,14 @@ import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.net.URI;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 @Slf4j
@@ -43,6 +45,32 @@ public class ApiClient {
                         .uri(URI.create(url))
                         .retrieve()
                         .body(responseType));
+    }
+
+    // 자원이 없을 수 있는 조회에 쓴다. 404는 빈 값으로, 나머지 실패는 예외로 구분해서 돌려준다.
+    // ApiException은 여러 서비스가 공유하는 형식이라 HTTP 상태를 담지 않으므로 여기서 갈라놓는다.
+    public <T> Optional<T> find(String url, Class<T> dataType) {
+        return find(url, responseTypeOf(dataType));
+    }
+
+    public <T> Optional<T> find(String url, ParameterizedTypeReference<ApiResponse<T>> responseType) {
+        try {
+            return Optional.ofNullable(
+                    unwrap(restClient.get()
+                            .uri(URI.create(url))
+                            .retrieve()
+                            .body(responseType)));
+
+        } catch (HttpStatusCodeException e) {
+            if (e.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return Optional.empty();
+            }
+
+            throw convertApiException(e);
+
+        } catch (RestClientException e) {
+            throw convertApiException(e);
+        }
     }
 
     public <T> T post(String url, Object body, Class<T> dataType) {
@@ -116,23 +144,7 @@ public class ApiClient {
 
     private <T> T execute(Supplier<ApiResponse<T>> supplier) {
         try {
-            ApiResponse<T> response = supplier.get();
-
-            if (response == null) {
-                throw new ApiException(
-                        ErrorCode.EXTERNAL_API_EMPTY_RESPONSE,
-                        "응답이 없습니다."
-                );
-            }
-
-            if (!response.success()) {
-                throw new ApiException(
-                        ErrorCode.from(response.error() == null ? null : response.error().code()),
-                        response.error() == null ? "외부 서비스가 실패를 반환했습니다." : response.error().message()
-                );
-            }
-
-            return response.data();
+            return unwrap(supplier.get());
 
         } catch (HttpStatusCodeException e) {
             throw convertApiException(e); // API Server가 준 JSON -> 내부 예외 객체로 변환
@@ -140,6 +152,24 @@ public class ApiClient {
         } catch (RestClientException e) {
             throw convertApiException(e); // 연결 실패, 타임아웃, 응답 파싱 실패 등
         }
+    }
+
+    private <T> T unwrap(ApiResponse<T> response) {
+        if (response == null) {
+            throw new ApiException(
+                    ErrorCode.EXTERNAL_API_EMPTY_RESPONSE,
+                    "응답이 없습니다."
+            );
+        }
+
+        if (!response.success()) {
+            throw new ApiException(
+                    ErrorCode.from(response.error() == null ? null : response.error().code()),
+                    response.error() == null ? "외부 서비스가 실패를 반환했습니다." : response.error().message()
+            );
+        }
+
+        return response.data();
     }
 
     private void executeBodiless(Runnable request) {

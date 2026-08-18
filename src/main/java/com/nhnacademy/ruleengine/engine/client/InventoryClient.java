@@ -53,7 +53,8 @@ public class InventoryClient {
     }
 
     // deviceEui로 센서가 설치된 위치(조직/창고/구역)를 조회한다.
-    public ResolvedZoneResponse getZoneResponse(
+    // 등록되지 않은 기기면 빈 값이고, 인벤토리 장애는 예외로 올라온다.
+    public Optional<ResolvedZoneResponse> findZoneResponse(
             String deviceEui
     ) {
         String url = UriComponentsBuilder
@@ -62,7 +63,7 @@ public class InventoryClient {
                 .encode()
                 .toUriString();
 
-        return apiClient.get(url, ResolvedZoneResponse.class);
+        return apiClient.find(url, ResolvedZoneResponse.class);
     }
 
     // 구역의 환경 상태를 갱신한다.

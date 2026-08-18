@@ -18,6 +18,7 @@ import org.springframework.core.ParameterizedTypeReference;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -102,22 +103,22 @@ class InventoryClientTest {
 
     @Test
     @DisplayName("deviceEui를 쿼리 파라미터로 붙여 구역 정보를 조회한다")
-    void getZoneResponse() {
+    void findZoneResponse() {
         // given
         ResolvedZoneResponse expected = new ResolvedZoneResponse(1L, 2L, 3L);
 
-        when(apiClient.get(anyString(), eq(ResolvedZoneResponse.class)))
-                .thenReturn(expected);
+        when(apiClient.find(anyString(), eq(ResolvedZoneResponse.class)))
+                .thenReturn(Optional.of(expected));
 
         // when
-        ResolvedZoneResponse response = inventoryClient.getZoneResponse("24e124128c067999");
+        Optional<ResolvedZoneResponse> response = inventoryClient.findZoneResponse("24e124128c067999");
 
         // then
         ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
-        verify(apiClient).get(url.capture(), eq(ResolvedZoneResponse.class));
+        verify(apiClient).find(url.capture(), eq(ResolvedZoneResponse.class));
 
         assertAll(
-                () -> assertEquals(expected, response),
+                () -> assertEquals(Optional.of(expected), response),
                 () -> assertEquals(
                         BASE_URL + "/api/core/internal/devices/location?device-eui=24e124128c067999",
                         url.getValue()
@@ -126,16 +127,27 @@ class InventoryClientTest {
     }
 
     @Test
-    @DisplayName("등록되지 않은 deviceEui면 ApiException이 그대로 전파된다")
-    void getZoneResponseNotFound() {
+    @DisplayName("등록되지 않은 deviceEui면 빈 값을 돌려준다")
+    void findZoneResponseNotFound() {
         // given
-        when(apiClient.get(anyString(), eq(ResolvedZoneResponse.class)))
-                .thenThrow(new ApiException(ErrorCode.EXTERNAL_API_ERROR, "센서를 찾을 수 없습니다."));
+        when(apiClient.find(anyString(), eq(ResolvedZoneResponse.class)))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertTrue(inventoryClient.findZoneResponse("unknown-eui").isEmpty());
+    }
+
+    @Test
+    @DisplayName("인벤토리 호출이 실패하면 ApiException이 그대로 전파된다")
+    void findZoneResponseFailure() {
+        // given
+        when(apiClient.find(anyString(), eq(ResolvedZoneResponse.class)))
+                .thenThrow(new ApiException(ErrorCode.EXTERNAL_API_ERROR, "호출 실패"));
 
         // when & then
         assertThrows(
                 ApiException.class,
-                () -> inventoryClient.getZoneResponse("unknown-eui")
+                () -> inventoryClient.findZoneResponse("unknown-eui")
         );
     }
 
