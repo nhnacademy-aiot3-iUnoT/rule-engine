@@ -9,10 +9,10 @@ public record ThresholdPolicyDto(
         Long organizationId,
         Long locationId,
         Long positionId,
-        Map<String, ThresholdRange> ranges, // key: 센서타입 (예: "temperature")
-        Integer thresholdDurationMinutes
+        Map<String, ThresholdRange> ranges // key: 센서타입 (예: "temperature")
 ) {
-    public record ThresholdRange(Double min, Double max) {
+    // 임계시간(alertDurationMinutes)은 인벤토리에서 센서타입별로 설정하므로 범위와 같이 둔다.
+    public record ThresholdRange(Double min, Double max, Integer alertDurationMinutes) {
     }
 
     public Optional<ThresholdRange> rangeFor(String sensorType) {

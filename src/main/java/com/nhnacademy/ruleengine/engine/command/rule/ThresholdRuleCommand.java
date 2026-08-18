@@ -59,28 +59,28 @@ public class ThresholdRuleCommand implements EnvironmentRuleCommand {
             return Optional.empty();
         }
 
-        return Optional.of(checkValue(sensorPayload, thresholdPolicy, range.get()));
+        return Optional.of(checkValue(sensorPayload, range.get()));
     }
 
     private RuleResultDto checkValue(
             SensorPayload sensorPayload,
-            ThresholdPolicyDto thresholdPolicy,
             ThresholdPolicyDto.ThresholdRange range
     ) {
         Double value = sensorPayload.value();
         String sensorType = sensorPayload.sensorType();
         Double min = range.min();
         Double max = range.max();
+        Integer alertDurationMinutes = range.alertDurationMinutes();
 
         if (min != null && value < min) {
-            return build(sensorPayload, ViolationType.BELOW_MIN, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최솟값 미달");
+            return build(sensorPayload, ViolationType.BELOW_MIN, true, min, max, alertDurationMinutes, sensorType + ": 최솟값 미달");
         }
 
         if (max != null && value > max) {
-            return build(sensorPayload, ViolationType.ABOVE_MAX, true, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 최댓값 초과");
+            return build(sensorPayload, ViolationType.ABOVE_MAX, true, min, max, alertDurationMinutes, sensorType + ": 최댓값 초과");
         }
 
-        return build(sensorPayload, ViolationType.NORMAL, false, min, max, thresholdPolicy.thresholdDurationMinutes(), sensorType + ": 정상");
+        return build(sensorPayload, ViolationType.NORMAL, false, min, max, alertDurationMinutes, sensorType + ": 정상");
     }
 
     private RuleResultDto build(

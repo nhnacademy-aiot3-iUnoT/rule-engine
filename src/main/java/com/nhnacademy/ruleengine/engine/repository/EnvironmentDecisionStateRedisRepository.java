@@ -4,13 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentDecisionState;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 // 센서별 환경상태 판단 상태(EnvironmentDecisionState)를 Redis에 저장해 서버 인스턴스 간 공유한다.
+// 구역 단위 Hash(key=구역, field=센서)로 저장하는데, 인벤토리의 구역 환경 상태를 계산할 때
+// 같은 구역 센서들의 상태를 한 번에 읽어야 하기 때문이다.
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class EnvironmentDecisionStateRedisRepository {
@@ -22,14 +28,16 @@ public class EnvironmentDecisionStateRedisRepository {
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
 
-    public Optional<EnvironmentDecisionState> find(String key) {
-        String value = redisTemplate.opsForValue().get(getStateKey(key));
+    public Optional<EnvironmentDecisionState> find(String zoneKey, String sensorField) {
+        Object value = redisTemplate.opsForHash().get(getStateKey(zoneKey), sensorField);
         if (value == null) {
             return Optional.empty();
         }
 
         try {
-            return Optional.of(objectMapper.readValue(value, EnvironmentDecisionState.class));
+            return Optional.of(
+                    objectMapper.readValue(String.valueOf(value), EnvironmentDecisionState.class)
+            );
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException(
                     "환경상태 판단 상태 역직렬화에 실패했습니다.",
@@ -38,10 +46,37 @@ public class EnvironmentDecisionStateRedisRepository {
         }
     }
 
-    public void save(String key, EnvironmentDecisionState state) {
+    // 구역에 속한 센서들의 상태를 모두 읽는다. 값 하나가 깨져도 나머지 집계는 계속되어야 하므로 건너뛴다.
+    public Map<String, EnvironmentDecisionState> findSensorStatesByZone(String zoneKey) {
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(getStateKey(zoneKey));
+
+        Map<String, EnvironmentDecisionState> states = new LinkedHashMap<>();
+
+        for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+            String sensorField = String.valueOf(entry.getKey());
+
+            try {
+                states.put(
+                        sensorField,
+                        objectMapper.readValue(String.valueOf(entry.getValue()), EnvironmentDecisionState.class)
+                );
+            } catch (JsonProcessingException exception) {
+                log.warn("환경상태 판단 상태 역직렬화에 실패해 건너뜁니다. zoneKey={}, sensor={}",
+                        zoneKey, sensorField, exception);
+            }
+        }
+
+        return states;
+    }
+
+    public void save(String zoneKey, String sensorField, EnvironmentDecisionState state) {
         try {
             String value = objectMapper.writeValueAsString(state);
-            redisTemplate.opsForValue().set(getStateKey(key), value, STATE_TTL);
+            String key = getStateKey(zoneKey);
+
+            redisTemplate.opsForHash().put(key, sensorField, value);
+            redisTemplate.expire(key, STATE_TTL);
+
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException(
                     "환경상태 판단 상태 직렬화에 실패했습니다.",
@@ -50,7 +85,7 @@ public class EnvironmentDecisionStateRedisRepository {
         }
     }
 
-    private String getStateKey(String key) {
-        return KEY_PREFIX + key;
+    private String getStateKey(String zoneKey) {
+        return KEY_PREFIX + zoneKey;
     }
 }
