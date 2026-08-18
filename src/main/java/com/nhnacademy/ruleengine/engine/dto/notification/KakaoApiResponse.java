@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto.response;
+package com.nhnacademy.ruleengine.engine.dto.notification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

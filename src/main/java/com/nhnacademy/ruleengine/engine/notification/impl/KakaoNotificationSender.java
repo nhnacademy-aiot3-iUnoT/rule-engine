@@ -5,8 +5,8 @@
 //import com.nhnacademy.ruleengine.engine.dto.notification.NotificationChannel;
 //import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
 //import com.nhnacademy.ruleengine.engine.dto.notification.NotificationRequest;
-//import com.nhnacademy.ruleengine.engine.dto.request.KakaoMessageTemplate;
-//import com.nhnacademy.ruleengine.engine.dto.response.KakaoApiResponse;
+//import com.nhnacademy.ruleengine.engine.dto.notification.KakaoMessageTemplate;
+//import com.nhnacademy.ruleengine.engine.dto.notification.KakaoApiResponse;
 //import com.nhnacademy.ruleengine.engine.notification.NotificationSender;
 //import com.nhnacademy.ruleengine.global.config.KakaoTalkProperties;
 //import lombok.extern.slf4j.Slf4j;
