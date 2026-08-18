@@ -2,8 +2,14 @@ services:
   rule-engine-1:
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      INVENTORY_BASE_URL: ${INVENTORY_BASE_URL:-http://host.docker.internal:10411}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     build: .
   rule-engine-2:
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      INVENTORY_BASE_URL: ${INVENTORY_BASE_URL:-http://host.docker.internal:10411}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     build: .

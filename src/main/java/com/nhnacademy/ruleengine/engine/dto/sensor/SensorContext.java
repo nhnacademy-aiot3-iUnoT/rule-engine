@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.dto.sensor;
 
 
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
+import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 
 // 센서별 변환 로직에서 공통으로 사용하는 장치 정보를 담는다.
 public record SensorContext(
@@ -14,17 +14,17 @@ public record SensorContext(
 
     public static SensorContext from(
             ExternalSensorMessage externalSensorMessage,
-            ResolvedSection resolvedSection
+            ResolvedZoneResponse resolvedZone
     ) {
-        if (resolvedSection == null) {
+        if (resolvedZone == null) {
             throw new IllegalArgumentException("변환된 섹션 ID는 필수입니다.");
         }
 
         return new SensorContext(
-                resolvedSection.organizationId(),
+                resolvedZone.organizationId(),
                 valueOrUnknown(externalSensorMessage.devEui()),
-                resolvedSection.storageId(),
-                resolvedSection.sectionId(),
+                resolvedZone.storageId(),
+                resolvedZone.zoneId(),
                 valueOrUnknown(externalSensorMessage.time())
         );
     }

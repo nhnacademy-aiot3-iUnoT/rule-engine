@@ -42,11 +42,11 @@ public class EventCreateNode extends AbstractNode {
         send(OUTPUT_PORT, message.withEntry(MessageFields.ENVIRONMENT_STATUS_EVENT, event));
 
         log.info(
-                "[{}] 환경 상태 이벤트 생성. organizationId={}, storageId={}, sectionId={}, deviceEui={}, sensorType={}, previousStatus={}, currentStatus={}, reason={}",
+                "[{}] 환경 상태 이벤트 생성. organizationId={}, storageId={}, zoneId={}, deviceEui={}, sensorType={}, previousStatus={}, currentStatus={}, reason={}",
                 getId(),
                 event.organizationId(),
                 event.storageId(),
-                event.sectionId(),
+                event.zoneId(),
                 event.deviceEui(),
                 event.sensorType(),
                 event.previousStatus(),

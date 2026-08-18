@@ -1,0 +1,30 @@
+package com.nhnacademy.ruleengine.engine.service;
+
+import com.nhnacademy.ruleengine.engine.client.InventoryClient;
+import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
+import com.nhnacademy.ruleengine.global.config.CacheConfig;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class CachedZoneLookup {
+
+    private final InventoryClient inventoryClient;
+
+    @Cacheable(cacheNames = CacheConfig.DEVICE_ZONE, key = "#deviceEui")
+    public Optional<ResolvedZoneResponse> find(String deviceEui) {
+        Optional<ResolvedZoneResponse> zone = inventoryClient.findZoneResponse(deviceEui);
+
+        if (zone.isEmpty()) {
+            log.warn("등록되지 않은 기기라 구역 정보가 없습니다. deviceEui={}", deviceEui);
+        }
+
+        return zone;
+    }
+}
