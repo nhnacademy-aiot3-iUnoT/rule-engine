@@ -2,10 +2,13 @@ package com.nhnacademy.ruleengine.engine.flow;
 
 import com.nhnacademy.ruleengine.engine.command.rule.EnvironmentRuleCommand;
 import com.nhnacademy.ruleengine.engine.core.Flow;
+import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.node.impl.*;
+import com.nhnacademy.ruleengine.engine.notification.NotificationSender;
 import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
 import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
+import com.nhnacademy.ruleengine.engine.service.ZoneEnvStatusService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +26,7 @@ public class NormalizedSensorProcessingFlow {
     private static final String RULE_EVALUATION_NODE_ID = "flow-rule-evaluation";
     private static final String ENVIRONMENT_STATUS_NODE_ID = "flow-environment-status";
     private static final String EVENT_CREATE_NODE_ID = "flow-event-create";
+    private static final String ZONE_ENV_STATUS_NODE_ID = "flow-zone-env-status";
     private static final String NOTIFICATION_NODE_ID = "flow-notification";
 
     private static final String INPUT_PORT = "in";
@@ -32,68 +36,64 @@ public class NormalizedSensorProcessingFlow {
     private final SensorInfluxService sensorInfluxService;
     private final List<EnvironmentRuleCommand> environmentRuleCommands;
     private final EnvironmentDecisionStateRedisRepository environmentDecisionStateRedisRepository;
+    private final ZoneEnvStatusService zoneEnvStatusService;
     private final NotificationPreferenceService notificationPreferenceService;
+    private final List<NotificationSender> senders;
 
     public Flow create() {
-        return new Flow(FLOW_ID)
-                .addNode(normalizedSensorConsumer)
-                .addNode(new SensorPayloadValidationNode(
+        Flow flow = new Flow(FLOW_ID);
+        List<AbstractNode> pipeline = pipeline();
+
+        pipeline.forEach(flow::addNode);
+        connectInOrder(flow, pipeline);
+
+        return flow;
+    }
+
+    // 처리 순서대로 나열한다. 순서를 바꾸려면 이 목록만 고치면 된다.
+    private List<AbstractNode> pipeline() {
+        return List.of(
+                normalizedSensorConsumer,
+                new SensorPayloadValidationNode(
                         VALIDATION_NODE_ID
-                ))
-                .addNode(new DatabaseSaveNode(
+                ),
+                new DatabaseSaveNode(
                         DATABASE_SAVE_NODE_ID,
                         sensorInfluxService
-                ))
-                .addNode(new EnvironmentRuleEvaluationNode(
+                ),
+                new EnvironmentRuleEvaluationNode(
                         RULE_EVALUATION_NODE_ID,
                         environmentRuleCommands
-                ))
-                .addNode(new EnvironmentStatusDecisionNode(
+                ),
+                new EnvironmentStatusDecisionNode(
                         ENVIRONMENT_STATUS_NODE_ID,
                         environmentDecisionStateRedisRepository
-                ))
-                .addNode(new EventCreateNode(
+                ),
+                new EventCreateNode(
                         EVENT_CREATE_NODE_ID
-                ))
-                .addNode(new NotificationDispatchNode(
+                ),
+                new ZoneEnvStatusReportNode(
+                        ZONE_ENV_STATUS_NODE_ID,
+                        zoneEnvStatusService
+                ),
+                new NotificationDispatchNode(
                         NOTIFICATION_NODE_ID,
-                        notificationPreferenceService
-                ))
-                .connect(
-                        NormalizedSensorConsumerNode.NODE_ID,
-                        OUTPUT_PORT,
-                        VALIDATION_NODE_ID,
-                        INPUT_PORT
+                        notificationPreferenceService,
+                        senders
                 )
-                .connect(
-                        VALIDATION_NODE_ID,
-                        OUTPUT_PORT,
-                        DATABASE_SAVE_NODE_ID,
-                        INPUT_PORT
-                )
-                .connect(
-                        DATABASE_SAVE_NODE_ID,
-                        OUTPUT_PORT,
-                        RULE_EVALUATION_NODE_ID,
-                        INPUT_PORT
-                )
-                .connect(
-                        RULE_EVALUATION_NODE_ID,
-                        OUTPUT_PORT,
-                        ENVIRONMENT_STATUS_NODE_ID,
-                        INPUT_PORT
-                )
-                .connect(
-                        ENVIRONMENT_STATUS_NODE_ID,
-                        OUTPUT_PORT,
-                        EVENT_CREATE_NODE_ID,
-                        INPUT_PORT
-                )
-                .connect(
-                        EVENT_CREATE_NODE_ID,
-                        OUTPUT_PORT,
-                        NOTIFICATION_NODE_ID,
-                        INPUT_PORT
-                );
+
+        );
+    }
+
+    // 앞 노드의 출력 포트를 다음 노드의 입력 포트로 차례대로 잇는다.
+    private void connectInOrder(Flow flow, List<AbstractNode> pipeline) {
+        for (int i = 0; i < pipeline.size() - 1; i++) {
+            flow.connect(
+                    pipeline.get(i).getId(),
+                    OUTPUT_PORT,
+                    pipeline.get(i + 1).getId(),
+                    INPUT_PORT
+            );
+        }
     }
 }

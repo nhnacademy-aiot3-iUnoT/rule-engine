@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.dto.sensor;
 
-import com.nhnacademy.ruleengine.engine.catalog.SectionCatalog.ResolvedSection;
+import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,9 +28,9 @@ class SensorContextTest {
 
         );
 
-        ResolvedSection resolvedSection = new ResolvedSection(1L, 1L, 1L);
+        ResolvedZoneResponse resolvedZone = new ResolvedZoneResponse(1L, 1L, 1L);
 
-        SensorContext sensorContext = SensorContext.from(externalSensorMessage, resolvedSection);
+        SensorContext sensorContext = SensorContext.from(externalSensorMessage, resolvedZone);
         assertAll(
                 () -> {
                     assertEquals("test-time", sensorContext.time());
@@ -58,9 +58,9 @@ class SensorContextTest {
 
         );
 
-        ResolvedSection resolvedSection = new ResolvedSection(1L, 1L, 1L);
+        ResolvedZoneResponse resolvedZone = new ResolvedZoneResponse(1L, 1L, 1L);
 
-        SensorContext sensorContext = SensorContext.from(externalSensorMessage, resolvedSection);
+        SensorContext sensorContext = SensorContext.from(externalSensorMessage, resolvedZone);
         assertAll(
                 () -> {
                     assertEquals("unknown", sensorContext.time());
@@ -88,9 +88,9 @@ class SensorContextTest {
 
         );
 
-        ResolvedSection resolvedSection = new ResolvedSection(1L, 1L, 1L);
+        ResolvedZoneResponse resolvedZone = new ResolvedZoneResponse(1L, 1L, 1L);
 
-        SensorContext sensorContext = SensorContext.from(externalSensorMessage, resolvedSection);
+        SensorContext sensorContext = SensorContext.from(externalSensorMessage, resolvedZone);
         assertAll(
                 () -> {
                     assertEquals("test-time", sensorContext.time());
@@ -103,8 +103,8 @@ class SensorContextTest {
     }
 
     @Test
-    @DisplayName("ResolvedSection이 null일 때 IllegalArgumentException을 던진다")
-    void initResolvedSectionNull() {
+    @DisplayName("구역 정보가 null일 때 IllegalArgumentException을 던진다")
+    void initResolvedZoneNull() {
 
         externalSensorMessage = new ExternalSensorMessage(
                 "testTopic",
