@@ -32,7 +32,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
-    private static final int ALERT_INTERVAL = 30;  //lastAlertAt 타임 갱신주기
+    private static final int ALERT_INTERVAL = 1;  //lastAlertAt 타임 갱신주기
 
     // 외부 장치/게이트웨이의 시계가 앞서있는 경우, 미래 타임스탬프 하나가 상태를 영구히 막아버리는 것을 방지한다.
     private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(1);

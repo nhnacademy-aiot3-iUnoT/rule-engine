@@ -24,12 +24,14 @@ public class RestClientConfig {
     }
 
     @Bean
+    @Primary
     @Profile("prod")
     public RestClient restClient(@LoadBalanced RestClient.Builder builder) {
         return builder.build();
     }
 
     @Bean
+    @Primary
     @Profile("!prod")
     public RestClient devRestClient(RestClient.Builder builder) {
         return builder.build();

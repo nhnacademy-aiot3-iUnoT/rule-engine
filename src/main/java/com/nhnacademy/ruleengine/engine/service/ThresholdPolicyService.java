@@ -3,8 +3,6 @@ package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.client.InventoryClient;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
-
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

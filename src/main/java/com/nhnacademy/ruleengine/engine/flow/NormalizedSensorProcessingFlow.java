@@ -4,6 +4,7 @@ import com.nhnacademy.ruleengine.engine.command.rule.EnvironmentRuleCommand;
 import com.nhnacademy.ruleengine.engine.core.Flow;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.node.impl.*;
+import com.nhnacademy.ruleengine.engine.notification.NotificationSender;
 import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
 import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
@@ -13,8 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// 정규화 센서 메시지의 검증과 저장, 룰 판단, 상태전이, 이벤트 생성, 구역 상태 반영, 알림 발송 파이프라인을 구성한다.
-// 노드는 한 줄로 이어지므로, 아래 pipeline() 목록의 순서가 곧 처리 순서다.
+// 정규화 센서 메시지의 검증과 저장, 룰 판단, 상태전이, 이벤트 생성 파이프라인을 구성한다.
 @Component
 @RequiredArgsConstructor
 public class NormalizedSensorProcessingFlow {
@@ -38,6 +38,7 @@ public class NormalizedSensorProcessingFlow {
     private final EnvironmentDecisionStateRedisRepository environmentDecisionStateRedisRepository;
     private final ZoneEnvStatusService zoneEnvStatusService;
     private final NotificationPreferenceService notificationPreferenceService;
+    private final List<NotificationSender> senders;
 
     public Flow create() {
         Flow flow = new Flow(FLOW_ID);
@@ -77,8 +78,10 @@ public class NormalizedSensorProcessingFlow {
                 ),
                 new NotificationDispatchNode(
                         NOTIFICATION_NODE_ID,
-                        notificationPreferenceService
+                        notificationPreferenceService,
+                        senders
                 )
+
         );
     }
 
