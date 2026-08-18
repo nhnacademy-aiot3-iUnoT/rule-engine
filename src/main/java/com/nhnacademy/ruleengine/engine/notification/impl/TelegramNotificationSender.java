@@ -66,8 +66,7 @@ public class TelegramNotificationSender implements NotificationSender {
         } catch (RestClientException e){
             log.warn("Telegram 알림 발송 중 예외 발생. userId={}, chatId={}",
                     preference.userId(),
-                    preference.recipient(),
-                    e
+                    preference.recipient()
             );
         }
     }
