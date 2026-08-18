@@ -138,7 +138,7 @@ class ZoneEnvStatusServiceTest {
     }
 
     private void stubStates(Map<String, EnvironmentDecisionState> states) {
-        when(decisionStateRepository.findAllByZone(ZONE_KEY)).thenReturn(states);
+        when(decisionStateRepository.findSensorStatesByZone(ZONE_KEY)).thenReturn(states);
     }
 
     private EnvironmentDecisionState state(EnvStatus status) {

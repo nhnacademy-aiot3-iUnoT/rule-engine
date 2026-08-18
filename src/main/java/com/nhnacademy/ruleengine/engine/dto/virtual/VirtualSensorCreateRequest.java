@@ -13,15 +13,12 @@ public record VirtualSensorCreateRequest(
         Integer measurementIntervalSeconds,
 
         @Valid
-        @NotNull(message = "온도 범위는 필수입니다.")
         SensorValueRange temperature,
 
         @Valid
-        @NotNull(message = "습도 범위는 필수입니다.")
         SensorValueRange humidity,
 
         @Valid
-        @NotNull(message = "밝기 범위는 필수입니다.")
         SensorValueRange illumination,
 
         @NotNull(message = "문 열림 확률은 필수입니다.")

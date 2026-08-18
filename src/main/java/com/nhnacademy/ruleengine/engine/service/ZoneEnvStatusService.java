@@ -36,7 +36,7 @@ public class ZoneEnvStatusService {
         String zoneKey = SensorKeys.zoneOf(organizationId, storageId, zoneId);
 
         // 상태 판단 노드가 센서 상태를 이미 저장했으므로, 여기서는 읽어서 가장 나쁜 값만 고른다.
-        EnvStatus zoneStatus = worstOf(decisionStateRepository.findAllByZone(zoneKey));
+        EnvStatus zoneStatus = worstOf(decisionStateRepository.findSensorStatesByZone(zoneKey));
 
         if (zoneStatus == lastReportedStatuses.get(zoneId)) {
             return Optional.empty();

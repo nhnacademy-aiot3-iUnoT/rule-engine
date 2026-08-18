@@ -47,7 +47,7 @@ public class EnvironmentDecisionStateRedisRepository {
     }
 
     // 구역에 속한 센서들의 상태를 모두 읽는다. 값 하나가 깨져도 나머지 집계는 계속되어야 하므로 건너뛴다.
-    public Map<String, EnvironmentDecisionState> findAllByZone(String zoneKey) {
+    public Map<String, EnvironmentDecisionState> findSensorStatesByZone(String zoneKey) {
         Map<Object, Object> entries = redisTemplate.opsForHash().entries(getStateKey(zoneKey));
 
         Map<String, EnvironmentDecisionState> states = new LinkedHashMap<>();
