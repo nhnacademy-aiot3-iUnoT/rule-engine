@@ -6,6 +6,10 @@ spring:
   application:
     name: rule-engine
 
+  ai:
+    google:
+      genai:
+        api-key: ${GOOGLE_GENAI_API_KEY}
   data:
    redis:
      host: ${REDIS_HOST}
