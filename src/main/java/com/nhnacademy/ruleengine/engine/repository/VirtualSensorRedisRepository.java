@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Repository
 @RequiredArgsConstructor
 public class VirtualSensorRedisRepository {
-    private static final String ACTIVE_SECTIONS_KEY = "rule-engine:virtual-sensor:active-sections";
+    private static final String ACTIVE_ZONES_KEY = "rule-engine:virtual-sensor:active-zones";
     private static final String CONFIG_KEY_PREFIX = "rule-engine:virtual-sensor:config:";
     private static final String DELETE_SCRIPT = """
             local deleted = redis.call('DEL', KEYS[1])
@@ -69,7 +69,7 @@ public class VirtualSensorRedisRepository {
 
         redisTemplate.execute(
                 script,
-                List.of(configKey, ACTIVE_SECTIONS_KEY),
+                List.of(configKey, ACTIVE_ZONES_KEY),
                 zoneId.toString()
         );
 
@@ -95,24 +95,24 @@ public class VirtualSensorRedisRepository {
 
     public void activate(Long zoneId) {
         redisTemplate.opsForSet()
-                .add(ACTIVE_SECTIONS_KEY, zoneId.toString());
+                .add(ACTIVE_ZONES_KEY, zoneId.toString());
     }
 
     public void deactivate(Long zoneId) {
         redisTemplate.opsForSet()
-                .remove(ACTIVE_SECTIONS_KEY, zoneId.toString());
+                .remove(ACTIVE_ZONES_KEY, zoneId.toString());
     }
 
     public boolean isActive(Long zoneId) {
         Boolean active = redisTemplate.opsForSet()
-                .isMember(ACTIVE_SECTIONS_KEY, zoneId.toString());
+                .isMember(ACTIVE_ZONES_KEY, zoneId.toString());
 
         return Boolean.TRUE.equals(active);
     }
 
-    public Set<Long> findAllActiveSectionIds() {
+    public Set<Long> findAllActiveZoneIds() {
         Set<String> members = redisTemplate.opsForSet()
-                .members(ACTIVE_SECTIONS_KEY);
+                .members(ACTIVE_ZONES_KEY);
 
         if (members == null) {
             return Set.of();

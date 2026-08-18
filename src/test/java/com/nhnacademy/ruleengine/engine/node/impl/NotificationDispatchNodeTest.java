@@ -251,7 +251,7 @@ class NotificationDispatchNodeTest {
     }
 
     @Test
-    void 이벤트의_organization_storage_section_id로_preference를_조회한다(){
+    void 이벤트의_organization_storage_zone_id로_preference를_조회한다(){
         EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
 

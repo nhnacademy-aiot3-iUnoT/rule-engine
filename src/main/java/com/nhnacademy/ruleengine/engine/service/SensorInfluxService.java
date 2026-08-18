@@ -57,7 +57,7 @@ public class SensorInfluxService {
                 sensorPayload.organizationId(),
                 sensorPayload.deviceEui(),
                 sensorPayload.storageId(),
-                sensorPayload.sectionId(),
+                sensorPayload.zoneId(),
                 sensorType.value(),
                 sensorPayload.value(),
                 sensorType.unit(),
@@ -178,7 +178,7 @@ public class SensorInfluxService {
         );
 
         validatePositiveId(
-                sensorPayload.sectionId(),
+                sensorPayload.zoneId(),
                 ZONE_ID
         );
     }

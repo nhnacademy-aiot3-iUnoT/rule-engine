@@ -45,52 +45,52 @@ public class VirtualSensorCoordinator extends LeasedFlowOwner<Long> {
 
     @Override
     protected Set<Long> desiredKeys() {
-        return virtualSensorRedisRepository.findAllActiveSectionIds();
+        return virtualSensorRedisRepository.findAllActiveZoneIds();
     }
 
     @Override
-    protected String lockKey(Long sectionId) {
-        return lockKeyPrefix + ":" + sectionId;
+    protected String lockKey(Long zoneId) {
+        return lockKeyPrefix + ":" + zoneId;
     }
 
     @Override
-    protected String flowId(Long sectionId) {
-        return VirtualSensorFlow.flowId(sectionId);
+    protected String flowId(Long zoneId) {
+        return VirtualSensorFlow.flowId(zoneId);
     }
 
     @Override
-    protected Flow createFlow(Long sectionId) {
+    protected Flow createFlow(Long zoneId) {
         VirtualSensorConfig config = virtualSensorRedisRepository
-                .getVirtualSensorConfig(sectionId)
+                .getVirtualSensorConfig(zoneId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "가상 센서 설정이 없습니다. sectionId=" + sectionId
+                        "가상 센서 설정이 없습니다. zoneId=" + zoneId
                 ));
 
         Flow flow = virtualSensorFlow.create(config);
-        runningConfigs.put(sectionId, config);
+        runningConfigs.put(zoneId, config);
 
         return flow;
     }
 
     // 설정이 변경된 경우에만 Flow를 다시 시작해 최신 설정을 반영한다.
     @Override
-    protected void onLeaseRenewed(Long sectionId) {
+    protected void onLeaseRenewed(Long zoneId) {
         VirtualSensorConfig latestConfig = virtualSensorRedisRepository
-                .getVirtualSensorConfig(sectionId)
+                .getVirtualSensorConfig(zoneId)
                 .orElse(null);
 
-        if (latestConfig == null || latestConfig.equals(runningConfigs.get(sectionId))) {
+        if (latestConfig == null || latestConfig.equals(runningConfigs.get(zoneId))) {
             return;
         }
 
-        log.info("가상 센서 설정이 변경되어 Flow를 재시작합니다. sectionId={}", sectionId);
+        log.info("가상 센서 설정이 변경되어 Flow를 재시작합니다. zoneId={}", zoneId);
 
         // createFlow()가 최신 설정을 다시 읽어 runningConfigs까지 갱신한다.
-        restartFlow(sectionId);
+        restartFlow(zoneId);
     }
 
     @Override
-    protected void onOwnershipReleased(Long sectionId) {
-        runningConfigs.remove(sectionId);
+    protected void onOwnershipReleased(Long zoneId) {
+        runningConfigs.remove(zoneId);
     }
 }

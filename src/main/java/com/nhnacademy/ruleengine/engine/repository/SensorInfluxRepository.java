@@ -7,6 +7,7 @@ import com.influxdb.query.FluxRecord;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorDataWriteCommand;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorDailyAggregate;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataSaveException;
@@ -42,7 +43,7 @@ public class SensorInfluxRepository {
         Point point = Point.measurement(influxDbProperties.measurement())
                 .addTag("organization_id", String.valueOf(command.organizationId()))
                 .addTag("storage_id", String.valueOf(command.storageId()))
-                .addTag("section_id", String.valueOf(command.sectionId()))
+                .addTag("zone_id", String.valueOf(command.zoneId()))
                 .addTag(SENSOR_TYPE, command.sensorType())
                 .addTag("device_eui", command.deviceEui())
                 .addTag("unit", command.unit())
@@ -57,10 +58,10 @@ public class SensorInfluxRepository {
             );
         } catch (Exception exception) {
             log.error(
-                    "InfluxDB 센서 데이터 저장에 실패했습니다. organizationId={}, storageId={}, sectionId={}, device_eui={}",
+                    "InfluxDB 센서 데이터 저장에 실패했습니다. organizationId={}, storageId={}, zoneId={}, device_eui={}",
                     command.organizationId(),
                     command.storageId(),
-                    command.sectionId(),
+                    command.zoneId(),
                     command.deviceEui(),
                     exception
             );
@@ -80,7 +81,7 @@ public class SensorInfluxRepository {
                 from(bucket: "%s")
                     |> range(start: %s)
                     |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.section_id == "%s")
+                    |> filter(fn: (r) => r.zone_id == "%s")
                     |> filter(fn: (r) => r._field == "%s")
                     |> group(columns: ["sensor_type"])
                     |> last()
@@ -107,10 +108,10 @@ public class SensorInfluxRepository {
                     |> filter(fn: (r) => r._measurement == "%s")
                     |> filter(fn: (r) => r.storage_id == "%s")
                     |> filter(fn: (r) => r._field == "%s")
-                    |> group(columns: ["section_id", "sensor_type"])
+                    |> group(columns: ["zone_id", "sensor_type"])
                     |> last()
                     |> group()
-                    |> sort(columns: ["section_id", "sensor_type"])
+                    |> sort(columns: ["zone_id", "sensor_type"])
                 """.formatted(
                 influxDbProperties.bucket(),
                 DEFAULT_LATEST_RANGE,
@@ -134,10 +135,10 @@ public class SensorInfluxRepository {
                     |> filter(fn: (r) => r._measurement == "%s")
                     |> filter(fn: (r) => r.organization_id == "%s")
                     |> filter(fn: (r) => r._field == "%s")
-                    |> group(columns: ["storage_id", "section_id", "sensor_type"])
+                    |> group(columns: ["storage_id", "zone_id", "sensor_type"])
                     |> last()
                     |> group()
-                    |> sort(columns: ["storage_id", "section_id", "sensor_type"])
+                    |> sort(columns: ["storage_id", "zone_id", "sensor_type"])
                 """.formatted(
                 influxDbProperties.bucket(),
                 DEFAULT_LATEST_RANGE,
@@ -164,10 +165,10 @@ public class SensorInfluxRepository {
                     |> filter(fn: (r) => r.organization_id == "%s")
                     |> filter(fn: (r) => r.sensor_type == "%s")
                     |> filter(fn: (r) => r._field == "%s")
-                    |> group(columns: ["storage_id", "section_id"])
+                    |> group(columns: ["storage_id", "zone_id"])
                     |> last()
                     |> group()
-                    |> sort(columns: ["storage_id", "section_id"])
+                    |> sort(columns: ["storage_id", "zone_id"])
                 """.formatted(
                 influxDbProperties.bucket(),
                 DEFAULT_LATEST_RANGE,
@@ -244,6 +245,126 @@ public class SensorInfluxRepository {
     }
 
     /**
+     * 구역의 기간별 센서 타입 통계(표본 수/평균/최소/최대)를 한 번의 질의로 집계한다.
+     * <p>
+     * 원본을 애플리케이션으로 끌어와 계산하면 하루치 전부를 메모리에 올려야 하므로
+     * reduce로 InfluxDB 안에서 한 번만 훑고 끝낸다.
+     * door는 열림/닫힘 이진값이라 평균·최소·최대가 의미 없으므로 제외한다.
+     */
+    public List<SensorDailyAggregate> findDailyAggregatesByZone(
+            Long zoneId,
+            Instant from,
+            Instant to
+    ) {
+        String fluxQuery = """
+                from(bucket: "%s")
+                    |> range(
+                        start: time(v: "%s"),
+                        stop: time(v: "%s")
+                    )
+                    |> filter(fn: (r) => r._measurement == "%s")
+                    |> filter(fn: (r) => r.zone_id == "%s")
+                    |> filter(fn: (r) => r.sensor_type != "%s")
+                    |> filter(fn: (r) => r._field == "%s")
+                    |> group(columns: ["sensor_type", "unit"])
+                    |> reduce(
+                        identity: {count: 0.0, sum: 0.0, min: 0.0, max: 0.0},
+                        fn: (r, accumulator) => ({
+                            count: accumulator.count + 1.0,
+                            sum: accumulator.sum + r._value,
+                            min: if accumulator.count == 0.0 then r._value
+                                 else if r._value < accumulator.min then r._value
+                                 else accumulator.min,
+                            max: if accumulator.count == 0.0 then r._value
+                                 else if r._value > accumulator.max then r._value
+                                 else accumulator.max
+                        })
+                    )
+                    |> map(fn: (r) => ({r with avg: r.sum / r.count}))
+                    |> group()
+                    |> sort(columns: ["sensor_type"])
+                """.formatted(
+                influxDbProperties.bucket(),
+                from,
+                to,
+                influxDbProperties.measurement(),
+                zoneId,
+                DOOR_SENSOR_TYPE,
+                VALUE_FIELD
+        );
+
+        return executeQuery(fluxQuery, this::toDailyAggregate);
+    }
+
+    /**
+     * 임계 범위를 벗어난 측정값의 개수를 센다.
+     * <p>
+     * 이탈 비율을 내려면 이탈 표본 수가 필요한데, 원본을 받아 세면 하루치를 전부 옮겨야 한다.
+     * 개수만 필요하므로 InfluxDB에서 세어 숫자 하나만 받는다.
+     * min이나 max 한쪽만 설정된 구역도 있어 조건은 설정된 경계만으로 만든다.
+     */
+    public long countOutOfRange(
+            Long zoneId,
+            String sensorType,
+            Double min,
+            Double max,
+            Instant from,
+            Instant to
+    ) {
+        String boundaryFilter = createBoundaryFilter(min, max);
+
+        if (boundaryFilter.isEmpty()) {
+            return 0L;
+        }
+
+        String fluxQuery = """
+                from(bucket: "%s")
+                    |> range(
+                        start: time(v: "%s"),
+                        stop: time(v: "%s")
+                    )
+                    |> filter(fn: (r) => r._measurement == "%s")
+                    |> filter(fn: (r) => r.zone_id == "%s")
+                    |> filter(fn: (r) => r.sensor_type == "%s")
+                    |> filter(fn: (r) => r._field == "%s")
+                    %s
+                    |> group()
+                    |> count()
+                """.formatted(
+                influxDbProperties.bucket(),
+                from,
+                to,
+                influxDbProperties.measurement(),
+                zoneId,
+                sensorType,
+                VALUE_FIELD,
+                boundaryFilter
+        );
+
+        // 이탈이 하나도 없으면 count()가 빈 결과를 돌려준다.
+        return executeQuery(fluxQuery, this::toCount)
+                .stream()
+                .findFirst()
+                .orElse(0L);
+    }
+
+    private String createBoundaryFilter(Double min, Double max) {
+        if (min != null && max != null) {
+            return "|> filter(fn: (r) => r._value < %s or r._value > %s)".formatted(min, max);
+        }
+
+        if (min != null) {
+            return "|> filter(fn: (r) => r._value < %s)".formatted(min);
+        }
+
+        if (max != null) {
+            return "|> filter(fn: (r) => r._value > %s)".formatted(max);
+        }
+
+        return "";
+    }
+
+    /**
      * door 센서의 원본(raw) 이력을 집계·필터 없이 조회한다.
      * 열림(1)/닫힘(0) 전환 시점을 정확히 판별하려면 두 값 모두 필요하므로
      * 값에 대한 필터를 걸지 않는다.
@@ -261,7 +382,7 @@ public class SensorInfluxRepository {
                         stop: time(v: "%s")
                     )
                     |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.section_id == "%s")
+                    |> filter(fn: (r) => r.zone_id == "%s")
                     %s
                     |> filter(fn: (r) => r._field == "%s")
                     |> group()
@@ -290,7 +411,7 @@ public class SensorInfluxRepository {
                         stop: time(v: "%s")
                     )
                     |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.section_id == "%s")
+                    |> filter(fn: (r) => r.zone_id == "%s")
                     |> filter(fn: (r) => r.sensor_type != "%s")
                     %s
                     |> filter(fn: (r) => r._field == "%s")
@@ -367,7 +488,7 @@ public class SensorInfluxRepository {
                 parseId(fluxRecord, "organization_id"),
                 getStringValue(fluxRecord, "device_eui"),
                 parseId(fluxRecord, "storage_id"),
-                parseId(fluxRecord, "section_id"),
+                parseId(fluxRecord, "zone_id"),
                 getStringValue(fluxRecord, SENSOR_TYPE),
                 getNumberValue(fluxRecord),
                 resolveUnit(fluxRecord),
@@ -394,6 +515,38 @@ public class SensorInfluxRepository {
                         getNumberValue(fluxRecord)
                 )
         );
+    }
+
+    private SensorDailyAggregate toDailyAggregate(
+            FluxRecord fluxRecord
+    ) {
+        return new SensorDailyAggregate(
+                getStringValue(fluxRecord, SENSOR_TYPE),
+                resolveUnit(fluxRecord),
+                (long) getDoubleByKey(fluxRecord, "count"),
+                roundToFirstDecimalPlace(getDoubleByKey(fluxRecord, "avg")),
+                roundToFirstDecimalPlace(getDoubleByKey(fluxRecord, "min")),
+                roundToFirstDecimalPlace(getDoubleByKey(fluxRecord, "max"))
+        );
+    }
+
+    private Long toCount(FluxRecord fluxRecord) {
+        return (long) getNumberValue(fluxRecord);
+    }
+
+    private double getDoubleByKey(
+            FluxRecord fluxRecord,
+            String key
+    ) {
+        Object rawValue = fluxRecord.getValueByKey(key);
+
+        if (!(rawValue instanceof Number numberValue)) {
+            throw new IllegalStateException(
+                    key + " 집계값이 숫자 형식이 아닙니다: " + rawValue
+            );
+        }
+
+        return numberValue.doubleValue();
     }
 
     private String resolveUnit(

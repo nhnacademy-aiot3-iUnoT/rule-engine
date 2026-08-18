@@ -28,7 +28,7 @@ public class IlluminationSensorCommand implements SensorCommand {
                 sensorContext.organizationId(),
                 sensorContext.deviceEui(),
                 sensorContext.storageId(),
-                sensorContext.sectionId(),
+                sensorContext.zoneId(),
                 getSensorType().value(),
                 toDouble(value),
                 getSensorType().unit(),

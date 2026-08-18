@@ -51,14 +51,13 @@ class InventoryClientTest {
         ));
 
         // when
-        ThresholdPolicyDto policy = inventoryClient.getThresholdPolicy(1L, 2L, 3L);
+        ThresholdPolicyDto policy = inventoryClient.getThresholdPolicy(3L);
 
         ThresholdRange temperature = policy.rangeFor(SensorType.TEMPERATURE.value()).orElseThrow();
         ThresholdRange humidity = policy.rangeFor(SensorType.HUMIDITY.value()).orElseThrow();
 
         // then
         assertAll(
-                () -> assertEquals(3L, policy.positionId()),
                 () -> assertEquals(20.0, temperature.min()),
                 () -> assertEquals(30.0, temperature.max()),
                 () -> assertEquals(5, temperature.alertDurationMinutes()),
@@ -79,7 +78,7 @@ class InventoryClientTest {
         ));
 
         // when
-        ThresholdPolicyDto policy = inventoryClient.getThresholdPolicy(1L, 2L, 3L);
+        ThresholdPolicyDto policy = inventoryClient.getThresholdPolicy(3L);
 
         // then
         assertAll(
@@ -95,7 +94,7 @@ class InventoryClientTest {
         stubThresholds(List.of());
 
         // when
-        ThresholdPolicyDto policy = inventoryClient.getThresholdPolicy(1L, 2L, 3L);
+        ThresholdPolicyDto policy = inventoryClient.getThresholdPolicy(3L);
 
         // then
         assertTrue(policy.ranges().isEmpty());

@@ -29,7 +29,7 @@ public class DoorSensorCommand implements SensorCommand {
                 sensorContext.organizationId(),
                 sensorContext.deviceEui(),
                 sensorContext.storageId(),
-                sensorContext.sectionId(),
+                sensorContext.zoneId(),
                 getSensorType().value(),
                 toDoorState(value),
                 getSensorType().unit(),

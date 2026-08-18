@@ -5,7 +5,7 @@ public record SensorPayload(
         Long organizationId,
         String deviceEui,
         Long storageId,
-        Long sectionId,
+        Long zoneId,
         String sensorType,
         Double value,
         String unit,

@@ -12,7 +12,7 @@ import static com.nhnacademy.ruleengine.engine.notification.NotificationMessageF
 public record NotificationRequest(
         Long organizationId,
         Long storageId,
-        Long sectionId,
+        Long zoneId,
         String deviceEui,
         String sensorType,
 
