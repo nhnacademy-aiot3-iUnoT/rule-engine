@@ -41,7 +41,7 @@ DELETE {{host}}/api/rule-engine/organizations/2/storages/1/zones/23/virtual-sens
 
 
 ### Zone에서 Flow 정지
-PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/status
+PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/21/status
 Content-Type: application/json
 
 {
@@ -49,7 +49,7 @@ Content-Type: application/json
 }
 
 ### Zone에서 Flow 다시시작
-PATCH {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/status
+PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/22/status
 Content-Type: application/json
 
 {

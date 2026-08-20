@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -183,9 +184,6 @@ public class SensorInfluxRepository {
 
     /**
      * 특정 구역의 센서 이력을 조회한다.
-     * <p>
-     * door 센서는 이진 상태값(열림/닫힘)이라 평균 집계가 의미 없으므로
-     * 집계 없이 원본 값(0/1) 그대로 조회한다. 그 외 센서는 window 단위로 평균 집계한다.
      */
     public List<SensorHistoryResponse> findHistoryByZone(
             Long zoneId,
@@ -226,8 +224,6 @@ public class SensorInfluxRepository {
         }
 
         // sensorType이 null(전체 조회)인 경우, door는 반드시 원본 값으로 별도 조회해서 합친다.
-        // 그렇지 않으면 door가 defaultZoneHistoryQuery의 10분 평균 집계에 걸려
-        // "10분 간격으로 열렸다"는 식의 부정확한 타임스탬프/값이 만들어진다.
         List<SensorHistoryResponse> doorHistory = executeQuery(
                 doorZoneHistoryQuery(
                         zoneId,
@@ -245,11 +241,7 @@ public class SensorInfluxRepository {
     }
 
     /**
-     * 구역의 기간별 센서 타입 통계(표본 수/평균/최소/최대)를 한 번의 질의로 집계한다.
-     * <p>
-     * 원본을 애플리케이션으로 끌어와 계산하면 하루치 전부를 메모리에 올려야 하므로
-     * reduce로 InfluxDB 안에서 한 번만 훑고 끝낸다.
-     * door는 열림/닫힘 이진값이라 평균·최소·최대가 의미 없으므로 제외한다.
+     * 구역의 기간별 센서 타입 통계를 집계한다
      */
     public List<SensorDailyAggregate> findDailyAggregatesByZone(
             Long zoneId,
@@ -297,11 +289,38 @@ public class SensorInfluxRepository {
     }
 
     /**
+     * 기간 안에 데이터가 들어온 구역 번호를 모두 찾는다.
+     */
+    public List<Long> findZoneIds(
+            Instant from,
+            Instant to
+    ) {
+        String fluxQuery = """
+                import "influxdata/influxdb/schema"
+
+                schema.tagValues(
+                    bucket: "%s",
+                    tag: "zone_id",
+                    predicate: (r) => r._measurement == "%s",
+                    start: time(v: "%s"),
+                    stop: time(v: "%s")
+                )
+                """.formatted(
+                influxDbProperties.bucket(),
+                influxDbProperties.measurement(),
+                from,
+                to
+        );
+
+        return executeQuery(fluxQuery, this::toZoneId)
+                .stream()
+                .filter(Objects::nonNull)
+                .sorted()
+                .toList();
+    }
+
+    /**
      * 임계 범위를 벗어난 측정값의 개수를 센다.
-     * <p>
-     * 이탈 비율을 내려면 이탈 표본 수가 필요한데, 원본을 받아 세면 하루치를 전부 옮겨야 한다.
-     * 개수만 필요하므로 InfluxDB에서 세어 숫자 하나만 받는다.
-     * min이나 max 한쪽만 설정된 구역도 있어 조건은 설정된 경계만으로 만든다.
      */
     public long countOutOfRange(
             Long zoneId,
@@ -528,6 +547,23 @@ public class SensorInfluxRepository {
                 roundToFirstDecimalPlace(getDoubleByKey(fluxRecord, "min")),
                 roundToFirstDecimalPlace(getDoubleByKey(fluxRecord, "max"))
         );
+    }
+
+    // 태그 값은 문자열이므로 숫자가 아닌 값이 섞여 있어도 배치 전체를 멈추지 않고 건너뛴다.
+    private Long toZoneId(FluxRecord fluxRecord) {
+        Object value = fluxRecord.getValue();
+
+        if (value == null) {
+            return null;
+        }
+
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            log.warn("구역 번호가 숫자 형식이 아니라 건너뜁니다. zoneId={}", value);
+
+            return null;
+        }
     }
 
     private Long toCount(FluxRecord fluxRecord) {
