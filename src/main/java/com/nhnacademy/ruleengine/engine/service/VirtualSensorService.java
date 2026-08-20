@@ -1,6 +1,11 @@
 package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.dto.virtual.*;
+import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorCreateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorUpdateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorCreateResponse;
+import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorInfoResponse;
+import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorUpdateResponse;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.repository.VirtualSensorRedisRepository;
 
