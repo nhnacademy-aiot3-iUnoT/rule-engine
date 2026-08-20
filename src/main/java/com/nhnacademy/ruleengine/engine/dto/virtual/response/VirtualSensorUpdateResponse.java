@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.dto.virtual;
+package com.nhnacademy.ruleengine.engine.dto.virtual.response;
 
 
 public record VirtualSensorUpdateResponse(

@@ -1,6 +1,11 @@
 package com.nhnacademy.ruleengine.engine.controller;
 
-import com.nhnacademy.ruleengine.engine.dto.virtual.*;
+import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorCreateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorStatusRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorUpdateRequest;
+import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorCreateResponse;
+import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorInfoResponse;
+import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorUpdateResponse;
 import com.nhnacademy.ruleengine.engine.service.VirtualSensorService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
 import jakarta.validation.Valid;
