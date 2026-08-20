@@ -164,10 +164,6 @@ public class ZoneDailySummaryService {
 
     /**
      * 문 개폐를 열린 횟수와 누적 열림 시간으로 집계한다.
-     * <p>
-     * door는 상태가 바뀔 때만 기록되어 하루 표본이 적으므로 원본을 받아 계산한다.
-     * 한 기록의 상태는 다음 기록 시각까지 유지되고, 마지막 기록의 상태는 하루가 끝날 때까지 이어진다.
-     * 기록이 아예 없으면 문 센서가 없는 구역과 구분되지 않으므로 null을 돌려준다.
      */
     private DoorDailyStat summarizeDoor(
             Long zoneId,

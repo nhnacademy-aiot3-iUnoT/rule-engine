@@ -37,9 +37,6 @@ public class SensorDailyStatRedisRepository {
 
     /**
      * 임계값 판단 한 건을 기록한다.
-     * <p>
-     * 실패를 삼키지 않는다. 이 실패를 견딜지는 호출하는 쪽이 정할 일이고,
-     * 수집 경로에서 부르는 노드가 그 판단을 맡고 있다.
      */
     public void record(
             Long zoneId,

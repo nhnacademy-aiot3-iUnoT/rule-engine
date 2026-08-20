@@ -124,7 +124,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     /**
      * 실제 door 센서처럼 상태가 바뀔 때만 이벤트를 전송한다.
      * <p>
-     * 매 tick마다 doorOpenProbability 확률로 "열림" 여부를 다시 뽑아보고,
+     * 매 tick마다 door 센서에 설정된 확률로 "열림" 여부를 다시 뽑아보고,
      * 직전에 전송했던 상태와 같으면 아무것도 보내지 않는다(실제 센서가 상태 변화 없을 때
      * 아무 데이터도 보내지 않는 것과 동일한 동작).
      * 값이 달라진 경우에만 publish하고 마지막 상태를 갱신한다.
