@@ -7,10 +7,10 @@ import com.influxdb.query.FluxRecord;
 import com.nhnacademy.ruleengine.engine.dto.environment.DoorDailyStat;
 import com.nhnacademy.ruleengine.engine.dto.environment.SensorDailyStat;
 import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
-import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataSaveException;
+import com.nhnacademy.ruleengine.engine.repository.support.FluxQueryExecutor;
+import com.nhnacademy.ruleengine.engine.repository.support.FluxRecords;
 import com.nhnacademy.ruleengine.global.config.InfluxDbProperties;
-import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -52,6 +52,7 @@ public class ZoneDailySummaryInfluxRepository {
 
     private final InfluxDBClient influxDBClient;
     private final InfluxDbProperties influxDbProperties;
+    private final FluxQueryExecutor fluxQueryExecutor;
 
     /**
      * 하루 요약을 적재한다.
@@ -127,7 +128,7 @@ public class ZoneDailySummaryInfluxRepository {
                         valueColumn: "_value"
                     )
                     |> group()
-                    |> sort(columns: ["_time", "%s"])
+                    |> sort(columns: %s)
                 """.formatted(
                 influxDbProperties.summaryBucket(),
                 ZoneDailySummary.startOfDay(from),
@@ -136,10 +137,10 @@ public class ZoneDailySummaryInfluxRepository {
                 MEASUREMENT,
                 ZONE_ID,
                 zoneId,
-                SENSOR_TYPE
+                FluxRecords.toColumns("_time", SENSOR_TYPE)
         );
 
-        return toSummaries(zoneId, executeQuery(fluxQuery));
+        return toSummaries(zoneId, fluxQueryExecutor.query(fluxQuery));
     }
 
     public Optional<ZoneDailySummary> findByZoneAndDate(
@@ -221,7 +222,7 @@ public class ZoneDailySummaryInfluxRepository {
             // 날짜가 door 포인트로만 등장해도 요약이 만들어져야 하므로 미리 자리를 만든다.
             statsByDate.computeIfAbsent(date, key -> new ArrayList<>());
 
-            if (DOOR_SENSOR_TYPE.equals(getString(record, SENSOR_TYPE))) {
+            if (DOOR_SENSOR_TYPE.equals(FluxRecords.getString(record, SENSOR_TYPE))) {
                 doorByDate.put(date, toDoorStat(record));
                 continue;
             }
@@ -248,79 +249,23 @@ public class ZoneDailySummaryInfluxRepository {
 
     private SensorDailyStat toSensorStat(FluxRecord record) {
         return new SensorDailyStat(
-                getString(record, SENSOR_TYPE),
-                getString(record, UNIT),
-                requireDouble(record, AVG),
-                requireDouble(record, MIN),
-                requireDouble(record, MAX),
-                getDouble(record, THRESHOLD_MIN),
-                getDouble(record, THRESHOLD_MAX),
-                getDouble(record, OUT_OF_RANGE_RATIO),
-                getDouble(record, PREVIOUS_DAY_AVG)
+                FluxRecords.getString(record, SENSOR_TYPE),
+                FluxRecords.getString(record, UNIT),
+                FluxRecords.requireDouble(record, AVG),
+                FluxRecords.requireDouble(record, MIN),
+                FluxRecords.requireDouble(record, MAX),
+                FluxRecords.getDouble(record, THRESHOLD_MIN),
+                FluxRecords.getDouble(record, THRESHOLD_MAX),
+                FluxRecords.getDouble(record, OUT_OF_RANGE_RATIO),
+                FluxRecords.getDouble(record, PREVIOUS_DAY_AVG)
         );
     }
 
     private DoorDailyStat toDoorStat(FluxRecord record) {
         return new DoorDailyStat(
-                (long) requireDouble(record, OPEN_COUNT),
-                (long) requireDouble(record, OPEN_MINUTES)
+                (long) FluxRecords.requireDouble(record, OPEN_COUNT),
+                (long) FluxRecords.requireDouble(record, OPEN_MINUTES)
         );
     }
 
-    private double requireDouble(
-            FluxRecord record,
-            String field
-    ) {
-        Double value = getDouble(record, field);
-
-        if (value == null) {
-            throw new IllegalStateException(
-                    "요약에 " + field + " 값이 없습니다."
-            );
-        }
-
-        return value;
-    }
-
-    private Double getDouble(
-            FluxRecord record,
-            String field
-    ) {
-        Object value = record.getValueByKey(field);
-
-        if (value == null) {
-            return null;
-        }
-
-        if (!(value instanceof Number number)) {
-            throw new IllegalStateException(
-                    field + " 값이 숫자 형식이 아닙니다: " + value
-            );
-        }
-
-        return number.doubleValue();
-    }
-
-    private String getString(
-            FluxRecord record,
-            String key
-    ) {
-        Object value = record.getValueByKey(key);
-
-        return value != null ? String.valueOf(value) : null;
-    }
-
-    private List<FluxRecord> executeQuery(String fluxQuery) {
-        try {
-            return influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDbProperties.org())
-                    .stream()
-                    .flatMap(table -> table.getRecords().stream())
-                    .toList();
-        } catch (Exception exception) {
-            log.error("하루 요약 조회에 실패했습니다.", exception);
-
-            throw new SensorDataException(ErrorCode.SENSOR_DATA_QUERY_FAILED);
-        }
-    }
 }
