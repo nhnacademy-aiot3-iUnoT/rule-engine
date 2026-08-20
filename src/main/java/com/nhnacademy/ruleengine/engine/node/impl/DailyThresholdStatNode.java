@@ -48,8 +48,7 @@ public class DailyThresholdStatNode extends AbstractNode {
                     "[{}] 임계값 판단 통계를 남기지 못했습니다. zoneId={}, sensorType={}",
                     getId(),
                     ruleResult.zoneId(),
-                    ruleResult.sensorType(),
-                    exception
+                    ruleResult.sensorType()
             );
         }
 

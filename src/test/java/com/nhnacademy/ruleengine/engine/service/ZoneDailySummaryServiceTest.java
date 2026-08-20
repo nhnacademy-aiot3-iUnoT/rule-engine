@@ -6,9 +6,9 @@ import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorDailyAggregate;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
+import com.nhnacademy.ruleengine.engine.repository.DailySummaryInfluxRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorDailyStatRedisRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
-import com.nhnacademy.ruleengine.engine.repository.ZoneDailySummaryInfluxRepository;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,18 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ZoneDailySummaryServiceTest {
@@ -52,7 +43,7 @@ class ZoneDailySummaryServiceTest {
     private SensorInfluxRepository sensorInfluxRepository;
 
     @Mock
-    private ZoneDailySummaryInfluxRepository zoneDailySummaryInfluxRepository;
+    private DailySummaryInfluxRepository dailySummaryInfluxRepository;
 
     @Mock
     private SensorDailyStatRedisRepository sensorDailyStatRedisRepository;
@@ -69,7 +60,7 @@ class ZoneDailySummaryServiceTest {
         lenient().when(sensorDailyStatRedisRepository.findByZoneAndDate(anyLong(), any()))
                 .thenReturn(Map.of());
 
-        lenient().when(zoneDailySummaryInfluxRepository.findByZoneAndDate(anyLong(), any()))
+        lenient().when(dailySummaryInfluxRepository.findByZoneAndDate(anyLong(), any()))
                 .thenReturn(Optional.empty());
     }
 
@@ -140,10 +131,9 @@ class ZoneDailySummaryServiceTest {
                 List.of()
         );
 
-        when(zoneDailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
+        when(dailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
                 .thenReturn(Optional.of(new ZoneDailySummary(
                         ZONE_ID,
-                        DATE.minusDays(1),
                         List.of(new SensorDailyStat(
                                 "temperature", "C", 21.0, 18.0, 25.0,
                                 null, null, null, null
@@ -172,7 +162,7 @@ class ZoneDailySummaryServiceTest {
                 List.of(new SensorDailyAggregate("temperature", "C", 90L, 22.5, 19.0, 26.0))
         );
 
-        when(zoneDailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
+        when(dailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
                 .thenThrow(new SensorDataException(ErrorCode.SENSOR_DATA_QUERY_FAILED));
 
         ZoneDailySummary summary =

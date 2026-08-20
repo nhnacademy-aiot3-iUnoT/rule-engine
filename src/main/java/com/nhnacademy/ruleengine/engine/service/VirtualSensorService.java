@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.dto.virtual.*;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
+import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorStatus;
 import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorUpdateRequest;
 import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorCreateResponse;
@@ -8,9 +9,7 @@ import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorInfoRe
 import com.nhnacademy.ruleengine.engine.dto.virtual.response.VirtualSensorUpdateResponse;
 import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.repository.VirtualSensorRedisRepository;
-
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

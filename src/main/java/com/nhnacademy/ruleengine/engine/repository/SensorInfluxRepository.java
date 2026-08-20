@@ -219,13 +219,43 @@ public class SensorInfluxRepository {
     }
 
     /**
-     * 기간 안에 데이터가 들어온 구역 번호를 모두 찾는다.
+     * 기간 안에 데이터가 들어온 저장소 번호를 모두 찾는다.
      * <p>
-     * 하루 요약 배치가 어떤 구역을 돌아야 하는지는 결국 "데이터가 들어온 구역"이다.
-     * 별도 목록을 관리하면 구역이 늘거나 빠질 때마다 어긋나므로 원본에서 직접 뽑는다.
-     * 태그 값만 읽으면 되는 질의라 측정값을 훑지 않는다.
+     * 하루 요약 배치가 어떤 저장소를 돌아야 하는지는 결국 "데이터가 들어온 저장소"다.
+     * 별도 목록을 관리하면 저장소가 늘거나 빠질 때마다 어긋나므로 원본에서 직접 뽑는다.
      */
-    public List<Long> findZoneIds(
+    public List<Long> findStorageIds(
+            Instant from,
+            Instant to
+    ) {
+        return findTagIds(STORAGE_ID, "", from, to);
+    }
+
+    /**
+     * 저장소에 속한 구역 번호를 찾는다.
+     * <p>
+     * 저장소와 구역의 관계는 인벤토리가 관리하지만, 요약이 필요한 것은 "그 기간에 실제로
+     * 데이터를 보낸 구역"이다. 등록만 되고 센서가 없는 구역까지 돌면 빈 요약만 쌓인다.
+     */
+    public List<Long> findZoneIdsByStorage(
+            Long storageId,
+            Instant from,
+            Instant to
+    ) {
+        return findTagIds(
+                ZONE_ID,
+                " and r.%s == \"%s\"".formatted(STORAGE_ID, storageId),
+                from,
+                to
+        );
+    }
+
+    /**
+     * 태그 값을 숫자 목록으로 읽는다. 태그 값만 읽으면 되는 질의라 측정값을 훑지 않는다.
+     */
+    private List<Long> findTagIds(
+            String tag,
+            String extraPredicate,
             Instant from,
             Instant to
     ) {
@@ -235,19 +265,20 @@ public class SensorInfluxRepository {
                 schema.tagValues(
                     bucket: "%s",
                     tag: "%s",
-                    predicate: (r) => r._measurement == "%s",
+                    predicate: (r) => r._measurement == "%s"%s,
                     start: time(v: "%s"),
                     stop: time(v: "%s")
                 )
                 """.formatted(
                 influxDbProperties.bucket(),
-                ZONE_ID,
+                tag,
                 influxDbProperties.measurement(),
+                extraPredicate,
                 from,
                 to
         );
 
-        return fluxQueryExecutor.query(fluxQuery, this::toZoneId)
+        return fluxQueryExecutor.query(fluxQuery, fluxRecord -> toId(fluxRecord, tag))
                 .stream()
                 .filter(Objects::nonNull)
                 .sorted()
@@ -425,7 +456,10 @@ public class SensorInfluxRepository {
     }
 
     // 태그 값은 문자열이므로 숫자가 아닌 값이 섞여 있어도 배치 전체를 멈추지 않고 건너뛴다.
-    private Long toZoneId(FluxRecord fluxRecord) {
+    private Long toId(
+            FluxRecord fluxRecord,
+            String tag
+    ) {
         Object value = fluxRecord.getValue();
 
         if (value == null) {
@@ -435,7 +469,7 @@ public class SensorInfluxRepository {
         try {
             return Long.parseLong(String.valueOf(value));
         } catch (NumberFormatException exception) {
-            log.warn("구역 번호가 숫자 형식이 아니라 건너뜁니다. zoneId={}", value);
+            log.warn("{} 태그가 숫자 형식이 아니라 건너뜁니다. value={}", tag, value);
 
             return null;
         }

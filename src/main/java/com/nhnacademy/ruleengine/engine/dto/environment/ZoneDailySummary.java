@@ -11,7 +11,6 @@ import java.util.List;
 // 숫자는 InfluxDB와 이 계층에서 끝내고, AI는 확정된 숫자를 문장으로 옮기는 역할만 맡는다.
 public record ZoneDailySummary(
         Long zoneId,
-        LocalDate date,
         List<SensorDailyStat> sensorStats,
 
         // 문 센서가 없거나 하루 동안 기록이 없으면 null이다.

@@ -52,7 +52,7 @@ public class ZoneEnvStatusReportNode extends AbstractNode {
             ));
 
         } catch (Exception e) {
-            log.warn("[{}] 구역 환경 상태 반영에 실패했습니다. zoneId={}", getId(), event.zoneId(), e);
+            log.warn("[{}] 구역 환경 상태 반영에 실패했습니다. zoneId={}", getId(), event.zoneId());
         }
 
         send(OUTPUT_PORT, message);

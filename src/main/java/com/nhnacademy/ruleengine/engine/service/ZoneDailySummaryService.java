@@ -7,9 +7,9 @@ import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorDailyAggregate;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
+import com.nhnacademy.ruleengine.engine.repository.DailySummaryInfluxRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorDailyStatRedisRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
-import com.nhnacademy.ruleengine.engine.repository.ZoneDailySummaryInfluxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,12 +35,8 @@ public class ZoneDailySummaryService {
     private static final String DOOR_WINDOW = "1h";
 
     private final SensorInfluxRepository sensorInfluxRepository;
-    private final ZoneDailySummaryInfluxRepository zoneDailySummaryInfluxRepository;
+    private final DailySummaryInfluxRepository dailySummaryInfluxRepository;
     private final SensorDailyStatRedisRepository sensorDailyStatRedisRepository;
-
-    public ZoneDailySummary summarizeYesterday(Long zoneId) {
-        return summarize(zoneId, LocalDate.now(ZoneDailySummary.REPORT_ZONE).minusDays(1));
-    }
 
     public ZoneDailySummary summarize(
             Long zoneId,
@@ -63,7 +59,6 @@ public class ZoneDailySummaryService {
 
         return new ZoneDailySummary(
                 zoneId,
-                date,
                 sensorStats,
                 summarizeDoor(zoneId, from, to)
         );
@@ -100,8 +95,7 @@ public class ZoneDailySummaryService {
             log.warn(
                     "전일 원본 조회에 실패해 비교 없이 요약합니다. zoneId={}, date={}",
                     zoneId,
-                    previousDate,
-                    exception
+                    previousDate
             );
 
             return Map.of();
@@ -113,7 +107,7 @@ public class ZoneDailySummaryService {
             LocalDate previousDate
     ) {
         try {
-            return zoneDailySummaryInfluxRepository
+            return dailySummaryInfluxRepository
                     .findByZoneAndDate(zoneId, previousDate)
                     .map(ZoneDailySummary::sensorStats)
                     .orElseGet(List::of)
@@ -128,8 +122,7 @@ public class ZoneDailySummaryService {
             log.warn(
                     "저장된 전일 요약 조회에 실패해 원본으로 다시 시도합니다. zoneId={}, date={}",
                     zoneId,
-                    previousDate,
-                    exception
+                    previousDate
             );
 
             return Map.of();
@@ -190,8 +183,8 @@ public class ZoneDailySummaryService {
         boolean previouslyOpen = false;
 
         for (int index = 0; index < sorted.size(); index++) {
-            SensorHistoryResponse record = sorted.get(index);
-            boolean open = isOpen(record);
+            SensorHistoryResponse response = sorted.get(index);
+            boolean open = isOpen(response);
 
             if (open && !previouslyOpen) {
                 openCount++;
@@ -202,7 +195,7 @@ public class ZoneDailySummaryService {
                         ? sorted.get(index + 1).time()
                         : to;
 
-                openSeconds += Duration.between(record.time(), until).toSeconds();
+                openSeconds += Duration.between(response.time(), until).toSeconds();
             }
 
             previouslyOpen = open;
@@ -214,8 +207,8 @@ public class ZoneDailySummaryService {
         );
     }
 
-    private boolean isOpen(SensorHistoryResponse record) {
-        return record.value() != null && record.value() > 0.0;
+    private boolean isOpen(SensorHistoryResponse response) {
+        return response.value() != null && response.value() > 0.0;
     }
 
     private Instant startOfDay(LocalDate date) {

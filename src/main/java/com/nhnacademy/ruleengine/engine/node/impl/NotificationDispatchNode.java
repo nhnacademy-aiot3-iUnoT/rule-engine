@@ -84,8 +84,7 @@ public class NotificationDispatchNode extends AbstractNode {
                 log.warn("[{}] 알림 발송 중 예외가 발생했습니다. userId={}, channel={}",
                         getId(),
                         preference.userId(),
-                        preference.channel(),
-                        e
+                        preference.channel()
                 );
             }
         }

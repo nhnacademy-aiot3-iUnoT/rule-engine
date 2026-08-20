@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.scheduler;
 
 import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
-import com.nhnacademy.ruleengine.engine.service.ZoneDailySummaryArchiveService;
+import com.nhnacademy.ruleengine.engine.service.StorageDailySummaryArchiveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,16 +16,16 @@ import java.time.LocalDate;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ZoneDailySummaryRollupScheduler {
+public class DailySummaryRollupScheduler {
 
-    private final ZoneDailySummaryArchiveService zoneDailySummaryArchiveService;
+    private final StorageDailySummaryArchiveService storageDailySummaryArchiveService;
 
     @Scheduled(cron = "${rule-engine.daily-rollup.cron}", zone = "Asia/Seoul")
     public void rollupYesterday() {
         LocalDate date = LocalDate.now(ZoneDailySummary.REPORT_ZONE).minusDays(1);
 
         try {
-            zoneDailySummaryArchiveService.rollup(date);
+            storageDailySummaryArchiveService.rollup(date);
 
         } catch (RuntimeException exception) {
             // 스케줄러 밖으로 나간 예외는 로그 없이 사라지므로 여기서 반드시 남긴다.
