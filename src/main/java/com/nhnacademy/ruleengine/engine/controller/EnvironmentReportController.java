@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.controller;
 
 import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
-import com.nhnacademy.ruleengine.engine.scheduler.ZoneDailySummaryRollupScheduler;
+import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummaryRollupResult;
 import com.nhnacademy.ruleengine.engine.service.ZoneDailySummaryArchiveService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,6 @@ public class EnvironmentReportController {
     private static final int DEFAULT_PERIOD_DAYS = 7;
 
     private final ZoneDailySummaryArchiveService zoneDailySummaryArchiveService;
-    private final ZoneDailySummaryRollupScheduler zoneDailySummaryRollupScheduler;
 
     /**
      * 구역의 하루치 환경 요약을 조회한다. date를 생략하면 어제를 대상으로 한다.
@@ -67,13 +66,18 @@ public class EnvironmentReportController {
      * 하루 요약 적재를 수동으로 실행한다.
      */
     @PostMapping("/daily-summary-rollups")
-    public ApiResponse<Void> rollup(
+    public ApiResponse<ZoneDailySummaryRollupResult> rollup(
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        zoneDailySummaryRollupScheduler.rollup(yesterdayIfNull(date));
+        LocalDate target = yesterdayIfNull(date);
 
-        return ApiResponse.successNodata();
+        return ApiResponse.success(
+                new ZoneDailySummaryRollupResult(
+                        target,
+                        zoneDailySummaryArchiveService.rollup(target)
+                )
+        );
     }
 
     private LocalDate yesterdayIfNull(LocalDate date) {

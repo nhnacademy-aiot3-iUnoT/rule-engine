@@ -53,8 +53,6 @@ rule-engine:
   daily-rollup:
     # 원본 보관 기간(2일) 안에서 넉넉하게 돌도록 자정 직후에 어제치를 적재한다.
     cron: "0 10 0 * * *"
-    lock-key-prefix: rule-engine:lock:daily-rollup
-    lock-duration: 6h
 
   mqtt:
     external:

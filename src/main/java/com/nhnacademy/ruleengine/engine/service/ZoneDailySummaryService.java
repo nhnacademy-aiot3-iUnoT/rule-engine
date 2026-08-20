@@ -2,20 +2,18 @@ package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.dto.environment.DoorDailyStat;
 import com.nhnacademy.ruleengine.engine.dto.environment.SensorDailyStat;
+import com.nhnacademy.ruleengine.engine.dto.environment.SensorDailyThresholdStat;
 import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
-import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
-import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto.ThresholdRange;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorDailyAggregate;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
+import com.nhnacademy.ruleengine.engine.repository.SensorDailyStatRedisRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
 import com.nhnacademy.ruleengine.engine.repository.ZoneDailySummaryInfluxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 // 구역의 하루치 환경 요약생성
@@ -39,7 +36,7 @@ public class ZoneDailySummaryService {
 
     private final SensorInfluxRepository sensorInfluxRepository;
     private final ZoneDailySummaryInfluxRepository zoneDailySummaryInfluxRepository;
-    private final ThresholdPolicyService thresholdPolicyService;
+    private final SensorDailyStatRedisRepository sensorDailyStatRedisRepository;
 
     public ZoneDailySummary summarizeYesterday(Long zoneId) {
         return summarize(zoneId, LocalDate.now(ZoneDailySummary.REPORT_ZONE).minusDays(1));
@@ -57,10 +54,11 @@ public class ZoneDailySummaryService {
 
         Map<String, Double> previousDayAvgs = findPreviousDayAvgs(zoneId, date);
 
-        ThresholdPolicyDto policy = thresholdPolicyService.getThresholdPolicy(zoneId);
+        Map<String, SensorDailyThresholdStat> thresholdStats =
+                sensorDailyStatRedisRepository.findByZoneAndDate(zoneId, date);
 
         List<SensorDailyStat> sensorStats = aggregates.stream()
-                .map(aggregate -> toSensorStat(zoneId, aggregate, policy, previousDayAvgs, from, to))
+                .map(aggregate -> toSensorStat(aggregate, thresholdStats, previousDayAvgs))
                 .toList();
 
         return new ZoneDailySummary(
@@ -73,12 +71,6 @@ public class ZoneDailySummaryService {
 
     /**
      * 전일 센서 타입별 평균을 찾는다.
-     * <p>
-     * 저장된 요약을 먼저 본다. 원본 버킷의 보관 기간이 이틀이라, 어제치를 요약하는 시점에
-     * 그제 원본은 이미 지워져 있다. 요약 버킷에는 남아 있으므로 비교가 끊기지 않는다.
-     * 아직 적재되지 않은 날짜(오늘 요약을 즉석에서 만드는 경우)는 원본으로 되돌아가 계산한다.
-     * <p>
-     * 전일 평균은 비교용 부가 정보라, 어느 쪽 조회가 실패하더라도 오늘 요약까지 함께 실패시키지 않는다.
      */
     private Map<String, Double> findPreviousDayAvgs(
             Long zoneId,
@@ -144,18 +136,18 @@ public class ZoneDailySummaryService {
         }
     }
 
+    /**
+     * 집계값에 그날의 임계값 판단 결과를 붙인다.
+     * <p>
+     * 통계가 없는 날은 임계값도 이탈 비율도 비운다. 지금 임계값을 끌어와 채우면
+     * 그날 알림이 나갔는데도 이탈이 없었던 것처럼 보이는, 틀린 요약이 만들어진다.
+     */
     private SensorDailyStat toSensorStat(
-            Long zoneId,
             SensorDailyAggregate aggregate,
-            ThresholdPolicyDto policy,
-            Map<String, Double> previousDayAvgs,
-            Instant from,
-            Instant to
+            Map<String, SensorDailyThresholdStat> thresholdStats,
+            Map<String, Double> previousDayAvgs
     ) {
-        Optional<ThresholdRange> range = policy.rangeFor(aggregate.sensorType());
-
-        Double thresholdMin = range.map(ThresholdRange::min).orElse(null);
-        Double thresholdMax = range.map(ThresholdRange::max).orElse(null);
+        SensorDailyThresholdStat thresholdStat = thresholdStats.get(aggregate.sensorType());
 
         return new SensorDailyStat(
                 aggregate.sensorType(),
@@ -163,36 +155,11 @@ public class ZoneDailySummaryService {
                 aggregate.avg(),
                 aggregate.min(),
                 aggregate.max(),
-                thresholdMin,
-                thresholdMax,
-                calculateOutOfRangeRatio(zoneId, aggregate, thresholdMin, thresholdMax, from, to),
+                thresholdStat == null ? null : thresholdStat.min(),
+                thresholdStat == null ? null : thresholdStat.max(),
+                thresholdStat == null ? null : thresholdStat.outOfRangeRatio(),
                 previousDayAvgs.get(aggregate.sensorType())
         );
-    }
-
-    // 임계값이 없으면 "벗어났다"는 판단 자체가 성립하지 않으므로 0이 아니라 null이다.
-    private Double calculateOutOfRangeRatio(
-            Long zoneId,
-            SensorDailyAggregate aggregate,
-            Double thresholdMin,
-            Double thresholdMax,
-            Instant from,
-            Instant to
-    ) {
-        if (aggregate.count() == 0L || (thresholdMin == null && thresholdMax == null)) {
-            return null;
-        }
-
-        long outOfRangeCount = sensorInfluxRepository.countOutOfRange(
-                zoneId,
-                aggregate.sensorType(),
-                thresholdMin,
-                thresholdMax,
-                from,
-                to
-        );
-
-        return round((double) outOfRangeCount / aggregate.count(), 3);
     }
 
     /**
@@ -257,11 +224,5 @@ public class ZoneDailySummaryService {
 
     private Instant startOfDay(LocalDate date) {
         return ZoneDailySummary.startOfDay(date);
-    }
-
-    private double round(double value, int scale) {
-        return BigDecimal.valueOf(value)
-                .setScale(scale, RoundingMode.HALF_UP)
-                .doubleValue();
     }
 }

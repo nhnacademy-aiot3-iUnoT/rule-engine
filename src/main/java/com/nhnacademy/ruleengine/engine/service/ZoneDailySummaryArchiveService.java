@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 하루 요약을 요약 버킷에 적재하고 다시 꺼내 온다.
+ * 하루 요약을 요약 버킷에 팅적재하고 다시 꺼내 온다.
  */
 @Slf4j
 @Service

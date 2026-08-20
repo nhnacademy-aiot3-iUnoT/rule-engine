@@ -1,12 +1,12 @@
 package com.nhnacademy.ruleengine.engine.service;
 
 import com.nhnacademy.ruleengine.engine.dto.environment.SensorDailyStat;
+import com.nhnacademy.ruleengine.engine.dto.environment.SensorDailyThresholdStat;
 import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
-import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
-import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto.ThresholdRange;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorDailyAggregate;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
+import com.nhnacademy.ruleengine.engine.repository.SensorDailyStatRedisRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
 import com.nhnacademy.ruleengine.engine.repository.ZoneDailySummaryInfluxRepository;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
@@ -55,7 +55,7 @@ class ZoneDailySummaryServiceTest {
     private ZoneDailySummaryInfluxRepository zoneDailySummaryInfluxRepository;
 
     @Mock
-    private ThresholdPolicyService thresholdPolicyService;
+    private SensorDailyStatRedisRepository sensorDailyStatRedisRepository;
 
     @InjectMocks
     private ZoneDailySummaryService zoneDailySummaryService;
@@ -66,8 +66,8 @@ class ZoneDailySummaryServiceTest {
                 anyLong(), anyString(), any(), any(), anyString()
         )).thenReturn(List.of());
 
-        lenient().when(thresholdPolicyService.getThresholdPolicy(anyLong()))
-                .thenReturn(policy(Map.of()));
+        lenient().when(sensorDailyStatRedisRepository.findByZoneAndDate(anyLong(), any()))
+                .thenReturn(Map.of());
 
         lenient().when(zoneDailySummaryInfluxRepository.findByZoneAndDate(anyLong(), any()))
                 .thenReturn(Optional.empty());
@@ -84,24 +84,23 @@ class ZoneDailySummaryServiceTest {
     }
 
     @Test
-    @DisplayName("임계값과 이탈 비율, 전일 평균을 붙여 요약한다")
-    void summarizesWithThresholdAndPreviousDay() {
+    @DisplayName("판단 시점에 기록해 둔 임계값과 이탈 비율, 전일 평균을 붙여 요약한다")
+    void summarizesWithRecordedThreshold() {
         stubAggregates(
                 List.of(new SensorDailyAggregate("temperature", "C", 100L, 24.5, 18.0, 31.0)),
                 List.of(new SensorDailyAggregate("temperature", "C", 90L, 22.5, 19.0, 26.0))
         );
 
-        when(thresholdPolicyService.getThresholdPolicy(ZONE_ID))
-                .thenReturn(policy(Map.of("temperature", new ThresholdRange(10.0, 30.0, 10))));
+        when(sensorDailyStatRedisRepository.findByZoneAndDate(ZONE_ID, DATE))
+                .thenReturn(Map.of(
+                        "temperature",
+                        new SensorDailyThresholdStat("temperature", 100L, 12L, 10.0, 30.0)
+                ));
 
-        when(sensorInfluxRepository.countOutOfRange(
-                ZONE_ID, "temperature", 10.0, 30.0, DAY_START, DAY_END
-        )).thenReturn(12L);
-
-        ZoneDailySummary summary =
-                zoneDailySummaryService.summarize(ZONE_ID, DATE);
-
-        SensorDailyStat stat = summary.sensorStats().getFirst();
+        SensorDailyStat stat = zoneDailySummaryService
+                .summarize(ZONE_ID, DATE)
+                .sensorStats()
+                .getFirst();
 
         assertAll(
                 () -> assertEquals(24.5, stat.avg()),
@@ -113,28 +112,77 @@ class ZoneDailySummaryServiceTest {
     }
 
     @Test
-    @DisplayName("임계값이 없으면 이탈 비율을 계산하지 않는다")
-    void skipsRatioWithoutThreshold() {
+    @DisplayName("그날의 임계값 기록이 없으면 임계값도 이탈 비율도 비운다")
+    void leavesThresholdEmptyWithoutRecordedStat() {
         stubAggregates(
                 List.of(new SensorDailyAggregate("humidity", "%", 100L, 55.0, 40.0, 70.0)),
                 List.of()
         );
 
-        ZoneDailySummary summary =
-                zoneDailySummaryService.summarize(ZONE_ID, DATE);
-
-        SensorDailyStat stat = summary.sensorStats().getFirst();
+        SensorDailyStat stat = zoneDailySummaryService
+                .summarize(ZONE_ID, DATE)
+                .sensorStats()
+                .getFirst();
 
         assertAll(
+                () -> assertNull(stat.thresholdMin()),
+                () -> assertNull(stat.thresholdMax()),
                 () -> assertNull(stat.outOfRangeRatio()),
-                () -> assertNull(stat.previousDayAvg()),
-                () -> verify(sensorInfluxRepository, never())
-                        .countOutOfRange(anyLong(), anyString(), any(), any(), any(), any())
+                () -> assertNull(stat.previousDayAvg())
         );
     }
 
     @Test
-    @DisplayName("전일 조회가 실패해도 오늘 요약은 만들어진다")
+    @DisplayName("저장된 전일 요약이 있으면 원본 대신 그 평균을 쓴다")
+    void prefersStoredPreviousDaySummary() {
+        stubAggregates(
+                List.of(new SensorDailyAggregate("temperature", "C", 100L, 24.5, 18.0, 31.0)),
+                List.of()
+        );
+
+        when(zoneDailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
+                .thenReturn(Optional.of(new ZoneDailySummary(
+                        ZONE_ID,
+                        DATE.minusDays(1),
+                        List.of(new SensorDailyStat(
+                                "temperature", "C", 21.0, 18.0, 25.0,
+                                null, null, null, null
+                        )),
+                        null
+                )));
+
+        ZoneDailySummary summary =
+                zoneDailySummaryService.summarize(ZONE_ID, DATE);
+
+        assertAll(
+                () -> assertEquals(21.0, summary.sensorStats().getFirst().previousDayAvg()),
+                () -> verify(sensorInfluxRepository, never()).findDailyAggregatesByZone(
+                        ZONE_ID,
+                        DATE.minusDays(1).atStartOfDay(KST).toInstant(),
+                        DAY_START
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("저장된 전일 요약 조회가 실패해도 원본으로 되돌아간다")
+    void fallsBackToRawWhenStoredLookupFails() {
+        stubAggregates(
+                List.of(new SensorDailyAggregate("temperature", "C", 100L, 24.5, 18.0, 31.0)),
+                List.of(new SensorDailyAggregate("temperature", "C", 90L, 22.5, 19.0, 26.0))
+        );
+
+        when(zoneDailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
+                .thenThrow(new SensorDataException(ErrorCode.SENSOR_DATA_QUERY_FAILED));
+
+        ZoneDailySummary summary =
+                zoneDailySummaryService.summarize(ZONE_ID, DATE);
+
+        assertEquals(22.5, summary.sensorStats().getFirst().previousDayAvg());
+    }
+
+    @Test
+    @DisplayName("전일 조회가 모두 실패해도 오늘 요약은 만들어진다")
     void survivesPreviousDayFailure() {
         when(sensorInfluxRepository.findDailyAggregatesByZone(ZONE_ID, DAY_START, DAY_END))
                 .thenReturn(List.of(new SensorDailyAggregate("temperature", "C", 10L, 24.0, 20.0, 28.0)));
@@ -212,55 +260,6 @@ class ZoneDailySummaryServiceTest {
         assertTrue(summary.hasNoData());
     }
 
-    @Test
-    @DisplayName("저장된 전일 요약이 있으면 원본 대신 그 평균을 쓴다")
-    void prefersStoredPreviousDaySummary() {
-        stubAggregates(
-                List.of(new SensorDailyAggregate("temperature", "C", 100L, 24.5, 18.0, 31.0)),
-                List.of()
-        );
-
-        when(zoneDailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
-                .thenReturn(Optional.of(new ZoneDailySummary(
-                        ZONE_ID,
-                        DATE.minusDays(1),
-                        List.of(new SensorDailyStat(
-                                "temperature", "C", 21.0, 18.0, 25.0,
-                                null, null, null, null
-                        )),
-                        null
-                )));
-
-        ZoneDailySummary summary =
-                zoneDailySummaryService.summarize(ZONE_ID, DATE);
-
-        assertAll(
-                () -> assertEquals(21.0, summary.sensorStats().getFirst().previousDayAvg()),
-                () -> verify(sensorInfluxRepository, never()).findDailyAggregatesByZone(
-                        ZONE_ID,
-                        DATE.minusDays(1).atStartOfDay(KST).toInstant(),
-                        DAY_START
-                )
-        );
-    }
-
-    @Test
-    @DisplayName("저장된 전일 요약 조회가 실패해도 원본으로 되돌아간다")
-    void fallsBackToRawWhenStoredLookupFails() {
-        stubAggregates(
-                List.of(new SensorDailyAggregate("temperature", "C", 100L, 24.5, 18.0, 31.0)),
-                List.of(new SensorDailyAggregate("temperature", "C", 90L, 22.5, 19.0, 26.0))
-        );
-
-        when(zoneDailySummaryInfluxRepository.findByZoneAndDate(ZONE_ID, DATE.minusDays(1)))
-                .thenThrow(new SensorDataException(ErrorCode.SENSOR_DATA_QUERY_FAILED));
-
-        ZoneDailySummary summary =
-                zoneDailySummaryService.summarize(ZONE_ID, DATE);
-
-        assertEquals(22.5, summary.sensorStats().getFirst().previousDayAvg());
-    }
-
     private void stubAggregates(
             List<SensorDailyAggregate> today,
             List<SensorDailyAggregate> previousDay
@@ -271,10 +270,6 @@ class ZoneDailySummaryServiceTest {
         lenient().when(sensorInfluxRepository.findDailyAggregatesByZone(
                 ZONE_ID, DATE.minusDays(1).atStartOfDay(KST).toInstant(), DAY_START
         )).thenReturn(previousDay);
-    }
-
-    private ThresholdPolicyDto policy(Map<String, ThresholdRange> ranges) {
-        return new ThresholdPolicyDto(ranges);
     }
 
     private SensorHistoryResponse doorRecord(Instant time, Double value) {

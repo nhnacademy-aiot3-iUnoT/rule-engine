@@ -320,70 +320,6 @@ public class SensorInfluxRepository {
     }
 
     /**
-     * 임계 범위를 벗어난 측정값의 개수를 센다.
-     */
-    public long countOutOfRange(
-            Long zoneId,
-            String sensorType,
-            Double min,
-            Double max,
-            Instant from,
-            Instant to
-    ) {
-        String boundaryFilter = createBoundaryFilter(min, max);
-
-        if (boundaryFilter.isEmpty()) {
-            return 0L;
-        }
-
-        String fluxQuery = """
-                from(bucket: "%s")
-                    |> range(
-                        start: time(v: "%s"),
-                        stop: time(v: "%s")
-                    )
-                    |> filter(fn: (r) => r._measurement == "%s")
-                    |> filter(fn: (r) => r.zone_id == "%s")
-                    |> filter(fn: (r) => r.sensor_type == "%s")
-                    |> filter(fn: (r) => r._field == "%s")
-                    %s
-                    |> group()
-                    |> count()
-                """.formatted(
-                influxDbProperties.bucket(),
-                from,
-                to,
-                influxDbProperties.measurement(),
-                zoneId,
-                sensorType,
-                VALUE_FIELD,
-                boundaryFilter
-        );
-
-        // 이탈이 하나도 없으면 count()가 빈 결과를 돌려준다.
-        return executeQuery(fluxQuery, this::toCount)
-                .stream()
-                .findFirst()
-                .orElse(0L);
-    }
-
-    private String createBoundaryFilter(Double min, Double max) {
-        if (min != null && max != null) {
-            return "|> filter(fn: (r) => r._value < %s or r._value > %s)".formatted(min, max);
-        }
-
-        if (min != null) {
-            return "|> filter(fn: (r) => r._value < %s)".formatted(min);
-        }
-
-        if (max != null) {
-            return "|> filter(fn: (r) => r._value > %s)".formatted(max);
-        }
-
-        return "";
-    }
-
-    /**
      * door 센서의 원본(raw) 이력을 집계·필터 없이 조회한다.
      * 열림(1)/닫힘(0) 전환 시점을 정확히 판별하려면 두 값 모두 필요하므로
      * 값에 대한 필터를 걸지 않는다.
@@ -564,10 +500,6 @@ public class SensorInfluxRepository {
 
             return null;
         }
-    }
-
-    private Long toCount(FluxRecord fluxRecord) {
-        return (long) getNumberValue(fluxRecord);
     }
 
     private double getDoubleByKey(
