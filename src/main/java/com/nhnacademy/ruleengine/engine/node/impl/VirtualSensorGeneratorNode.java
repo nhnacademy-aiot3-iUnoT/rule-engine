@@ -85,17 +85,16 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
         for (SensorType sensorType : SensorType.values()) {
             SensorValue sensorValue = sensorValueMap.get(sensorType);
-            if (sensorValue == null) {
-                continue;
+            if (sensorValue != null) {
+                double generatedValue = generateValue(sensorValue);
+
+                if (sensorType == SensorType.DOOR) {
+                    publishDoorIfChanged(generatedValue, measuredAt);
+                    continue;
+                }
+
+                publish(sensorType, generatedValue, measuredAt);
             }
-
-            double generatedValue = generateValue(sensorValue);
-
-            if (sensorType == SensorType.DOOR) {
-                publishDoorIfChanged(generatedValue, measuredAt);
-            }
-
-            publish(sensorType, generatedValue, measuredAt);
         }
 
         log.debug("[{}] 가상 센서 데이터 생성", getId());
@@ -184,6 +183,7 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
         }
         return ThreadLocalRandom.current().nextDouble(min, max);
     }
+
     private String sanitize(String value) {
         return value.trim().replaceAll("[\\s/]+", "_");
     }
