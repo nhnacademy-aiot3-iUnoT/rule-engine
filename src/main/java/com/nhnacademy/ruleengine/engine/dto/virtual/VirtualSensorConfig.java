@@ -56,13 +56,12 @@ public record VirtualSensorConfig(
         Objects.requireNonNull(request, "변경할 가상 센서 설정은 필수입니다.");
 
 
-
         return new VirtualSensorConfig(
                 existing.organizationId(),
                 existing.storageId(),
                 existing.zoneId(),
                 existing.deviceEui(),
-                request.virtualSensorValues() != null ? request.virtualSensorValues() : existing.virtualSensorValues(),
+                request.virtualSensorValues(),
                 request.measurementIntervalSeconds() != null ? request.measurementIntervalSeconds() : existing.measurementIntervalSeconds()
         );
     }

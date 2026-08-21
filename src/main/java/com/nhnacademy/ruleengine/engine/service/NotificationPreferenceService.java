@@ -11,12 +11,12 @@ public class NotificationPreferenceService {
     public List<NotificationPreference> findPreferences(
             Long organizationId,
             Long storageId,
-            Long sectionId
+            Long zoneId
     ) {
         return List.of(
-                new NotificationPreference(1L, organizationId, storageId, sectionId, NotificationChannel.WEB, true, null),
-                new NotificationPreference(1L, organizationId, storageId, sectionId, NotificationChannel.TELEGRAM, true, "7501086554"),
-                new NotificationPreference(1L, organizationId, storageId, sectionId, NotificationChannel.KAKAO, false, "test-kakao-receiver-id")
+                new NotificationPreference(1L, organizationId, storageId, zoneId, NotificationChannel.WEB, true, null),
+                new NotificationPreference(1L, organizationId, storageId, zoneId, NotificationChannel.TELEGRAM, true, "7501086554"),
+                new NotificationPreference(1L, organizationId, storageId, zoneId, NotificationChannel.KAKAO, false, "test-kakao-receiver-id")
         );
     }
 

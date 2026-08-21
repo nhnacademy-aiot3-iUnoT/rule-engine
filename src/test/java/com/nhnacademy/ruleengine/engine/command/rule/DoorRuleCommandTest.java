@@ -76,8 +76,8 @@ class DoorRuleCommandTest {
     @DisplayName("문열림 룰 설정이 없으면 빈 결과를 반환해 감시하지 않는다")
     void evaluateWithoutDoorThreshold() {
         // given: 다른 센서타입 설정만 있고 문 설정은 없는 구역
-        when(thresholdPolicyService.getThresholdPolicy(1L, 2L, 3L)).thenReturn(
-                new ThresholdPolicyDto(1L, 2L, 3L, Map.of(
+        when(thresholdPolicyService.getThresholdPolicy(3L)).thenReturn(
+                new ThresholdPolicyDto(Map.of(
                         SensorType.TEMPERATURE.value(), new ThresholdRange(20.0, 30.0, 5)
                 ))
         );
@@ -103,8 +103,8 @@ class DoorRuleCommandTest {
     }
 
     private void stubPolicy() {
-        when(thresholdPolicyService.getThresholdPolicy(1L, 2L, 3L)).thenReturn(
-                new ThresholdPolicyDto(1L, 2L, 3L, Map.of(
+        when(thresholdPolicyService.getThresholdPolicy(3L)).thenReturn(
+                new ThresholdPolicyDto(Map.of(
                         SensorType.DOOR.value(), new ThresholdRange(null, null, null)
                 ))
         );

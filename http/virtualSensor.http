@@ -1,47 +1,63 @@
 @host = http://localhost:10406
 
 ### 가상데이터 생성 Flow 생성
+POST {{host}}/api/rule-engine/organizations/2/storages/1/zones/21/virtual-sensor
+Content-Type: application/json
+
+{
+  "deviceEui": "device-eui-virtual-21",
+  "measurementIntervalSeconds": 60,
+  "virtualSensorValues": {
+    "valueMap": {
+      "TEMPERATURE":  { "mode": "RANGE", "min": 25.0, "max": 26.0 },
+      "HUMIDITY":     { "mode": "RANGE", "min": 50.0, "max": 55.0 },
+      "ILLUMINATION": { "mode": "RANGE", "min": 100.0, "max": 150.0 },
+      "DOOR":         { "mode": "PROBABILITY", "probability": 0.01 }
+    }
+  }
+}
+
+### 고정값으로 생성
 POST {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/virtual-sensor
 Content-Type: application/json
 
 {
-  "temperature": {
-    "min": 25,
-    "max": 26
-  },
-  "humidity": {
-    "min": 50,
-    "max": 55
-  },
-  "illumination": {
-    "min": 100,
-    "max": 150
-  },
-  "doorOpenProbability": 0.01,
-  "measurementIntervalSeconds": 60,
-  "deviceEui": "device-eui-virtual-24"
+  "deviceEui": "device-eui-virtual-22",
+  "measurementIntervalSeconds": 10,
+  "virtualSensorValues": {
+    "valueMap": {
+      "TEMPERATURE": { "mode": "FIXED", "fixedValue": 45.0 },
+      "DOOR":        { "mode": "FIXED", "fixedValue": 1.0 }
+    }
+  }
 }
 
 ### 가상데이터 생성정보 조회
-GET {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/virtual-sensor
+GET {{host}}/api/rule-engine/organizations/2/storages/1/zones/21/virtual-sensor
 
 ### 가상데이터 생성정보 변경
-PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/virtual-sensor
+
+PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/21/virtual-sensor
 Content-Type: application/json
 
 {
-  "temperature": {
-    "min": 20,
-    "max": 30
+  "measurementIntervalSeconds": 30,
+  "virtualSensorValues": {
+    "valueMap": {
+      "TEMPERATURE":  { "mode": "RANGE", "min": 20.0, "max": 30.0 },
+      "HUMIDITY":     { "mode": "RANGE", "min": 50.0, "max": 55.0 },
+      "ILLUMINATION": { "mode": "RANGE", "min": 100.0, "max": 150.0 },
+      "DOOR":         { "mode": "PROBABILITY", "probability": 0.01 }
+    }
   }
 }
 
 ### 가상데이터 생성정보 삭제
-DELETE {{host}}/api/rule-engine/organizations/2/storages/1/zones/23/virtual-sensor
+DELETE {{host}}/api/rule-engine/organizations/2/storages/1/zones/21/virtual-sensor
 
 
 ### Zone에서 Flow 정지
-PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/status
+PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/21/status
 Content-Type: application/json
 
 {
@@ -49,7 +65,7 @@ Content-Type: application/json
 }
 
 ### Zone에서 Flow 다시시작
-PATCH {{host}}/api/rule-engine/organizations/2/storages/1/zones/24/status
+PUT {{host}}/api/rule-engine/organizations/2/storages/1/zones/22/status
 Content-Type: application/json
 
 {

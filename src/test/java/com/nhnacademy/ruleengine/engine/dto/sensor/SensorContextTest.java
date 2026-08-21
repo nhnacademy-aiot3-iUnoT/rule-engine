@@ -14,7 +14,7 @@ class SensorContextTest {
 
 
     @Test
-    @DisplayName("SectionContext 생성")
+    @DisplayName("ZoneContext 생성")
     void initSensorContext() {
         externalSensorMessage = new ExternalSensorMessage(
                 "testTopic",
@@ -37,13 +37,13 @@ class SensorContextTest {
                     assertEquals(1L, sensorContext.organizationId());
                     assertEquals("testDeviceEui", sensorContext.deviceEui());
                     assertEquals(1L, sensorContext.storageId());
-                    assertEquals(1L, sensorContext.sectionId());
+                    assertEquals(1L, sensorContext.zoneId());
                 }
         );
     }
 
     @Test
-    @DisplayName("Time Null 일때 SectionContext 생성")
+    @DisplayName("Time Null 일때 ZoneContext 생성")
     void initTimeNullSensorContext() {
 
         externalSensorMessage = new ExternalSensorMessage(
@@ -67,13 +67,13 @@ class SensorContextTest {
                     assertEquals(1L, sensorContext.organizationId());
                     assertEquals("testDeviceEui", sensorContext.deviceEui());
                     assertEquals(1L, sensorContext.storageId());
-                    assertEquals(1L, sensorContext.sectionId());
+                    assertEquals(1L, sensorContext.zoneId());
                 }
         );
     }
 
     @Test
-    @DisplayName("DeviceEui Null 일때 SectionContext 생성")
+    @DisplayName("DeviceEui Null 일때 ZoneContext 생성")
     void initDeviceEuiNullSensorContext() {
 
         externalSensorMessage = new ExternalSensorMessage(
@@ -97,7 +97,7 @@ class SensorContextTest {
                     assertEquals(1L, sensorContext.organizationId());
                     assertEquals("unknown", sensorContext.deviceEui());
                     assertEquals(1L, sensorContext.storageId());
-                    assertEquals(1L, sensorContext.sectionId());
+                    assertEquals(1L, sensorContext.zoneId());
                 }
         );
     }

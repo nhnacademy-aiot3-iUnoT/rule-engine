@@ -28,10 +28,14 @@ public abstract class LeasedFlowOwner<K> implements SchedulingConfigurer {
     private final Duration leaseDuration;
     private final Duration renewInterval;
 
-    /** 마지막 갱신 성공 이후 이 시간이 지나면 소유권을 잃었다고 보고 스스로 Flow를 중지한다. */
+    /**
+     * 마지막 갱신 성공 이후 이 시간이 지나면 소유권을 잃었다고 보고 스스로 Flow를 중지한다.
+     */
     private final Duration fenceAfter;
 
-    /** 소유 중인 키 -> 마지막으로 Lock 갱신을 시도한 시각(성공한 것만 기록) */
+    /**
+     * 소유 중인 키 -> 마지막으로 Lock 갱신을 시도한 시각(성공한 것만 기록)
+     */
     private final Map<K, Instant> leaseRenewedAt = new HashMap<>();
 
     private boolean shutdownInProgress;
@@ -193,11 +197,7 @@ public abstract class LeasedFlowOwner<K> implements SchedulingConfigurer {
 
     private void renewOwned(Set<K> desiredKeys) {
         for (K key : Set.copyOf(leaseRenewedAt.keySet())) {
-            if (!desiredKeys.contains(key)) {
-                continue;
-            }
-
-            if (!renewLease(key)) {
+            if (!desiredKeys.contains(key) || !renewLease(key)) {
                 continue;
             }
 

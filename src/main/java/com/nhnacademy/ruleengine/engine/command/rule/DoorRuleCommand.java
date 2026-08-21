@@ -31,18 +31,16 @@ public class DoorRuleCommand implements EnvironmentRuleCommand {
         String sensorType = sensorPayload.sensorType();
 
         boolean configured = thresholdPolicyService.getThresholdPolicy(
-                sensorPayload.organizationId(),
-                sensorPayload.storageId(),
-                sensorPayload.sectionId()
+                sensorPayload.zoneId()
         ).rangeFor(sensorType).isPresent();
 
         if (!configured) {
             log.info(
-                    "[{}] 문열림 룰 설정이 없어 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}, deviceEui={}",
+                    "[{}] 문열림 룰 설정이 없어 검사를 건너뜁니다. organizationId={}, storageId={}, zoneId={}, sensorType={}, deviceEui={}",
                     getClass().getSimpleName(),
                     sensorPayload.organizationId(),
                     sensorPayload.storageId(),
-                    sensorPayload.sectionId(),
+                    sensorPayload.zoneId(),
                     sensorType,
                     sensorPayload.deviceEui()
             );
@@ -64,10 +62,10 @@ public class DoorRuleCommand implements EnvironmentRuleCommand {
         }
 
         log.info(
-                "지원하지 않는 문 상태 값입니다. organizationId={}, storageId={}, sectionId={}, deviceEui={}, value={}",
+                "지원하지 않는 문 상태 값입니다. organizationId={}, storageId={}, zoneId={}, deviceEui={}, value={}",
                 sensorPayload.organizationId(),
                 sensorPayload.storageId(),
-                sensorPayload.sectionId(),
+                sensorPayload.zoneId(),
                 sensorPayload.deviceEui(),
                 value
         );

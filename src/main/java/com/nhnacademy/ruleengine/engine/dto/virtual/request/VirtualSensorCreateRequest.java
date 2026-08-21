@@ -1,7 +1,9 @@
 package com.nhnacademy.ruleengine.engine.dto.virtual.request;
 
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorValues;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record VirtualSensorCreateRequest(
 
@@ -13,10 +15,6 @@ public record VirtualSensorCreateRequest(
         Long measurementIntervalSeconds,
 
         @NotNull
-        VirtualSensorValues virtualSensorValues,
-
-        @DecimalMin(value = "0.0", message = "문 열림 확률은 0 이상이어야 합니다.")
-        @DecimalMax(value = "1.0", message = "문 열림 확률은 1 이하여야 합니다.")
-        Double doorOpenProbability
+        VirtualSensorValues virtualSensorValues
 ) {
 }

@@ -25,8 +25,8 @@ public class VirtualSensorFlow {
 
     private final NormalizedSensorPublisher normalizedSensorPublisher;
 
-    public static String flowId(Long sectionId) {
-        return FLOW_ID_PREFIX + sectionId;
+    public static String flowId(Long zoneId) {
+        return FLOW_ID_PREFIX + zoneId;
     }
 
     public Flow create(VirtualSensorConfig sensorConfig) {

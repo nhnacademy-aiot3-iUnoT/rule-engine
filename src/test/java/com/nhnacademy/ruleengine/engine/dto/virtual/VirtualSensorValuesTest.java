@@ -32,9 +32,12 @@ class VirtualSensorValuesTest {
                 0.5
         );
 
+        Map<SensorType, SensorValue> values = new EnumMap<>(SensorType.class);
+        values.put(SensorType.TEMPERATURE, probability);
+
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new VirtualSensorValues(Map.of(SensorType.TEMPERATURE, probability))
+                () -> new VirtualSensorValues(values)
         );
     }
 
@@ -49,9 +52,12 @@ class VirtualSensorValuesTest {
                 null
         );
 
+        Map<SensorType, SensorValue> valueMap = new EnumMap<>(SensorType.class);
+        valueMap.put(SensorType.DOOR, range);
+
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new VirtualSensorValues(Map.of(SensorType.DOOR, range))
+                () -> new VirtualSensorValues(valueMap)
         );
     }
 
@@ -66,9 +72,12 @@ class VirtualSensorValuesTest {
                 null
         );
 
+        Map<SensorType, SensorValue> valueMap = new EnumMap<>(SensorType.class);
+        valueMap.put(SensorType.DOOR, fixed);
+
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new VirtualSensorValues(Map.of(SensorType.DOOR, fixed))
+                () -> new VirtualSensorValues(valueMap)
         );
     }
 
@@ -89,9 +98,12 @@ class VirtualSensorValuesTest {
         source.clear();
 
         assertEquals(Map.of(SensorType.TEMPERATURE, fixed), values.valueMap());
+
+        Map<SensorType, SensorValue> sensorValueMap = values.valueMap();
+
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> values.valueMap().clear()
+                sensorValueMap::clear
         );
     }
 }

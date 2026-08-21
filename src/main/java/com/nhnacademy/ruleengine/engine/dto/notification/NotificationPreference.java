@@ -5,7 +5,7 @@ public record NotificationPreference(
         Long userId,
         Long organizationId,
         Long storageId,
-        Long sectionId,
+        Long zoneId,
         NotificationChannel channel,
         boolean enabled,
         String recipient

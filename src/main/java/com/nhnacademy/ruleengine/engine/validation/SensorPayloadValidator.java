@@ -10,7 +10,7 @@ public final class SensorPayloadValidator {
         requirePositive(payload.organizationId(), "organizationId");
         requireText(payload.deviceEui(), "deviceEui");
         requirePositive(payload.storageId(), "storageId");
-        requirePositive(payload.sectionId(), "sectionId");
+        requirePositive(payload.zoneId(), "zoneId");
         requireText(payload.sensorType(), "sensorType");
         requireText(payload.unit(), "unit");
         requireText(payload.time(), "time");

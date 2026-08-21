@@ -8,7 +8,7 @@ public record SensorContext(
         Long organizationId,
         String deviceEui,
         Long storageId,
-        Long sectionId,
+        Long zoneId,
         String time
 ) {
 

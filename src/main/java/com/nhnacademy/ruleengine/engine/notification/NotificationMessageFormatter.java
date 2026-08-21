@@ -7,6 +7,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class NotificationMessageFormatter {
+
+    private NotificationMessageFormatter() {
+        /*
+            유틸 클래스
+         */
+    }
+
     private static final String DOOR_SENSOR_TYPE = "door";
 
     public static String titleOf(EnvironmentStatusEventDto event){
@@ -26,7 +33,7 @@ public class NotificationMessageFormatter {
 
     private static String doorContent(EnvironmentStatusEventDto event) {
         return String.format(
-                "저장소: %s\n구역: %s\n장치: %s\n%s",
+                "저장소: %s%n구역: %s%n장치: %s%n%s",
                 event.storageId(),
                 event.zoneId(),
                 event.deviceEui(),
@@ -36,7 +43,7 @@ public class NotificationMessageFormatter {
 
     private static String sensorContent(EnvironmentStatusEventDto event) {
         return String.format(
-                "저장소: %s\n구역: %s\n장치: %s\n %s 상태가 %s \n현재값: %.2f%s, \n사유: %s",
+                "저장소: %s%n구역: %s%n장치: %s%n %s 상태가 %s %n현재값: %.2f%s, %n사유: %s",
                 event.storageId(),
                 event.zoneId(),
                 event.deviceEui(),

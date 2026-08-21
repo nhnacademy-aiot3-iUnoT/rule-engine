@@ -80,8 +80,8 @@ class ThresholdRuleCommandTest {
     @DisplayName("해당 센서의 임계값 설정이 없으면 빈 결과를 반환한다")
     void evaluateWithoutThreshold() {
         // given
-        when(thresholdPolicyService.getThresholdPolicy(1L, 2L, 3L))
-                .thenReturn(new ThresholdPolicyDto(1L, 2L, 3L, Map.of()));
+        when(thresholdPolicyService.getThresholdPolicy(3L))
+                .thenReturn(new ThresholdPolicyDto(Map.of()));
 
         // when
         Optional<RuleResultDto> result = command.evaluate(payload(SensorType.TEMPERATURE, 25.0));
@@ -91,8 +91,8 @@ class ThresholdRuleCommandTest {
     }
 
     private void stubPolicy() {
-        when(thresholdPolicyService.getThresholdPolicy(1L, 2L, 3L)).thenReturn(
-                new ThresholdPolicyDto(1L, 2L, 3L, Map.of(
+        when(thresholdPolicyService.getThresholdPolicy(3L)).thenReturn(
+                new ThresholdPolicyDto(Map.of(
                         SensorType.TEMPERATURE.value(), new ThresholdRange(20.0, 30.0, 5),
                         SensorType.HUMIDITY.value(), new ThresholdRange(30.0, 70.0, 10)
                 ))

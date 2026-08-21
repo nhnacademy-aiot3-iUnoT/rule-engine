@@ -43,13 +43,15 @@ public class InventoryClient {
 
 
     // 구역에 설정된 센서타입별 임계값을 조회한다. 설정이 없으면 범위가 빈 정책을 돌려준다.
-    public ThresholdPolicyDto getThresholdPolicy(Long organizationId, Long storageId, Long zoneId) {
+    public ThresholdPolicyDto getThresholdPolicy(Long zoneId) {
         List<ThresholdSpecResponse> specs = apiClient.get(
                 baseUrl + INVENTORY_URL + "/zones/" + zoneId + "/zone-threshold",
                 THRESHOLD_SPEC_LIST
         );
 
-        return toThresholdPolicy(organizationId, storageId, zoneId, specs);
+        return new ThresholdPolicyDto(
+                toRanges(zoneId, specs == null ? List.of() : specs)
+        );
     }
 
     // deviceEui로 센서가 설치된 위치(조직/창고/구역)를 조회한다.
@@ -75,20 +77,6 @@ public class InventoryClient {
                 .toUriString();
 
         apiClient.put(url);
-    }
-
-    private ThresholdPolicyDto toThresholdPolicy(
-            Long organizationId,
-            Long storageId,
-            Long zoneId,
-            List<ThresholdSpecResponse> specs
-    ) {
-        return new ThresholdPolicyDto(
-                organizationId,
-                storageId,
-                zoneId,
-                toRanges(zoneId, specs == null ? List.of() : specs)
-        );
     }
 
     private Map<String, ThresholdRange> toRanges(Long zoneId, List<ThresholdSpecResponse> specs) {
