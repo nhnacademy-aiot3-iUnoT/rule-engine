@@ -220,7 +220,7 @@ public class DailySummaryInfluxRepository {
 
 
     /**
-     * pivot으로 한 줄이 된 레코드를 날짜별 저장소 요약으로 묶는다.
+     *  날짜별 저장소 요약으로 묶는다
      */
     private List<StorageDailySummary> toStorageSummaries(
             Long storageId,
@@ -244,36 +244,32 @@ public class DailySummaryInfluxRepository {
 
     /**
      * 레코드를 구역과 날짜별로 묶는다.
-     * <p>
-     * 저장할 때 센서 타입마다 포인트를 나눴으므로 구역 하나의 하루가 여러 줄로 나뉘어 돌아온다.
-     * 조회 결과가 날짜와 구역 순으로 정렬되어 있어, 순서를 유지하는 Map으로 모으면 그 순서가 보존된다.
      */
     private Map<ZoneDay, ZoneDailySummary> toZoneSummaries(List<FluxRecord> records) {
         Map<ZoneDay, List<SensorDailyStat>> statsByZoneDay = new LinkedHashMap<>();
         Map<ZoneDay, DoorDailyStat> doorByZoneDay = new LinkedHashMap<>();
 
         for (FluxRecord data : records) {
-            if (data.getTime() == null) {
-                continue;
+            if (data.getTime() != null) {
+                ZoneDay key = new ZoneDay(
+                        parseId(data, ZONE_ID),
+                        ZoneDailySummary.dateOf(data.getTime())
+                );
+
+                if (key.zoneId() == null) {
+                    log.warn("구역 번호가 없는 요약이라 건너뜁니다. time={}", data.getTime());
+                }
+
+                // 구역이 door 포인트로만 등장해도 요약이 만들어져야 하므로 미리 자리를 만든다.
+                statsByZoneDay.computeIfAbsent(key, ignored -> new ArrayList<>());
+
+                if (DOOR_SENSOR_TYPE.equals(FluxRecords.getString(data, SENSOR_TYPE))) {
+                    doorByZoneDay.put(key, toDoorStat(data));
+                    continue;
+                }
+
+                statsByZoneDay.get(key).add(toSensorStat(data));
             }
-
-            ZoneDay key = new ZoneDay(
-                    parseId(data, ZONE_ID),
-                    ZoneDailySummary.dateOf(data.getTime())
-            );
-
-            if (key.zoneId() == null) {
-                log.warn("구역 번호가 없는 요약이라 건너뜁니다. time={}", data.getTime());
-            }
-
-            // 구역이 door 포인트로만 등장해도 요약이 만들어져야 하므로 미리 자리를 만든다.
-            statsByZoneDay.computeIfAbsent(key, ignored -> new ArrayList<>());
-
-            if (DOOR_SENSOR_TYPE.equals(FluxRecords.getString(data, SENSOR_TYPE))) {
-                doorByZoneDay.put(key, toDoorStat(data));
-            }
-
-            statsByZoneDay.get(key).add(toSensorStat(data));
         }
 
         Map<ZoneDay, ZoneDailySummary> summaries = new LinkedHashMap<>();

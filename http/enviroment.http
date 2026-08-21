@@ -1,16 +1,10 @@
 @host = http://localhost:10406
 
-### 저장소 어제 요약 (안에 구역별 환경정보)
-GET {{host}}/api/rule-engine/storages/1/daily-summary
-
-### 저장소 특정 날짜 요약
-GET {{host}}/api/rule-engine/storages/1/daily-summaries?date=2026-08-19
-
-### 저장소 최근 7일 요약 (주간 리뷰 입력)
+### 저장소 최근 7일 리포트
 GET {{host}}/api/rule-engine/storages/1/daily-summaries
 
-### 저장소 기간 지정 요약
-GET {{host}}/api/rule-engine/storages/1/daily-summaries?from=2026-08-13&to=2026-08-19
+### 저장소 기간 지정 리포트
+GET {{host}}/api/rule-engine/storages/1/daily-summaries?from=2026-08-21&to=2026-08-21
 
-### 하루 요약 수동 적재 (배치 실패 복구 / 첫 도입 시)
-POST {{host}}/api/rule-engine/daily-summary-rollups?date=2026-08-18
+### 하루 요약 수동 적재 (테스트용)
+POST {{host}}/api/rule-engine/daily-summary-rollups?date=2026-08-21
