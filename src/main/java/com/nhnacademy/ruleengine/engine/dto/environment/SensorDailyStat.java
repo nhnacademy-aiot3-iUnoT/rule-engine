@@ -1,10 +1,6 @@
 package com.nhnacademy.ruleengine.engine.dto.environment;
 
-// 센서 타입 하나의 하루 통계. 설명을 만들려면 측정값만으로는 부족해 판단 기준을 함께 담는다.
-//
-// thresholdMin/Max와 outOfRangeRatio가 있어야 "평균은 정상이었지만 하루의 12%는 상한을 넘었다"는
-// 서술이 가능해지고, previousDayAvg가 있어야 "어제보다 2도 높다"는 비교가 가능해진다.
-// 이 값들이 없으면 남는 설명은 "평균 22.4도입니다" 수준뿐이다.
+// 센서 타입 하나의 하루 통계.
 public record SensorDailyStat(
         String sensorType,
         String unit,

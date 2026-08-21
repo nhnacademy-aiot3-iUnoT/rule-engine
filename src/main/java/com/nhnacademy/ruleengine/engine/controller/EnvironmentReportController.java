@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.controller;
 
-import com.nhnacademy.ruleengine.engine.dto.environment.DailySummaryRollupResult;
+import com.nhnacademy.ruleengine.engine.dto.environment.DailySummaryRollupResponse;
 import com.nhnacademy.ruleengine.engine.dto.environment.StorageDailySummary;
 import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
 import com.nhnacademy.ruleengine.engine.service.StorageDailySummaryArchiveService;
@@ -48,14 +48,14 @@ public class EnvironmentReportController {
      * 하루 요약 적재를 수동으로 실행한다. date를 생략하면 어제를 대상으로 한다.(테스트 용도)
      */
     @PostMapping("/daily-summary-rollups")
-    public ApiResponse<DailySummaryRollupResult> rollup(
+    public ApiResponse<DailySummaryRollupResponse> rollup(
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         LocalDate target = yesterdayIfNull(date);
 
         return ApiResponse.success(
-                new DailySummaryRollupResult(
+                new DailySummaryRollupResponse(
                         target,
                         storageDailySummaryArchiveService.rollup(target)
                 )
