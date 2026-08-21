@@ -42,7 +42,7 @@ public class DailyThresholdStatNode extends AbstractNode {
 
         // 통계는 수집 경로에 얹힌 부수 작업이다. 남기지 못했다고 측정값과 알림까지 잃으면 안 된다.
         try {
-            record(ruleResult);
+            recordDailyStat(ruleResult);
         } catch (RuntimeException exception) {
             log.warn(
                     "[{}] 임계값 판단 통계를 남기지 못했습니다. zoneId={}, sensorType={}",
@@ -55,13 +55,13 @@ public class DailyThresholdStatNode extends AbstractNode {
         send(OUTPUT_PORT, message);
     }
 
-    private void record(RuleResultDto ruleResult) {
+    private void recordDailyStat(RuleResultDto ruleResult) {
         // 임계값이 없는 판단(door 등)은 이탈이라는 개념 자체가 없어 셀 대상이 아니다.
         if (ruleResult.min() == null && ruleResult.max() == null) {
             return;
         }
 
-        sensorDailyStatRedisRepository.record(
+        sensorDailyStatRedisRepository.recordDailyStat(
                 ruleResult.zoneId(),
                 ZoneDailySummary.dateOf(resolveMeasuredAt(ruleResult)),
                 ruleResult.sensorType(),

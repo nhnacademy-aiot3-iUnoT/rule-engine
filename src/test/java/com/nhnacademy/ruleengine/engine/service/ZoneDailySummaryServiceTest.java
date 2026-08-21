@@ -6,9 +6,9 @@ import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorDailyAggregate;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.exception.SensorDataException;
-import com.nhnacademy.ruleengine.engine.repository.DailySummaryInfluxRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorDailyStatRedisRepository;
 import com.nhnacademy.ruleengine.engine.repository.SensorInfluxRepository;
+import com.nhnacademy.ruleengine.engine.repository.DailySummaryInfluxRepository;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,20 +20,30 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ZoneDailySummaryServiceTest {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    private static final LocalDate DATE = LocalDate.of(2026, 8, 17);
+    private static final LocalDate DATE = LocalDate.of(2026, Month.AUGUST, 17);
     private static final Long ZONE_ID = 3L;
 
     private static final Instant DAY_START = DATE.atStartOfDay(KST).toInstant();
@@ -178,7 +188,7 @@ class ZoneDailySummaryServiceTest {
                 .thenReturn(List.of(new SensorDailyAggregate("temperature", "C", 10L, 24.0, 20.0, 28.0)));
 
         when(sensorInfluxRepository.findDailyAggregatesByZone(
-                eq(ZONE_ID), eq(DATE.minusDays(1).atStartOfDay(KST).toInstant()), eq(DAY_START)
+                ZONE_ID, DATE.minusDays(1).atStartOfDay(KST).toInstant(), DAY_START
         )).thenThrow(new SensorDataException(ErrorCode.SENSOR_DATA_QUERY_FAILED));
 
         ZoneDailySummary summary =

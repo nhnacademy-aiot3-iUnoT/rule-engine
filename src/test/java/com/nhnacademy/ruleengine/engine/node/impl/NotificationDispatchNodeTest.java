@@ -75,7 +75,7 @@ class NotificationDispatchNodeTest {
     }
 
     @Test
-    void 이벤트_상태가_WARNING이면_preference가_있어도_발송_안함() throws Exception {
+    void 이벤트_상태가_WARNING이면_preference가_있어도_발송_안함(){
         EnvironmentStatusEventDto event = event(EnvStatus.WARNING);
         Message message = message(event);
 

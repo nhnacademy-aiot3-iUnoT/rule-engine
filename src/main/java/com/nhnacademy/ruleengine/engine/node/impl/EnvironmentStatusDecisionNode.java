@@ -14,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
@@ -87,7 +85,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
             String zoneKey,
             String sensorField
     ) {
-        LocalDateTime measuredAt = parseMeasuredAt(ruleResult.measuredAt()); // 측정한 시간
+        Instant measuredAt = parseMeasuredAt(ruleResult.measuredAt()); // 측정한 시간
 
         EnvironmentDecisionState oldState = stateRepository.find(zoneKey, sensorField).orElse(null); // 이전상태 불러오기
         Transition transition = decide(oldState, ruleResult, measuredAt);
@@ -100,16 +98,16 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
     }
 
     // 형식이 깨진 경우 메시지 처리 자체가 죽지 않도록 현재 시간으로 대체한다.
-    private LocalDateTime parseMeasuredAt(String measuredAt) {
+    private Instant parseMeasuredAt(String measuredAt) {
         try {
-            return LocalDateTime.ofInstant(Instant.parse(measuredAt), ZoneOffset.UTC);
+            return Instant.parse(measuredAt);
         } catch (DateTimeParseException | NullPointerException exception) {
             log.warn("[{}] measuredAt 형식이 올바르지 않아 현재 시간으로 처리합니다. measuredAt={}", getId(), measuredAt);
-            return LocalDateTime.now(ZoneOffset.UTC);
+            return Instant.now();
         }
     }
 
-    private Transition decide(EnvironmentDecisionState oldState, RuleResultDto ruleResult, LocalDateTime measuredAt) {
+    private Transition decide(EnvironmentDecisionState oldState, RuleResultDto ruleResult, Instant measuredAt) {
         // 들아온 데이터가 기존 데이터보다 과거인 경우 데이터 버림
         if (oldState != null
                 && oldState.lastMeasuredAt() != null
@@ -125,7 +123,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
         }
 
         // 외부 장치/게이트웨이 시계가 앞서있는 미래 타임스탬프는 신뢰하지 않고 버린다.
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        Instant now = Instant.now();
         if (measuredAt.isAfter(now.plus(FUTURE_TOLERANCE))) {
             log.warn("[{}] 미래 측정 메시지라 상태 전이를 건너뜁니다. now={}, measuredAt={}, zoneId={}, sensorType={}",
                     getId(),
@@ -160,7 +158,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
     }
 
     // 위반 지속시간 조건이 없는 경우 즉시 CRITICAL
-    private Transition decideInstantViolation(EnvironmentDecisionState oldState, EnvStatus previousStatus, LocalDateTime measuredAt) {
+    private Transition decideInstantViolation(EnvironmentDecisionState oldState, EnvStatus previousStatus, Instant measuredAt) {
         // 최초 CRITICAL 상태 변화시 다음노드로 전송
         if (oldState == null || oldState.state() != EnvStatus.CRITICAL) {
             EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.CRITICAL, null, measuredAt, measuredAt);
@@ -180,7 +178,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
             EnvironmentDecisionState oldState,
             EnvStatus previousStatus,
             int durationMinutes,
-            LocalDateTime measuredAt
+            Instant measuredAt
     ) {
         // 첫 위반 발생 또는 상태가 NORMAL일 때 WARNING으로 진입
         if (oldState == null || oldState.state() == EnvStatus.NORMAL) {
@@ -217,7 +215,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
 
     private EnvironmentDecisionState updateLastMeasuredAt(
             EnvironmentDecisionState oldState,
-            LocalDateTime measuredAt
+            Instant measuredAt
     ) {
         return new EnvironmentDecisionState(oldState.state(), oldState.firstViolatedAt(), oldState.lastAlertAt(), measuredAt);
     }

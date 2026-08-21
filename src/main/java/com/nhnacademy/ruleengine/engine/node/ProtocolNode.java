@@ -1,8 +1,10 @@
 package com.nhnacademy.ruleengine.engine.node;
 
+import com.nhnacademy.ruleengine.engine.exception.ConnectionException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -109,7 +111,7 @@ public abstract class ProtocolNode extends AbstractNode {
     }
 
 
-    protected abstract void connect() throws Exception;
+    protected abstract void connect() throws ConnectionException;
 
     protected abstract void disconnect();
 }

@@ -14,11 +14,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class DailyThresholdStatNodeTest {
@@ -41,9 +49,9 @@ class DailyThresholdStatNodeTest {
         node.process(messageWith(ViolationType.ABOVE_MAX, true, 10.0, 30.0));
 
         assertAll(
-                () -> verify(sensorDailyStatRedisRepository).record(
+                () -> verify(sensorDailyStatRedisRepository).recordDailyStat(
                         3L,
-                        LocalDate.of(2026, 8, 17),
+                        LocalDate.of(2026, Month.AUGUST, 17),
                         "temperature",
                         true,
                         10.0,
@@ -63,7 +71,7 @@ class DailyThresholdStatNodeTest {
                 ViolationType.NORMAL, false, 10.0, 30.0, "2026-08-17T14:30:00Z"
         ));
 
-        verify(sensorDailyStatRedisRepository).record(
+        verify(sensorDailyStatRedisRepository).recordDailyStat(
                 anyLong(), any(LocalDate.class), anyString(), anyBoolean(), any(), any()
         );
     }
@@ -76,7 +84,7 @@ class DailyThresholdStatNodeTest {
         node.process(messageWith(ViolationType.NORMAL, false, null, null));
 
         assertAll(
-                () -> verify(sensorDailyStatRedisRepository, never()).record(
+                () -> verify(sensorDailyStatRedisRepository, never()).recordDailyStat(
                         any(), any(), any(), anyBoolean(), any(), any()
                 ),
                 () -> assertEquals(1, connection.getBufferSize())
@@ -90,7 +98,7 @@ class DailyThresholdStatNodeTest {
 
         doThrow(new IllegalStateException("redis 장애"))
                 .when(sensorDailyStatRedisRepository)
-                .record(any(), any(), any(), anyBoolean(), any(), any());
+                .recordDailyStat(any(), any(), any(), anyBoolean(), any(), any());
 
         assertDoesNotThrow(() -> node.process(messageWith(ViolationType.NORMAL, false, 10.0, 30.0)));
 
@@ -105,7 +113,7 @@ class DailyThresholdStatNodeTest {
         assertDoesNotThrow(() -> node.process(new Message(Map.of())));
 
         assertAll(
-                () -> verify(sensorDailyStatRedisRepository, never()).record(
+                () -> verify(sensorDailyStatRedisRepository, never()).recordDailyStat(
                         any(), any(), any(), anyBoolean(), any(), any()
                 ),
                 () -> assertEquals(0, connection.getBufferSize())

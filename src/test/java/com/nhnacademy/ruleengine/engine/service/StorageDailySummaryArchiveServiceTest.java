@@ -17,18 +17,23 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class StorageDailySummaryArchiveServiceTest {
 
-    private static final LocalDate DATE = LocalDate.of(2026, 8, 17);
+    private static final LocalDate DATE = LocalDate.of(2026, Month.AUGUST, 17);
     private static final Long STORAGE_ID = 1L;
 
     @Mock
@@ -100,9 +105,15 @@ class StorageDailySummaryArchiveServiceTest {
     @Test
     @DisplayName("시작일이 종료일보다 늦으면 조회하지 않는다")
     void rejectsInvertedPeriod() {
+        LocalDate endDate = DATE.minusDays(1);
+
         assertThrows(
                 IllegalArgumentException.class,
-                () -> storageDailySummaryArchiveService.findBetween(STORAGE_ID, DATE, DATE.minusDays(1))
+                () -> storageDailySummaryArchiveService.findBetween(
+                        STORAGE_ID,
+                        DATE,
+                        endDate
+                )
         );
     }
 

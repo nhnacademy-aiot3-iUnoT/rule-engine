@@ -17,10 +17,10 @@ public final class FluxRecords {
     }
 
     public static String getString(
-            FluxRecord record,
+            FluxRecord data,
             String key
     ) {
-        Object value = record.getValueByKey(key);
+        Object value = data.getValueByKey(key);
 
         return value != null ? String.valueOf(value) : null;
     }
@@ -29,10 +29,10 @@ public final class FluxRecords {
      * 지정한 열의 숫자를 읽는다. 열이 없으면 null이다.
      */
     public static Double getDouble(
-            FluxRecord record,
+            FluxRecord data,
             String key
     ) {
-        Object value = record.getValueByKey(key);
+        Object value = data.getValueByKey(key);
 
         if (value == null) {
             return null;
@@ -45,10 +45,10 @@ public final class FluxRecords {
      * 반드시 있어야 하는 열의 숫자를 읽는다.
      */
     public static double requireDouble(
-            FluxRecord record,
+            FluxRecord data,
             String key
     ) {
-        Double value = getDouble(record, key);
+        Double value = getDouble(data, key);
 
         if (value == null) {
             throw new IllegalStateException(key + " 값이 없습니다.");
@@ -60,8 +60,8 @@ public final class FluxRecords {
     /**
      * 질의 결과의 기본 값(_value)을 숫자로 읽는다.
      */
-    public static double requireValue(FluxRecord record) {
-        return toDouble(record.getValue(), "_value");
+    public static double requireValue(FluxRecord data) {
+        return toDouble(data.getValue(), "_value");
     }
 
     /**

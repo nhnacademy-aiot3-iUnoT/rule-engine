@@ -38,7 +38,7 @@ public class SensorDailyStatRedisRepository {
     /**
      * 임계값 판단 한 건을 기록한다.
      */
-    public void record(
+    public void recordDailyStat(
             Long zoneId,
             LocalDate date,
             String sensorType,

@@ -13,8 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
@@ -146,7 +145,7 @@ class ZoneEnvStatusServiceTest {
                 status,
                 null,
                 null,
-                LocalDateTime.now(ZoneOffset.UTC)
+                Instant.now()
         );
     }
 }

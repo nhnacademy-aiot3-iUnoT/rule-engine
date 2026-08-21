@@ -93,7 +93,6 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
             if (sensorType == SensorType.DOOR) {
                 publishDoorIfChanged(generatedValue, measuredAt);
-                continue;
             }
 
             publish(sensorType, generatedValue, measuredAt);

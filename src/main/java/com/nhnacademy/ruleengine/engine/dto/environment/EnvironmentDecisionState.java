@@ -1,12 +1,12 @@
 package com.nhnacademy.ruleengine.engine.dto.environment;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 // 센서별 환경상태 판단 상태. 서버 인스턴스 간 공유를 위해 Redis에 저장된다.
 public record EnvironmentDecisionState(
         EnvStatus state,
-        LocalDateTime firstViolatedAt,
-        LocalDateTime lastAlertAt,
-        LocalDateTime lastMeasuredAt
+        Instant firstViolatedAt,
+        Instant lastAlertAt,
+        Instant lastMeasuredAt
 ) {
 }

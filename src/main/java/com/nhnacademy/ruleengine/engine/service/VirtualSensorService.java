@@ -73,7 +73,7 @@ public class VirtualSensorService {
             Long zoneId
     ) {
         // 삭제시 검증?
-        VirtualSensorConfig sensorConfig = virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
+        virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
                 .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND));
 
         virtualSensorRedisRepository.delete(zoneId);

@@ -23,8 +23,7 @@ public abstract class AbstractNode implements Node {
 
     // 이번 process() 호출에서 다음 노드로 메시지를 넘겼는지 추적한다.
     // 노드 하나가 여러 Connection 스레드에서 동시에 호출될 수 있어 스레드별로 관리한다.
-    private static final ThreadLocal<Boolean> messageForwarded =
-            ThreadLocal.withInitial(() -> Boolean.FALSE);
+    private static final ThreadLocal<Boolean> messageForwarded = new ThreadLocal<>();
 
     protected AbstractNode(String id) {
         this.id = id;
@@ -80,7 +79,12 @@ public abstract class AbstractNode implements Node {
                 message.completeProcessing();
             }
         } finally {
-            messageForwarded.set(previous);
+            // 스레드 풀에서 재사용되는 스레드에 값이 남지 않도록, 최상위 호출이면 제거한다.
+            if (previous == null) {
+                messageForwarded.remove();
+            } else {
+                messageForwarded.set(previous);
+            }
         }
     }
 
