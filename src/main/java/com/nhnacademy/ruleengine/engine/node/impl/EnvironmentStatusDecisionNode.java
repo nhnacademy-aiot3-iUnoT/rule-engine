@@ -143,6 +143,12 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
             if (previousStatus == EnvStatus.NORMAL) {
                 return new Transition(next, null); // Normal 상태 유지인경우 event 생성안함
             }
+
+            // CRITICAL + 정상값 → 계속 CRITICAL
+            if (previousStatus == EnvStatus.CRITICAL) {
+                return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
+            }
+
             return new Transition(next, createEventDecision(previousStatus, EnvStatus.NORMAL, EnvironmentEventReason.STATUS_CHANGED));
         }
 
