@@ -88,8 +88,7 @@ public class DailySummaryInfluxRepository {
             log.error(
                     "하루 요약 저장에 실패했습니다. storageId={}, date={}",
                     summary.storageId(),
-                    summary.date(),
-                    exception
+                    summary.date()
             );
 
             throw new SensorDataSaveException(

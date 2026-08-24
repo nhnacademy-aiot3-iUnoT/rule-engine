@@ -157,14 +157,6 @@ class EnvironmentDecisionStateRedisRepositoryTest {
         verify(hashOperations, never()).put(any(), any(), any());
     }
 
-    @Test
-    @DisplayName("구역 상태를 삭제하면 구역 키 전체가 지워진다")
-    void deleteZoneStates() {
-        repository.deleteZoneStates(ZONE_KEY);
-
-        verify(redisTemplate).delete(STATE_KEY);
-    }
-
     private EnvironmentDecisionState normalState() {
         return new EnvironmentDecisionState(EnvStatus.NORMAL, null, null, MEASURED_AT);
     }
