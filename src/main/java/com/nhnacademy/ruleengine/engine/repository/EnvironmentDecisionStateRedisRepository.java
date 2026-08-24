@@ -86,11 +86,6 @@ public class EnvironmentDecisionStateRedisRepository {
         }
     }
 
-
-    public void deleteZoneStates(String zoneKey) {
-        redisTemplate.delete(getStateKey(zoneKey));
-    }
-
     private String getStateKey(String zoneKey) {
         return KEY_PREFIX + zoneKey;
     }
