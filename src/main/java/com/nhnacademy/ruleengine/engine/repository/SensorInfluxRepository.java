@@ -70,8 +70,7 @@ public class SensorInfluxRepository {
                     command.organizationId(),
                     command.storageId(),
                     command.zoneId(),
-                    command.deviceEui(),
-                    exception
+                    command.deviceEui()
             );
 
             throw new SensorDataSaveException(

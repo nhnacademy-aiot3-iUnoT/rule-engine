@@ -42,7 +42,7 @@ public class EnvironmentDecisionStateRedisRepository {
             );
         } catch (JsonProcessingException exception) {
             log.warn("환경상태 판단 상태 역직렬화에 실패해 상태 없이 처리합니다. zoneKey={}, sensor={}",
-                    zoneKey, sensorField, exception);
+                    zoneKey, sensorField);
             return Optional.empty();
         }
     }
@@ -63,7 +63,7 @@ public class EnvironmentDecisionStateRedisRepository {
                 );
             } catch (JsonProcessingException exception) {
                 log.warn("환경상태 판단 상태 역직렬화에 실패해 건너뜁니다. zoneKey={}, sensor={}",
-                        zoneKey, sensorField, exception);
+                        zoneKey, sensorField);
             }
         }
 
