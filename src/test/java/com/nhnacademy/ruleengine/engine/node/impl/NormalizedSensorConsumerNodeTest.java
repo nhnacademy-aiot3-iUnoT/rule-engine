@@ -41,7 +41,7 @@ class NormalizedSensorConsumerNodeTest {
 
         assertEquals(1, delivered.size());
 
-        SensorPayload sensorPayload = delivered.get(0).get(MessageFields.SENSOR_PAYLOAD);
+        SensorPayload sensorPayload = delivered.getFirst().get(MessageFields.SENSOR_PAYLOAD);
 
         assertAll(
                 () -> assertEquals(1L, sensorPayload.organizationId()),
