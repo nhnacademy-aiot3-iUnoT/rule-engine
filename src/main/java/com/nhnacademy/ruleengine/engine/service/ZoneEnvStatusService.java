@@ -50,6 +50,17 @@ public class ZoneEnvStatusService {
         return Optional.of(zoneStatus);
     }
 
+    public void resolveCriticalStates(
+            Long organizationId,
+            Long storageId,
+            Long zoneId
+    ) {
+        String zoneKey = SensorKeys.zoneOf(organizationId, storageId, zoneId);
+
+        decisionStateRepository.deleteZoneStates(zoneKey);
+        lastReportedStatuses.put(zoneId, EnvStatus.NORMAL);
+    }
+
     private EnvStatus worstOf(Map<String, EnvironmentDecisionState> states) {
         return states.values().stream()
                 .map(EnvironmentDecisionState::state)
