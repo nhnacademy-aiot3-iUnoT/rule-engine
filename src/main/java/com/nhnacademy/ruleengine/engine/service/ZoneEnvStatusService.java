@@ -57,10 +57,25 @@ public class ZoneEnvStatusService {
     ) {
         String zoneKey = SensorKeys.zoneOf(organizationId, storageId, zoneId);
 
-        decisionStateRepository.deleteZoneStates(zoneKey);
-        lastReportedStatuses.put(zoneId, EnvStatus.NORMAL);
-    }
+        decisionStateRepository.findSensorStatesByZone(zoneKey).forEach((sensorField, state) -> {
+            if (state.state() != EnvStatus.CRITICAL) {
+                return;
+            }
 
+            decisionStateRepository.save(
+                    zoneKey,
+                    sensorField,
+                    new EnvironmentDecisionState(
+                            EnvStatus.NORMAL,
+                            null,
+                            null,
+                            state.lastMeasuredAt()
+                    )
+            );
+        });
+
+        reportZoneStatus(organizationId, storageId, zoneId);
+    }
     private EnvStatus worstOf(Map<String, EnvironmentDecisionState> states) {
         return states.values().stream()
                 .map(EnvironmentDecisionState::state)
