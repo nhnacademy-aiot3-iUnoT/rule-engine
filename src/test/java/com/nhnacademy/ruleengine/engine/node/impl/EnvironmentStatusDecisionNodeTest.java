@@ -120,23 +120,26 @@ class EnvironmentStatusDecisionNodeTest {
 
     }
 
-//    @Test
-//    @DisplayName("CRITICAL에서 회복되면 NORMAL 전이가 들어와도 변경되지 않는다")
-//    void recoverFromCritical() {
-//        when(repository.find(anyString(), anyString()))
-//                .thenReturn(Optional.of(state(EnvStatus.CRITICAL, BASE, BASE, BASE)));
-//
-//        node.process(messageOf(createRuleResult(false, DURATION_MINUTES, at(1))));
-//
-//        EnvironmentDecisionState saved = capturedState();
-//        assertEquals(EnvStatus.CRITICAL, saved.state());
-//        assertNull(saved.firstViolatedAt());
-//        assertNull(saved.lastAlertAt());
-//
-//        EnvironmentEventDecisionDto event = capturedEvent();
-//        assertEquals(EnvStatus.CRITICAL, event.previousStatus());
-//        assertEquals(EnvStatus.CRITICAL, event.currentStatus());
-//    }
+    @Test
+    @DisplayName("CRITICAL 상태에서는 정상값이 들어와도 상태가 유지된다")
+    void criticalStaysOnNormalValue() {
+        when(repository.find(anyString(), anyString()))
+                .thenReturn(Optional.of(state(EnvStatus.CRITICAL, BASE, BASE, BASE)));
+
+        node.process(messageOf(createRuleResult(false, DURATION_MINUTES, at(1))));
+
+        EnvironmentDecisionState saved = capturedState();
+
+        assertAll(
+                () -> assertEquals(EnvStatus.CRITICAL, saved.state()),
+                () -> assertEquals(BASE, saved.firstViolatedAt()),
+                () -> assertEquals(BASE, saved.lastAlertAt()),
+                () -> assertEquals(BASE.plus(Duration.ofMinutes(1)), saved.lastMeasuredAt())
+        );
+
+        // 자동 해제가 없으므로 회복 이벤트를 보내지 않는다.
+        verify(connection, never()).deliver(any(Message.class));
+    }
 
     @Test
     @DisplayName("임계 시간이 없는경우 즉시 CRITICAL로 전이")
