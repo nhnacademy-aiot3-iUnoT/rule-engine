@@ -1,7 +1,8 @@
 package com.nhnacademy.ruleengine.global.security;
 
-import com.nhnacademy.inventory.global.dto.ApiResponse;
-import com.nhnacademy.inventory.global.error.ErrorCode;
+
+import com.nhnacademy.ruleengine.global.dto.ApiResponse;
+import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

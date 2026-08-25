@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.global.security;
 
-import com.nhnacademy.inventory.global.error.GlobalErrorCode;
+import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +22,6 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
             HttpServletResponse response,
             AccessDeniedException accessDeniedException
     ) throws IOException, ServletException {
-        writer.write(request, response, GlobalErrorCode.FORBIDDEN, accessDeniedException);
+        writer.write(request, response, ErrorCode.FORBIDDEN, accessDeniedException);
     }
 }

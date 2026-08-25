@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.global.security;
 
-import com.nhnacademy.inventory.global.error.GlobalErrorCode;
+
+import com.nhnacademy.ruleengine.global.exception.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +23,6 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletResponse response,
             AuthenticationException authException
     ) throws IOException, ServletException {
-        writer.write(request, response, GlobalErrorCode.UNAUTHORIZED, authException);
+        writer.write(request, response, ErrorCode.UNAUTHORIZED, authException);
     }
 }

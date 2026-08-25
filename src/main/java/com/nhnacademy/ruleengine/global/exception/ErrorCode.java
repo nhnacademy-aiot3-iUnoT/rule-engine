@@ -12,6 +12,7 @@ public enum ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "G001", "잘못된 입력값입니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "G002", "권한이 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "G003", "서버 오류가 발생했습니다."),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "G005", "인증이 필요합니다."),
 
     INVALID_STORAGE_ID(HttpStatus.BAD_REQUEST, "R001", "storageId는 양수여야 합니다."),
     INVALID_SECTION_ID(HttpStatus.BAD_REQUEST, "R002", "sectionId는 양수여야 합니다."),
@@ -31,6 +32,10 @@ public enum ErrorCode {
     private final HttpStatus status;
     private final String code;
     private final String message;
+
+    public String getName() {
+        return this.name();
+    }
 
     // 외부 서비스의 에러 코드 체계는 이 서비스와 다를 수 있어, 모르는 코드는 EXTERNAL_API_ERROR로 취급한다.
     public static ErrorCode from(String code) {
