@@ -29,4 +29,4 @@ rule-engine:
 
 security:
   jwt:
-    jwk-set-uri: http://localhost:10413/api/auth/.well-known/jwks.json
+    jwk-set-uri: http://host.docker.internal:10413/api/auth/.well-known/jwks.json
