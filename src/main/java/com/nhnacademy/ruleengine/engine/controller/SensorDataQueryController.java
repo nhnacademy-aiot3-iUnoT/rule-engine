@@ -3,12 +3,15 @@ package com.nhnacademy.ruleengine.engine.controller;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryQueryRequest;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorLatestResponse;
+import com.nhnacademy.ruleengine.engine.service.OrganizationAccessService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
+import com.nhnacademy.ruleengine.global.security.AccountUUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -16,6 +19,7 @@ import java.util.List;
 public class SensorDataQueryController {
 
     private final SensorInfluxService sensorInfluxService;
+    private final OrganizationAccessService organizationAccessService;
 
     @GetMapping("/zones/{zoneId}/sensor-data/latest")
     public ApiResponse<List<SensorLatestResponse>> findLatestByZone(
@@ -59,9 +63,12 @@ public class SensorDataQueryController {
 
     @GetMapping("/organizations/{organizationId}/sensor-data/latest")
     public ApiResponse<List<SensorLatestResponse>> findLatestByOrganization(
+            @AccountUUID UUID accountUuid,
             @PathVariable Long organizationId,
             @RequestParam(required = false) String sensorType
     ) {
+        organizationAccessService.verifyOrganization(accountUuid, organizationId);
+
         return ApiResponse.success(
                 sensorInfluxService.findLatestByOrganization(
                         organizationId,

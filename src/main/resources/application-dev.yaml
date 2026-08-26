@@ -26,3 +26,7 @@ rule-engine:
       lock-key: rule-engine:lock:virtual-sensor-test
       lease-duration: 10s
       renew-interval: 3s
+
+security:
+  jwt:
+    jwk-set-uri: http://host.docker.internal:10413/api/auth/.well-known/jwks.json

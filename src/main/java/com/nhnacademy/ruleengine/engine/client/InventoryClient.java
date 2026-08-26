@@ -2,6 +2,7 @@ package com.nhnacademy.ruleengine.engine.client;
 
 import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
+import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.ThresholdSpecResponse;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto.ThresholdRange;
@@ -18,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 // 인벤토리 서비스의 내부 전용 API(/api/core/internal/**)를 호출한다.
 @Slf4j
@@ -66,6 +68,17 @@ public class InventoryClient {
                 .toUriString();
 
         return apiClient.find(url, ResolvedZoneResponse.class);
+    }
+
+    // 계정 UUID로 소속 조직과 조직 역할을 조회한다.
+    // 조직에 속하지 않은 계정이면 빈 값이고, 인벤토리 장애는 예외로 올라온다.
+    public Optional<MemberOrganizationResponse> findMemberOrganization(UUID accountUuid) {
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl + INVENTORY_URL + "/members/" + accountUuid + "/organization")
+                .encode()
+                .toUriString();
+
+        return apiClient.find(url, MemberOrganizationResponse.class);
     }
 
     // 구역의 환경 상태를 갱신한다.

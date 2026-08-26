@@ -26,7 +26,7 @@ public class EnvironmentReportController {
     /**
      * 저장소의 하루 요약을 기간으로 조회한다. 기본은 어제까지의 최근 7일이다.
      */
-    @GetMapping("/storages/{storageId}/daily-summaries")
+    @GetMapping("/internal/storages/{storageId}/daily-summaries")
     public ApiResponse<List<StorageDailySummary>> findDailySummaries(
             @PathVariable Long storageId,
             @RequestParam(required = false)
@@ -47,7 +47,7 @@ public class EnvironmentReportController {
     /**
      * 하루 요약 적재를 수동으로 실행한다. date를 생략하면 어제를 대상으로 한다.(테스트 용도)
      */
-    @PostMapping("/daily-summary-rollups")
+    @PostMapping("/internal/daily-summary-rollups")
     public ApiResponse<DailySummaryRollupResponse> rollup(
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
