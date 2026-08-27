@@ -26,23 +26,36 @@ public class VirtualSensorRedisRepository {
             redis.call('SREM', KEYS[3], ARGV[1])
             return deleted
             """;
+    // 같은 deviceEui가 이미 있으면 덮어쓰지 않는다. 넣지 못했으면 조직 목록도 건드리지 않는다.
+    private static final String INSERT_SCRIPT = """
+            local inserted = redis.call('SETNX', KEYS[1], ARGV[1])
+            if inserted == 1 then
+                redis.call('SADD', KEYS[2], ARGV[2])
+            end
+            return inserted
+            """;
+    private static final DefaultRedisScript<Long> INSERT =
+            new DefaultRedisScript<>(INSERT_SCRIPT, Long.class);
+
+    private static final DefaultRedisScript<Long> DELETE =
+            new DefaultRedisScript<>(DELETE_SCRIPT, Long.class);
 
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
 
     // 가상 센서 설정 Redis 에 저장
     public boolean saveIfAbsent(VirtualSensorConfig config) {
-        Boolean saved = redisTemplate.opsForValue()
-                .setIfAbsent(getConfigKey(config.deviceEui()), serialize(config));
+        Long inserted = redisTemplate.execute(
+                INSERT,
+                List.of(
+                        getConfigKey(config.deviceEui()),
+                        getOrganizationKey(config.organizationId())
+                ),
+                serialize(config),
+                config.deviceEui()
+        );
 
-        if (!Boolean.TRUE.equals(saved)) {
-            return false;
-        }
-
-        redisTemplate.opsForSet()
-                .add(getOrganizationKey(config.organizationId()), config.deviceEui());
-
-        return true;
+        return Long.valueOf(1L).equals(inserted);
     }
 
     public boolean update(VirtualSensorConfig config) {
@@ -53,11 +66,8 @@ public class VirtualSensorRedisRepository {
     }
 
     public void delete(Long organizationId, String deviceEui) {
-        DefaultRedisScript<Long> script =
-                new DefaultRedisScript<>(DELETE_SCRIPT, Long.class);
-
         redisTemplate.execute(
-                script,
+                DELETE,
                 List.of(
                         getConfigKey(deviceEui),
                         ACTIVE_DEVICES_KEY,

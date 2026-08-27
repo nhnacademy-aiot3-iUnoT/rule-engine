@@ -27,6 +27,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -64,7 +65,7 @@ class VirtualSensorRedisRepositoryTest {
     @Test
     @DisplayName("설정이 없을 때만 저장하고 저장 여부를 돌려준다")
     void saveIfAbsent() {
-        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(true);
+        stubInsertScript(1L);
 
         assertTrue(repository.saveIfAbsent(config()));
     }
@@ -72,7 +73,7 @@ class VirtualSensorRedisRepositoryTest {
     @Test
     @DisplayName("이미 설정이 있으면 저장하지 않고 false를 돌려준다")
     void saveIfAbsentReturnsFalseWhenPresent() {
-        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(false);
+        stubInsertScript(0L);
 
         assertFalse(repository.saveIfAbsent(config()));
     }
@@ -80,7 +81,7 @@ class VirtualSensorRedisRepositoryTest {
     @Test
     @DisplayName("Redis 응답이 null이어도 false로 처리한다")
     void saveIfAbsentHandlesNull() {
-        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(null);
+        stubInsertScript(null);
 
         assertFalse(repository.saveIfAbsent(config()));
     }
@@ -91,7 +92,6 @@ class VirtualSensorRedisRepositoryTest {
         when(valueOperations.setIfPresent(eq(CONFIG_KEY), any())).thenReturn(true);
 
         assertTrue(repository.update(config()));
-        verify(valueOperations, never()).setIfAbsent(any(), any());
     }
 
     @Test
@@ -105,14 +105,14 @@ class VirtualSensorRedisRepositoryTest {
     @Test
     @DisplayName("저장한 설정을 그대로 다시 읽을 수 있다")
     void saveAndGetRoundTrip() {
-        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(true);
+        stubInsertScript(1L);
 
         repository.saveIfAbsent(config());
 
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(valueOperations).setIfAbsent(eq(CONFIG_KEY), captor.capture());
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(redisTemplate).execute(any(RedisScript.class), anyList(), captor.capture(), any());
 
-        when(valueOperations.get(CONFIG_KEY)).thenReturn(captor.getValue());
+        when(valueOperations.get(CONFIG_KEY)).thenReturn((String) captor.getValue());
 
         assertEquals(Optional.of(config()), repository.getVirtualSensorConfig(DEVICE_EUI));
     }
@@ -137,23 +137,19 @@ class VirtualSensorRedisRepositoryTest {
     }
 
     @Test
-    @DisplayName("저장에 성공하면 조직 목록에도 기기를 넣는다")
+    @DisplayName("저장은 설정 키와 조직 목록을 한 스크립트로 함께 다룬다")
     void saveIfAbsentIndexesByOrganization() {
-        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(true);
+        stubInsertScript(1L);
 
         repository.saveIfAbsent(config());
 
-        verify(setOperations).add(ORGANIZATION_KEY, DEVICE_EUI);
-    }
-
-    @Test
-    @DisplayName("이미 있으면 조직 목록은 건드리지 않는다")
-    void saveIfAbsentSkipsIndexWhenPresent() {
-        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(false);
-
-        repository.saveIfAbsent(config());
-
-        verify(setOperations, never()).add(eq(ORGANIZATION_KEY), any());
+        // 활성 목록이 아니라 조직 목록에 넣어야 관리 화면 목록에 나온다
+        verify(redisTemplate).execute(
+                any(RedisScript.class),
+                eq(List.of(CONFIG_KEY, ORGANIZATION_KEY)),
+                any(),
+                eq(DEVICE_EUI)
+        );
     }
 
     @Test
@@ -230,6 +226,11 @@ class VirtualSensorRedisRepositoryTest {
         when(setOperations.members(ORGANIZATION_KEY)).thenReturn(null);
 
         assertTrue(repository.findDeviceEuisByOrganization(ORGANIZATION_ID).isEmpty());
+    }
+
+    private void stubInsertScript(Long result) {
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), any(), any()))
+                .thenReturn(result);
     }
 
     private VirtualSensorConfig config() {
