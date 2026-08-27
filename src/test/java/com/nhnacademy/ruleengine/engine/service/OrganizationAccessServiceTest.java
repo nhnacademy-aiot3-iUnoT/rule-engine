@@ -19,7 +19,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,9 +28,9 @@ class OrganizationAccessServiceTest {
 
     private static final Long ORGANIZATION_ID = 7L;
 
-    private static final Long STORAGE_ID = 3L;
-
     private static final Long ZONE_ID = 11L;
+
+    private static final Long STORAGE_ID = 3L;
 
     @Mock
     private CachedMemberOrganizationLookup memberOrganizationLookup;
@@ -265,103 +264,6 @@ class OrganizationAccessServiceTest {
                 ApiException.class,
                 () -> organizationAccessService.verifyZone(ACCOUNT_UUID, ORGANIZATION_ID, ZONE_ID)
         );
-    }
-
-    @Test
-    @DisplayName("보스는 구역 상태를 바꾸는 요청을 할 수 있다")
-    void verifyZoneOwnerOrBossAllowsBoss() {
-        // given
-        stubMembership(OrganizationRole.ORG_BOSS);
-        stubZoneLocation(ORGANIZATION_ID);
-
-        // when
-        MemberOrganizationResponse membership =
-                organizationAccessService.verifyZoneOwnerOrBoss(ACCOUNT_UUID, ORGANIZATION_ID, ZONE_ID);
-
-        // then
-        assertEquals(OrganizationRole.ORG_BOSS, membership.organizationRole());
-    }
-
-    @Test
-    @DisplayName("역할이 부족하면 구역을 조회하기 전에 거부한다")
-    void verifyZoneOwnerOrBossDeniesMemberBeforeZoneLookup() {
-        // given
-        stubMembership(OrganizationRole.ORG_MEMBER);
-
-        // when
-        OrganizationAccessDeniedException exception = assertThrows(
-                OrganizationAccessDeniedException.class,
-                () -> organizationAccessService.verifyZoneOwnerOrBoss(ACCOUNT_UUID, ORGANIZATION_ID, ZONE_ID)
-        );
-
-        // then
-        assertAll(
-                () -> assertEquals(ErrorCode.ORGANIZATION_ROLE_FORBIDDEN, exception.getErrorCode()),
-                () -> verifyNoInteractions(zoneLookup)
-        );
-    }
-
-    @Test
-    @DisplayName("구역이 실제로 속한 저장소면 통과한다")
-    void verifyZoneInStorage() {
-        // given
-        stubMembership(OrganizationRole.ORG_MEMBER);
-        stubZoneLocation(ORGANIZATION_ID);
-
-        // when
-        MemberOrganizationResponse membership = organizationAccessService.verifyZoneInStorage(
-                ACCOUNT_UUID,
-                ORGANIZATION_ID,
-                STORAGE_ID,
-                ZONE_ID
-        );
-
-        // then
-        assertEquals(ORGANIZATION_ID, membership.organizationId());
-    }
-
-    @Test
-    @DisplayName("구역이 속하지 않은 저장소로 요청하면 거부한다")
-    void verifyZoneInStorageDeniesOtherStorage() {
-        // given
-        stubMembership(OrganizationRole.ORG_BOSS);
-        stubZoneLocation(ORGANIZATION_ID);
-
-        // when
-        OrganizationAccessDeniedException exception = assertThrows(
-                OrganizationAccessDeniedException.class,
-                () -> organizationAccessService.verifyZoneInStorageOwnerOrBoss(
-                        ACCOUNT_UUID,
-                        ORGANIZATION_ID,
-                        99L,
-                        ZONE_ID
-                )
-        );
-
-        // then
-        assertEquals(ErrorCode.STORAGE_ACCESS_DENIED, exception.getErrorCode());
-    }
-
-    @Test
-    @DisplayName("저장소가 맞아도 다른 조직의 구역이면 저장소 검증 전에 거부한다")
-    void verifyZoneInStorageDeniesOtherOrganizationZone() {
-        // given
-        stubMembership(OrganizationRole.ORG_BOSS);
-        stubZoneLocation(99L);
-
-        // when
-        OrganizationAccessDeniedException exception = assertThrows(
-                OrganizationAccessDeniedException.class,
-                () -> organizationAccessService.verifyZoneInStorageOwnerOrBoss(
-                        ACCOUNT_UUID,
-                        ORGANIZATION_ID,
-                        STORAGE_ID,
-                        ZONE_ID
-                )
-        );
-
-        // then
-        assertEquals(ErrorCode.ZONE_ACCESS_DENIED, exception.getErrorCode());
     }
 
     private void stubZoneLocation(Long organizationId) {

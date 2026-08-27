@@ -62,49 +62,11 @@ public class OrganizationAccessService {
     public MemberOrganizationResponse verifyZone(UUID accountUuid, Long organizationId, Long zoneId) {
         MemberOrganizationResponse membership = verifyOrganization(accountUuid, organizationId);
 
-        resolveZoneInOrganization(accountUuid, organizationId, zoneId);
+        verifyZoneBelongsTo(accountUuid, organizationId, zoneId);
 
         return membership;
     }
 
-
-    // 해당 조직의 보스,오너인지 검증 및 해당 구역이 조직의 구역인지 검증
-    public MemberOrganizationResponse verifyZoneOwnerOrBoss(UUID accountUuid, Long organizationId, Long zoneId) {
-        MemberOrganizationResponse membership = verifyOwnerOrBoss(accountUuid, organizationId);
-
-        resolveZoneInOrganization(accountUuid, organizationId, zoneId);
-
-        return membership;
-    }
-
-    // 해당 구역 검증 + 경로의 저장소가 그 구역이 실제로 속한 저장소인지 검증
-    // 저장소 번호가 센서 데이터 태그로 저장되므로, 틀리면 남의 저장소 밑에 데이터가 쌓인다
-    public MemberOrganizationResponse verifyZoneInStorage(
-            UUID accountUuid,
-            Long organizationId,
-            Long storageId,
-            Long zoneId
-    ) {
-        MemberOrganizationResponse membership = verifyOrganization(accountUuid, organizationId);
-
-        verifyStorageOf(accountUuid, storageId, resolveZoneInOrganization(accountUuid, organizationId, zoneId));
-
-        return membership;
-    }
-
-    // 해당 조직의 보스,오너인지 검증 및 해당 구역·저장소가 조직의 것인지 검증
-    public MemberOrganizationResponse verifyZoneInStorageOwnerOrBoss(
-            UUID accountUuid,
-            Long organizationId,
-            Long storageId,
-            Long zoneId
-    ) {
-        MemberOrganizationResponse membership = verifyOwnerOrBoss(accountUuid, organizationId);
-
-        verifyStorageOf(accountUuid, storageId, resolveZoneInOrganization(accountUuid, organizationId, zoneId));
-
-        return membership;
-    }
 
     // 조직 및 역활 검증
     public MemberOrganizationResponse verifyRole(
@@ -128,7 +90,7 @@ public class OrganizationAccessService {
         return membership;
     }
 
-    private ResolvedZoneResponse resolveZoneInOrganization(UUID accountUuid, Long organizationId, Long zoneId) {
+    private void verifyZoneBelongsTo(UUID accountUuid, Long organizationId, Long zoneId) {
         ResolvedZoneResponse location = zoneLookup.findLocation(zoneId)
                 .orElseThrow(() -> {
                     log.warn(
@@ -152,22 +114,6 @@ public class OrganizationAccessService {
 
             throw new OrganizationAccessDeniedException(ErrorCode.ZONE_ACCESS_DENIED);
         }
-
-        return location;
     }
 
-    // 해당 저장소가 구역에 존재하는지 검증
-    private void verifyStorageOf(UUID accountUuid, Long storageId, ResolvedZoneResponse location) {
-        if (!Objects.equals(location.storageId(), storageId)) {
-            log.warn(
-                    "구역이 속하지 않은 저장소로 요청했습니다. accountUuid={}, 요청 storageId={}, zoneId={}, 구역 storageId={}",
-                    accountUuid,
-                    storageId,
-                    location.zoneId(),
-                    location.storageId()
-            );
-
-            throw new OrganizationAccessDeniedException(ErrorCode.STORAGE_ACCESS_DENIED);
-        }
-    }
 }

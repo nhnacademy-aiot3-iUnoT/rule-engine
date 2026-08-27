@@ -47,7 +47,10 @@ class VirtualSensorGeneratorNodeTest {
                 () -> assertEquals("temperature", payload.sensorType()),
                 () -> assertEquals(21.5, payload.value()),
                 () -> assertEquals(SensorType.TEMPERATURE.unit(), payload.unit()),
-                () -> assertEquals(1L, payload.organizationId()),
+                // 위치는 다음 노드가 deviceEui로 채운다
+                () -> assertNull(payload.organizationId()),
+                () -> assertNull(payload.storageId()),
+                () -> assertNull(payload.zoneId()),
                 () -> assertEquals("device eui", payload.deviceEui()),
                 () -> assertNotNull(payload.time())
         );
@@ -93,19 +96,6 @@ class VirtualSensorGeneratorNodeTest {
         node.process(new Message(Map.of()));
 
         assertEquals(2, connection.getBufferSize());
-    }
-
-    @Test
-    @DisplayName("topic은 구역 정보와 센서 타입으로 만들고 공백은 밑줄로 바꾼다")
-    void buildTopic() throws InterruptedException {
-        VirtualSensorGeneratorNode node = createNode(Map.of(
-                SensorType.TEMPERATURE, fixed(21.5)
-        ));
-        LocalConnection connection = connect(node);
-
-        node.process(new Message(Map.of()));
-
-        assertEquals("1/2/3/device_eui/temperature", connection.poll().get(MessageFields.TOPIC));
     }
 
     @Test
@@ -191,8 +181,6 @@ class VirtualSensorGeneratorNodeTest {
     private VirtualSensorGeneratorNode createNode(Map<SensorType, SensorValue> valueMap) {
         VirtualSensorConfig config = new VirtualSensorConfig(
                 1L,
-                2L,
-                3L,
                 "device eui",
                 new VirtualSensorValues(valueMap),
                 1L

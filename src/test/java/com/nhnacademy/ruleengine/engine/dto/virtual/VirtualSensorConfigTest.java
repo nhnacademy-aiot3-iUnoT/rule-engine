@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VirtualSensorConfigTest {
 
@@ -23,8 +25,6 @@ class VirtualSensorConfigTest {
     void createValidConfig() {
         assertDoesNotThrow(() -> new VirtualSensorConfig(
                 1L,
-                2L,
-                3L,
                 "virtual-device",
                 SENSOR_VALUES,
                 1L
@@ -32,19 +32,15 @@ class VirtualSensorConfigTest {
     }
 
     @Test
-    @DisplayName("식별자는 양수여야 한다")
+    @DisplayName("조직 식별자는 양수여야 한다")
     void rejectNonPositiveId() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new VirtualSensorConfig(0L, 2L, 3L, "device", SENSOR_VALUES, 1L)
+                () -> new VirtualSensorConfig(0L, "device", SENSOR_VALUES, 1L)
         );
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new VirtualSensorConfig(1L, -1L, 3L, "device", SENSOR_VALUES, 1L)
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new VirtualSensorConfig(1L, 2L, null, "device", SENSOR_VALUES, 1L)
+                () -> new VirtualSensorConfig(null, "device", SENSOR_VALUES, 1L)
         );
     }
 
@@ -53,11 +49,20 @@ class VirtualSensorConfigTest {
     void rejectInvalidDeviceOrInterval() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new VirtualSensorConfig(1L, 2L, 3L, " ", SENSOR_VALUES, 1L)
+                () -> new VirtualSensorConfig(1L, " ", SENSOR_VALUES, 1L)
         );
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new VirtualSensorConfig(1L, 2L, 3L, "device", SENSOR_VALUES, 0L)
+                () -> new VirtualSensorConfig(1L, "device", SENSOR_VALUES, 0L)
         );
+    }
+
+    @Test
+    @DisplayName("설정을 만든 조직만 자기 것으로 인정한다")
+    void ownedBy() {
+        VirtualSensorConfig config = new VirtualSensorConfig(1L, "device", SENSOR_VALUES, 1L);
+
+        assertTrue(config.ownedBy(1L));
+        assertFalse(config.ownedBy(2L));
     }
 }

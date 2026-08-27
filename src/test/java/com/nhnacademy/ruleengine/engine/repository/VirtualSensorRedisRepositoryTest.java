@@ -34,9 +34,11 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class VirtualSensorRedisRepositoryTest {
 
-    private static final Long ZONE_ID = 3L;
-    private static final String CONFIG_KEY = "rule-engine:virtual-sensor:config:3";
-    private static final String ACTIVE_ZONES_KEY = "rule-engine:virtual-sensor:active-zones";
+    private static final Long ORGANIZATION_ID = 1L;
+    private static final String DEVICE_EUI = "device-eui";
+    private static final String CONFIG_KEY = "rule-engine:virtual-sensor:config:device-eui";
+    private static final String ACTIVE_DEVICES_KEY = "rule-engine:virtual-sensor:active-devices";
+    private static final String ORGANIZATION_KEY = "rule-engine:virtual-sensor:organization:1";
 
     @Mock
     private StringRedisTemplate redisTemplate;
@@ -112,7 +114,7 @@ class VirtualSensorRedisRepositoryTest {
 
         when(valueOperations.get(CONFIG_KEY)).thenReturn(captor.getValue());
 
-        assertEquals(Optional.of(config()), repository.getVirtualSensorConfig(ZONE_ID));
+        assertEquals(Optional.of(config()), repository.getVirtualSensorConfig(DEVICE_EUI));
     }
 
     @Test
@@ -120,7 +122,7 @@ class VirtualSensorRedisRepositoryTest {
     void getReturnsEmptyWhenAbsent() {
         when(valueOperations.get(CONFIG_KEY)).thenReturn(null);
 
-        assertTrue(repository.getVirtualSensorConfig(ZONE_ID).isEmpty());
+        assertTrue(repository.getVirtualSensorConfig(DEVICE_EUI).isEmpty());
     }
 
     @Test
@@ -130,76 +132,110 @@ class VirtualSensorRedisRepositoryTest {
 
         assertThrows(
                 IllegalStateException.class,
-                () -> repository.getVirtualSensorConfig(ZONE_ID)
+                () -> repository.getVirtualSensorConfig(DEVICE_EUI)
         );
     }
 
     @Test
-    @DisplayName("삭제는 설정 키와 활성 목록을 한 스크립트로 함께 정리한다")
-    void deleteRunsScriptOnBothKeys() {
-        repository.delete(ZONE_ID);
+    @DisplayName("저장에 성공하면 조직 목록에도 기기를 넣는다")
+    void saveIfAbsentIndexesByOrganization() {
+        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(true);
+
+        repository.saveIfAbsent(config());
+
+        verify(setOperations).add(ORGANIZATION_KEY, DEVICE_EUI);
+    }
+
+    @Test
+    @DisplayName("이미 있으면 조직 목록은 건드리지 않는다")
+    void saveIfAbsentSkipsIndexWhenPresent() {
+        when(valueOperations.setIfAbsent(eq(CONFIG_KEY), any())).thenReturn(false);
+
+        repository.saveIfAbsent(config());
+
+        verify(setOperations, never()).add(eq(ORGANIZATION_KEY), any());
+    }
+
+    @Test
+    @DisplayName("삭제는 설정 키와 활성·조직 목록을 한 스크립트로 함께 정리한다")
+    void deleteRunsScriptOnAllKeys() {
+        repository.delete(ORGANIZATION_ID, DEVICE_EUI);
 
         verify(redisTemplate).execute(
                 any(RedisScript.class),
-                eq(List.of(CONFIG_KEY, ACTIVE_ZONES_KEY)),
-                eq("3")
+                eq(List.of(CONFIG_KEY, ACTIVE_DEVICES_KEY, ORGANIZATION_KEY)),
+                eq(DEVICE_EUI)
         );
     }
 
     @Test
-    @DisplayName("활성화하면 활성 목록에 구역을 넣는다")
+    @DisplayName("활성화하면 활성 목록에 기기를 넣는다")
     void activate() {
-        repository.activate(ZONE_ID);
+        repository.activate(DEVICE_EUI);
 
-        verify(setOperations).add(ACTIVE_ZONES_KEY, "3");
+        verify(setOperations).add(ACTIVE_DEVICES_KEY, DEVICE_EUI);
     }
 
     @Test
-    @DisplayName("비활성화하면 활성 목록에서 구역을 뺀다")
+    @DisplayName("비활성화하면 활성 목록에서 기기를 뺀다")
     void deactivate() {
-        repository.deactivate(ZONE_ID);
+        repository.deactivate(DEVICE_EUI);
 
-        verify(setOperations).remove(ACTIVE_ZONES_KEY, "3");
+        verify(setOperations).remove(ACTIVE_DEVICES_KEY, DEVICE_EUI);
     }
 
     @Test
     @DisplayName("활성 여부를 확인한다")
     void isActive() {
-        when(setOperations.isMember(ACTIVE_ZONES_KEY, "3")).thenReturn(true);
+        when(setOperations.isMember(ACTIVE_DEVICES_KEY, DEVICE_EUI)).thenReturn(true);
 
-        assertTrue(repository.isActive(ZONE_ID));
+        assertTrue(repository.isActive(DEVICE_EUI));
     }
 
     @Test
     @DisplayName("활성 여부 응답이 null이면 비활성으로 본다")
     void isActiveHandlesNull() {
-        when(setOperations.isMember(ACTIVE_ZONES_KEY, "3")).thenReturn(null);
+        when(setOperations.isMember(ACTIVE_DEVICES_KEY, DEVICE_EUI)).thenReturn(null);
 
-        assertFalse(repository.isActive(ZONE_ID));
+        assertFalse(repository.isActive(DEVICE_EUI));
     }
 
     @Test
-    @DisplayName("활성 구역 목록을 숫자로 바꿔 돌려준다")
-    void findAllActiveZoneIds() {
-        when(setOperations.members(ACTIVE_ZONES_KEY)).thenReturn(Set.of("3", "7"));
+    @DisplayName("활성 기기 목록을 돌려준다")
+    void findAllActiveDeviceEuis() {
+        when(setOperations.members(ACTIVE_DEVICES_KEY)).thenReturn(Set.of(DEVICE_EUI, "other-device"));
 
-        assertEquals(Set.of(3L, 7L), repository.findAllActiveZoneIds());
+        assertEquals(Set.of(DEVICE_EUI, "other-device"), repository.findAllActiveDeviceEuis());
     }
 
     @Test
     @DisplayName("활성 목록이 없으면 빈 Set을 돌려준다")
-    void findAllActiveZoneIdsHandlesNull() {
-        when(setOperations.members(ACTIVE_ZONES_KEY)).thenReturn(null);
+    void findAllActiveDeviceEuisHandlesNull() {
+        when(setOperations.members(ACTIVE_DEVICES_KEY)).thenReturn(null);
 
-        assertTrue(repository.findAllActiveZoneIds().isEmpty());
+        assertTrue(repository.findAllActiveDeviceEuis().isEmpty());
+    }
+
+    @Test
+    @DisplayName("조직의 기기 목록을 돌려준다")
+    void findDeviceEuisByOrganization() {
+        when(setOperations.members(ORGANIZATION_KEY)).thenReturn(Set.of(DEVICE_EUI));
+
+        assertEquals(Set.of(DEVICE_EUI), repository.findDeviceEuisByOrganization(ORGANIZATION_ID));
+    }
+
+    @Test
+    @DisplayName("조직의 기기 목록이 없으면 빈 Set을 돌려준다")
+    void findDeviceEuisByOrganizationHandlesNull() {
+        when(setOperations.members(ORGANIZATION_KEY)).thenReturn(null);
+
+        assertTrue(repository.findDeviceEuisByOrganization(ORGANIZATION_ID).isEmpty());
     }
 
     private VirtualSensorConfig config() {
         return new VirtualSensorConfig(
-                1L,
-                2L,
-                ZONE_ID,
-                "device-eui",
+                ORGANIZATION_ID,
+                DEVICE_EUI,
                 new VirtualSensorValues(Map.of(
                         SensorType.TEMPERATURE,
                         new SensorValue(GenerationMode.RANGE, 18.0, 26.0, null, null)

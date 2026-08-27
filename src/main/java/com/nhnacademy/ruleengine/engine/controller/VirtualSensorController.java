@@ -14,91 +14,104 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
+/*
+    가상 센서는 조직에 속한다. 어느 구역에서 측정되는지는 여기서 정하지 않고,
+    만들어진 deviceEui를 구역 센서로 등록하는 순간 정해진다.
+ */
 @RestController
-@RequestMapping("/api/rule-engine/organizations/{organization-id}/storages/{storage-id}/zones")
+@RequestMapping("/api/rule-engine/organizations/{organization-id}/virtual-sensors")
 @RequiredArgsConstructor
 public class VirtualSensorController {
 
     private final VirtualSensorService virtualSensorService;
     private final OrganizationAccessService organizationAccessService;
 
-    @PostMapping("/{zone-id}/virtual-sensor")
+    @PostMapping
     public ApiResponse<VirtualSensorCreateResponse> createVirtualSensor(
             @AccountUUID UUID accountUuid,
             @PathVariable(name = "organization-id") Long organizationId,
-            @PathVariable(name = "storage-id") Long storageId,
-            @PathVariable(name = "zone-id") Long zoneId,
             @Valid @RequestBody VirtualSensorCreateRequest request
     ) {
-        organizationAccessService.verifyZoneInStorageOwnerOrBoss(accountUuid, organizationId, storageId, zoneId);
+        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
 
         VirtualSensorCreateResponse response = virtualSensorService.createVirtualSensor(
                 organizationId,
-                storageId,
-                zoneId,
                 request
         );
 
         return ApiResponse.success(response);
     }
 
-
-    @PutMapping("/{zone-id}/virtual-sensor")
-    public ApiResponse<VirtualSensorUpdateResponse> updateVirtualSensor(
+    @GetMapping
+    public ApiResponse<List<VirtualSensorInfoResponse>> getVirtualSensors(
             @AccountUUID UUID accountUuid,
-            @PathVariable(name = "organization-id") Long organizationId,
-            @PathVariable(name = "storage-id") Long storageId,
-            @PathVariable(name = "zone-id") Long zoneId,
-            @Valid @RequestBody VirtualSensorUpdateRequest request
+            @PathVariable(name = "organization-id") Long organizationId
     ) {
-        organizationAccessService.verifyZoneInStorageOwnerOrBoss(accountUuid, organizationId, storageId, zoneId);
+        organizationAccessService.verifyOrganization(accountUuid, organizationId);
 
-        VirtualSensorUpdateResponse response = virtualSensorService.updateVirtualSensor(zoneId, request);
-        return ApiResponse.success(response);
-
+        return ApiResponse.success(virtualSensorService.getVirtualSensors(organizationId));
     }
 
-    @DeleteMapping("/{zone-id}/virtual-sensor")
-    public ApiResponse<Void> deleteVirtualSensor(
-            @AccountUUID UUID accountUuid,
-            @PathVariable(name = "organization-id") Long organizationId,
-            @PathVariable(name = "storage-id") Long storageId,
-            @PathVariable(name = "zone-id") Long zoneId
-    ) {
-        organizationAccessService.verifyZoneInStorageOwnerOrBoss(accountUuid, organizationId, storageId, zoneId);
-
-        virtualSensorService.deleteVirtualSensor(zoneId);
-        return ApiResponse.successNodata();
-    }
-
-    @GetMapping("/{zone-id}/virtual-sensor")
+    @GetMapping("/{device-eui}")
     public ApiResponse<VirtualSensorInfoResponse> getVirtualSensor(
             @AccountUUID UUID accountUuid,
             @PathVariable(name = "organization-id") Long organizationId,
-            @PathVariable(name = "storage-id") Long storageId,
-            @PathVariable(name = "zone-id") Long zoneId
+            @PathVariable(name = "device-eui") String deviceEui
     ) {
-        organizationAccessService.verifyZoneInStorage(accountUuid, organizationId, storageId, zoneId);
+        organizationAccessService.verifyOrganization(accountUuid, organizationId);
 
-        VirtualSensorInfoResponse response = virtualSensorService.getVirtualSensor(zoneId);
+        VirtualSensorInfoResponse response =
+                virtualSensorService.getVirtualSensor(organizationId, deviceEui);
+
         return ApiResponse.success(response);
     }
 
+    @PutMapping("/{device-eui}")
+    public ApiResponse<VirtualSensorUpdateResponse> updateVirtualSensor(
+            @AccountUUID UUID accountUuid,
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "device-eui") String deviceEui,
+            @Valid @RequestBody VirtualSensorUpdateRequest request
+    ) {
+        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
 
-    @PutMapping("/{zone-id}/status")
+        VirtualSensorUpdateResponse response = virtualSensorService.updateVirtualSensor(
+                organizationId,
+                deviceEui,
+                request
+        );
+
+        return ApiResponse.success(response);
+    }
+
+    @DeleteMapping("/{device-eui}")
+    public ApiResponse<Void> deleteVirtualSensor(
+            @AccountUUID UUID accountUuid,
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "device-eui") String deviceEui
+    ) {
+        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
+
+        virtualSensorService.deleteVirtualSensor(organizationId, deviceEui);
+
+        return ApiResponse.successNodata();
+    }
+
+    @PutMapping("/{device-eui}/status")
     public ApiResponse<Void> changeVirtualSensorStatus(
             @AccountUUID UUID accountUuid,
             @PathVariable(name = "organization-id") Long organizationId,
-            @PathVariable(name = "storage-id") Long storageId,
-            @PathVariable(name = "zone-id") Long zoneId,
+            @PathVariable(name = "device-eui") String deviceEui,
             @Valid @RequestBody VirtualSensorStatusRequest request
     ) {
-        organizationAccessService.verifyZoneInStorageOwnerOrBoss(accountUuid, organizationId, storageId, zoneId);
+        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
 
         virtualSensorService.changeFlowStatus(
-                zoneId,
+                organizationId,
+                deviceEui,
                 request.status()
         );
 
