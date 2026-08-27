@@ -92,10 +92,13 @@ public class SensorInfluxRepository {
 
     /**
      * 특정 창고에 속한 구역별·센서 타입별 최신 데이터를 조회한다.
+     * <p>
+     * 창고가 어느 조직 것인지는 룰 엔진이 알지 못하므로, 조직 태그까지 함께 걸어
+     * 다른 조직의 창고 번호로는 아무것도 잡히지 않게 한다.
      */
-    public List<SensorPayload> findLatestByStorage(Long storageId) {
+    public List<SensorPayload> findLatestByStorage(Long organizationId, Long storageId) {
         return findLatest(
-                tagEquals(STORAGE_ID, storageId),
+                tagEquals(ORGANIZATION_ID, organizationId) + tagEquals(STORAGE_ID, storageId),
                 ZONE_ID, SENSOR_TYPE
         );
     }

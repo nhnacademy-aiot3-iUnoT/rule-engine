@@ -301,6 +301,69 @@ class OrganizationAccessServiceTest {
         );
     }
 
+    @Test
+    @DisplayName("구역이 실제로 속한 저장소면 통과한다")
+    void verifyZoneInStorage() {
+        // given
+        stubMembership(OrganizationRole.ORG_MEMBER);
+        stubZoneLocation(ORGANIZATION_ID);
+
+        // when
+        MemberOrganizationResponse membership = organizationAccessService.verifyZoneInStorage(
+                ACCOUNT_UUID,
+                ORGANIZATION_ID,
+                STORAGE_ID,
+                ZONE_ID
+        );
+
+        // then
+        assertEquals(ORGANIZATION_ID, membership.organizationId());
+    }
+
+    @Test
+    @DisplayName("구역이 속하지 않은 저장소로 요청하면 거부한다")
+    void verifyZoneInStorageDeniesOtherStorage() {
+        // given
+        stubMembership(OrganizationRole.ORG_BOSS);
+        stubZoneLocation(ORGANIZATION_ID);
+
+        // when
+        OrganizationAccessDeniedException exception = assertThrows(
+                OrganizationAccessDeniedException.class,
+                () -> organizationAccessService.verifyZoneInStorageOwnerOrBoss(
+                        ACCOUNT_UUID,
+                        ORGANIZATION_ID,
+                        99L,
+                        ZONE_ID
+                )
+        );
+
+        // then
+        assertEquals(ErrorCode.STORAGE_ACCESS_DENIED, exception.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("저장소가 맞아도 다른 조직의 구역이면 저장소 검증 전에 거부한다")
+    void verifyZoneInStorageDeniesOtherOrganizationZone() {
+        // given
+        stubMembership(OrganizationRole.ORG_BOSS);
+        stubZoneLocation(99L);
+
+        // when
+        OrganizationAccessDeniedException exception = assertThrows(
+                OrganizationAccessDeniedException.class,
+                () -> organizationAccessService.verifyZoneInStorageOwnerOrBoss(
+                        ACCOUNT_UUID,
+                        ORGANIZATION_ID,
+                        STORAGE_ID,
+                        ZONE_ID
+                )
+        );
+
+        // then
+        assertEquals(ErrorCode.ZONE_ACCESS_DENIED, exception.getErrorCode());
+    }
+
     private void stubZoneLocation(Long organizationId) {
         when(zoneLookup.findLocation(ZONE_ID)).thenReturn(
                 Optional.of(new ResolvedZoneResponse(organizationId, STORAGE_ID, ZONE_ID))

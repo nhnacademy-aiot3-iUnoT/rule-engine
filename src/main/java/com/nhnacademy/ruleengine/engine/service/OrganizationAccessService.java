@@ -12,10 +12,6 @@ import org.springframework.stereotype.Service;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * JWT에서 뽑은 계정 UUID로 인벤토리에 소속 조직을 물어보고, 요청한 조직/역할과 맞는지 검증한다.
- * 인벤토리 호출이 실패하면 예외가 그대로 올라가 요청이 거부된다(fail-closed).
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,9 +20,8 @@ public class OrganizationAccessService {
     private final CachedMemberOrganizationLookup memberOrganizationLookup;
     private final CachedZoneLookup zoneLookup;
 
-    /**
-     * 계정의 소속 조직과 역할을 조회한다. 소속 조직이 없으면 거부한다.
-     */
+
+    // 로그인된 계정의 조직과 역활을 조회
     public MemberOrganizationResponse getMembership(UUID accountUuid) {
         return memberOrganizationLookup.find(accountUuid)
                 .orElseThrow(() -> {
@@ -35,9 +30,7 @@ public class OrganizationAccessService {
                 });
     }
 
-    /**
-     * 요청한 조직이 계정의 소속 조직과 같은지 검증한다.
-     */
+    // 요청한 조직이 계정의 소속 조직과 같은지 검증
     public MemberOrganizationResponse verifyOrganization(UUID accountUuid, Long organizationId) {
         MemberOrganizationResponse membership = getMembership(accountUuid);
 
@@ -55,10 +48,7 @@ public class OrganizationAccessService {
         return membership;
     }
 
-    /**
-     * 조직 보스/오너만 허용한다. 생성·수정·삭제처럼 상태를 바꾸는 요청에 쓴다.
-     * 일반 조직원(ORG_MEMBER)은 조회만 할 수 있다.
-     */
+   // 조직의 오너 혹은 보스인지 검증
     public MemberOrganizationResponse verifyOwnerOrBoss(UUID accountUuid, Long organizationId) {
         return verifyRole(
                 accountUuid,
@@ -68,32 +58,55 @@ public class OrganizationAccessService {
         );
     }
 
-    /**
-     * 경로의 구역이 요청한 조직의 것인지까지 검증한다.
-     * 조직만 맞추면 남의 조직 구역 번호로 조회가 뚫리므로, 구역을 다루는 요청에 쓴다.
-     */
+    // 해당구역이 해당 사용자의 조직의 구역인지 검증
     public MemberOrganizationResponse verifyZone(UUID accountUuid, Long organizationId, Long zoneId) {
         MemberOrganizationResponse membership = verifyOrganization(accountUuid, organizationId);
 
-        verifyZoneBelongsTo(accountUuid, organizationId, zoneId);
+        resolveZoneInOrganization(accountUuid, organizationId, zoneId);
 
         return membership;
     }
 
-    /**
-     * 구역 검증에 더해 조직 보스/오너만 허용한다. 구역의 상태를 바꾸는 요청에 쓴다.
-     */
+
+    // 해당 조직의 보스,오너인지 검증 및 해당 구역이 조직의 구역인지 검증
     public MemberOrganizationResponse verifyZoneOwnerOrBoss(UUID accountUuid, Long organizationId, Long zoneId) {
         MemberOrganizationResponse membership = verifyOwnerOrBoss(accountUuid, organizationId);
 
-        verifyZoneBelongsTo(accountUuid, organizationId, zoneId);
+        resolveZoneInOrganization(accountUuid, organizationId, zoneId);
 
         return membership;
     }
 
-    /**
-     * 소속 조직 검증에 더해, 허용된 조직 역할인지까지 검증한다.
-     */
+    // 해당 구역 검증 + 경로의 저장소가 그 구역이 실제로 속한 저장소인지 검증
+    // 저장소 번호가 센서 데이터 태그로 저장되므로, 틀리면 남의 저장소 밑에 데이터가 쌓인다
+    public MemberOrganizationResponse verifyZoneInStorage(
+            UUID accountUuid,
+            Long organizationId,
+            Long storageId,
+            Long zoneId
+    ) {
+        MemberOrganizationResponse membership = verifyOrganization(accountUuid, organizationId);
+
+        verifyStorageOf(accountUuid, storageId, resolveZoneInOrganization(accountUuid, organizationId, zoneId));
+
+        return membership;
+    }
+
+    // 해당 조직의 보스,오너인지 검증 및 해당 구역·저장소가 조직의 것인지 검증
+    public MemberOrganizationResponse verifyZoneInStorageOwnerOrBoss(
+            UUID accountUuid,
+            Long organizationId,
+            Long storageId,
+            Long zoneId
+    ) {
+        MemberOrganizationResponse membership = verifyOwnerOrBoss(accountUuid, organizationId);
+
+        verifyStorageOf(accountUuid, storageId, resolveZoneInOrganization(accountUuid, organizationId, zoneId));
+
+        return membership;
+    }
+
+    // 조직 및 역활 검증
     public MemberOrganizationResponse verifyRole(
             UUID accountUuid,
             Long organizationId,
@@ -115,9 +128,7 @@ public class OrganizationAccessService {
         return membership;
     }
 
-    // 구역이 어느 조직 것인지는 인벤토리만 아는 정보라, 캐시된 내부 API 조회로 확인한다.
-    // 없는 구역도 조직 자원 여부를 알 수 없으므로 거부한다(fail-closed).
-    private void verifyZoneBelongsTo(UUID accountUuid, Long organizationId, Long zoneId) {
+    private ResolvedZoneResponse resolveZoneInOrganization(UUID accountUuid, Long organizationId, Long zoneId) {
         ResolvedZoneResponse location = zoneLookup.findLocation(zoneId)
                 .orElseThrow(() -> {
                     log.warn(
@@ -140,6 +151,23 @@ public class OrganizationAccessService {
             );
 
             throw new OrganizationAccessDeniedException(ErrorCode.ZONE_ACCESS_DENIED);
+        }
+
+        return location;
+    }
+
+    // 해당 저장소가 구역에 존재하는지 검증
+    private void verifyStorageOf(UUID accountUuid, Long storageId, ResolvedZoneResponse location) {
+        if (!Objects.equals(location.storageId(), storageId)) {
+            log.warn(
+                    "구역이 속하지 않은 저장소로 요청했습니다. accountUuid={}, 요청 storageId={}, zoneId={}, 구역 storageId={}",
+                    accountUuid,
+                    storageId,
+                    location.zoneId(),
+                    location.storageId()
+            );
+
+            throw new OrganizationAccessDeniedException(ErrorCode.STORAGE_ACCESS_DENIED);
         }
     }
 }

@@ -66,7 +66,7 @@ public class SensorDataQueryController {
         organizationAccessService.verifyOrganization(accountUuid, organizationId);
 
         return ApiResponse.success(
-                sensorInfluxService.findLatestByStorage(storageId)
+                sensorInfluxService.findLatestByStorage(organizationId, storageId)
                         .stream()
                         .map(SensorLatestResponse::from)
                         .toList()

@@ -30,6 +30,7 @@ public enum ErrorCode {
     ORGANIZATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "A002", "해당 조직에 접근할 권한이 없습니다."),
     ORGANIZATION_ROLE_FORBIDDEN(HttpStatus.FORBIDDEN, "A003", "해당 작업을 수행할 권한이 없습니다."),
     ZONE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "A004", "해당 구역에 접근할 권한이 없습니다."),
+    STORAGE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "A005", "해당 저장소에 접근할 권한이 없습니다."),
 
     EXTERNAL_API_ERROR(HttpStatus.BAD_GATEWAY, "E001", "외부 서비스 호출에 실패했습니다."),
     EXTERNAL_API_EMPTY_RESPONSE(HttpStatus.BAD_GATEWAY, "E002", "외부 서비스 응답이 비어 있습니다.");
