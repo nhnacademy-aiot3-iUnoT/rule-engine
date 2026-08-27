@@ -39,7 +39,7 @@ public class NormalizedSensorPublisher {
         String sensorKey = SensorKeys.of(
                 sensorPayload.organizationId(),
                 sensorPayload.storageId(),
-                sensorPayload.sectionId(),
+                sensorPayload.zoneId(),
                 sensorPayload.deviceEui(),
                 sensorPayload.sensorType()
         );

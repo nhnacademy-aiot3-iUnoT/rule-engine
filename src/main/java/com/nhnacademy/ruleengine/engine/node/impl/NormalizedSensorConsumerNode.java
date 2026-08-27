@@ -66,8 +66,7 @@ public class NormalizedSensorConsumerNode extends AbstractNode {
         } catch (JsonProcessingException exception) {
             log.error(
                     "표준 센서 메시지 역직렬화 실패. payload={}",
-                    rawPayload,
-                    exception
+                    rawPayload
             );
             return null;
         }

@@ -15,14 +15,14 @@ import java.util.Set;
 
 @Slf4j
 @Component
-public class VirtualSensorCoordinator extends LeasedFlowOwner<Long> {
+public class VirtualSensorCoordinator extends LeasedFlowOwner<String> {
 
     private final VirtualSensorRedisRepository virtualSensorRedisRepository;
     private final VirtualSensorFlow virtualSensorFlow;
     private final String lockKeyPrefix;
 
     // 현재 Flow가 실행 중인 설정. 최신 설정과 달라지면 Flow를 재시작해 무중단으로 반영한다.
-    private final Map<Long, VirtualSensorConfig> runningConfigs = new HashMap<>();
+    private final Map<String, VirtualSensorConfig> runningConfigs = new HashMap<>();
 
     public VirtualSensorCoordinator(
             VirtualSensorRedisRepository virtualSensorRedisRepository,
@@ -44,53 +44,53 @@ public class VirtualSensorCoordinator extends LeasedFlowOwner<Long> {
     }
 
     @Override
-    protected Set<Long> desiredKeys() {
-        return virtualSensorRedisRepository.findAllActiveSectionIds();
+    protected Set<String> desiredKeys() {
+        return virtualSensorRedisRepository.findAllActiveDeviceEuis();
     }
 
     @Override
-    protected String lockKey(Long sectionId) {
-        return lockKeyPrefix + ":" + sectionId;
+    protected String lockKey(String deviceEui) {
+        return lockKeyPrefix + ":" + deviceEui;
     }
 
     @Override
-    protected String flowId(Long sectionId) {
-        return VirtualSensorFlow.flowId(sectionId);
+    protected String flowId(String deviceEui) {
+        return VirtualSensorFlow.flowId(deviceEui);
     }
 
     @Override
-    protected Flow createFlow(Long sectionId) {
+    protected Flow createFlow(String deviceEui) {
         VirtualSensorConfig config = virtualSensorRedisRepository
-                .getVirtualSensorConfig(sectionId)
+                .getVirtualSensorConfig(deviceEui)
                 .orElseThrow(() -> new IllegalStateException(
-                        "가상 센서 설정이 없습니다. sectionId=" + sectionId
+                        "가상 센서 설정이 없습니다. deviceEui=" + deviceEui
                 ));
 
         Flow flow = virtualSensorFlow.create(config);
-        runningConfigs.put(sectionId, config);
+        runningConfigs.put(deviceEui, config);
 
         return flow;
     }
 
     // 설정이 변경된 경우에만 Flow를 다시 시작해 최신 설정을 반영한다.
     @Override
-    protected void onLeaseRenewed(Long sectionId) {
+    protected void onLeaseRenewed(String deviceEui) {
         VirtualSensorConfig latestConfig = virtualSensorRedisRepository
-                .getVirtualSensorConfig(sectionId)
+                .getVirtualSensorConfig(deviceEui)
                 .orElse(null);
 
-        if (latestConfig == null || latestConfig.equals(runningConfigs.get(sectionId))) {
+        if (latestConfig == null || latestConfig.equals(runningConfigs.get(deviceEui))) {
             return;
         }
 
-        log.info("가상 센서 설정이 변경되어 Flow를 재시작합니다. sectionId={}", sectionId);
+        log.info("가상 센서 설정이 변경되어 Flow를 재시작합니다. deviceEui={}", deviceEui);
 
         // createFlow()가 최신 설정을 다시 읽어 runningConfigs까지 갱신한다.
-        restartFlow(sectionId);
+        restartFlow(deviceEui);
     }
 
     @Override
-    protected void onOwnershipReleased(Long sectionId) {
-        runningConfigs.remove(sectionId);
+    protected void onOwnershipReleased(String deviceEui) {
+        runningConfigs.remove(deviceEui);
     }
 }

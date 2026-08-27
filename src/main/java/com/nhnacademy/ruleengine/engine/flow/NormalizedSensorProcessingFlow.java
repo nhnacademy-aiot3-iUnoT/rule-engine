@@ -6,6 +6,7 @@ import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import com.nhnacademy.ruleengine.engine.node.impl.*;
 import com.nhnacademy.ruleengine.engine.notification.NotificationSender;
 import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
+import com.nhnacademy.ruleengine.engine.repository.SensorDailyStatRedisRepository;
 import com.nhnacademy.ruleengine.engine.service.NotificationPreferenceService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.engine.service.ZoneEnvStatusService;
@@ -24,6 +25,7 @@ public class NormalizedSensorProcessingFlow {
     private static final String VALIDATION_NODE_ID = "sensor-payload-validation";
     private static final String DATABASE_SAVE_NODE_ID = "sensor-database-save";
     private static final String RULE_EVALUATION_NODE_ID = "flow-rule-evaluation";
+    private static final String DAILY_THRESHOLD_STAT_NODE_ID = "flow-daily-threshold-stat";
     private static final String ENVIRONMENT_STATUS_NODE_ID = "flow-environment-status";
     private static final String EVENT_CREATE_NODE_ID = "flow-event-create";
     private static final String ZONE_ENV_STATUS_NODE_ID = "flow-zone-env-status";
@@ -36,6 +38,7 @@ public class NormalizedSensorProcessingFlow {
     private final SensorInfluxService sensorInfluxService;
     private final List<EnvironmentRuleCommand> environmentRuleCommands;
     private final EnvironmentDecisionStateRedisRepository environmentDecisionStateRedisRepository;
+    private final SensorDailyStatRedisRepository sensorDailyStatRedisRepository;
     private final ZoneEnvStatusService zoneEnvStatusService;
     private final NotificationPreferenceService notificationPreferenceService;
     private final List<NotificationSender> senders;
@@ -64,6 +67,10 @@ public class NormalizedSensorProcessingFlow {
                 new EnvironmentRuleEvaluationNode(
                         RULE_EVALUATION_NODE_ID,
                         environmentRuleCommands
+                ),
+                new DailyThresholdStatNode(
+                        DAILY_THRESHOLD_STAT_NODE_ID,
+                        sensorDailyStatRedisRepository
                 ),
                 new EnvironmentStatusDecisionNode(
                         ENVIRONMENT_STATUS_NODE_ID,

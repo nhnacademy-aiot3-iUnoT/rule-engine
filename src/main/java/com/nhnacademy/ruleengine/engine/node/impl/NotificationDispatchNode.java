@@ -45,15 +45,15 @@ public class NotificationDispatchNode extends AbstractNode {
 
         NotificationRequest request = NotificationRequest.from(event);
 
-        List<NotificationPreference> preferences = notificationPreferenceService.findPreferences(request.organizationId(), request.storageId(), request.sectionId());
+        List<NotificationPreference> preferences = notificationPreferenceService.findPreferences(request.organizationId(), request.storageId(), request.zoneId());
 
         if (preferences==null || preferences.isEmpty()) {
             log.info(
-                    "[{}] preferences(알림 설정)이 없어 발송을 건너뜁니다. organizationId={}, storageId={}, sectionId={}",
+                    "[{}] preferences(알림 설정)이 없어 발송을 건너뜁니다. organizationId={}, storageId={}, zoneId={}",
                     getId(),
                     request.organizationId(),
                     request.storageId(),
-                    request.sectionId()
+                    request.zoneId()
             );
             return;
         }
@@ -84,8 +84,7 @@ public class NotificationDispatchNode extends AbstractNode {
                 log.warn("[{}] 알림 발송 중 예외가 발생했습니다. userId={}, channel={}",
                         getId(),
                         preference.userId(),
-                        preference.channel(),
-                        e
+                        preference.channel()
                 );
             }
         }

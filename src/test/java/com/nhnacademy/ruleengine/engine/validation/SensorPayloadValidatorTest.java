@@ -147,8 +147,8 @@ class SensorPayloadValidatorTest {
     }
 
     @Test
-    @DisplayName("sectionId가 null이면 예외가 발생한다")
-    void validateSectionIdNull() {
+    @DisplayName("zoneId가 null이면 예외가 발생한다")
+    void validateZoneIdNull() {
         SensorPayload payload = createPayload(
                 1L,
                 "test-eui",
@@ -268,7 +268,7 @@ class SensorPayloadValidatorTest {
             Long organizationId,
             String deviceEui,
             Long storageId,
-            Long sectionId,
+            Long zoneId,
             String sensorType,
             Double value,
             String unit,
@@ -278,7 +278,7 @@ class SensorPayloadValidatorTest {
                 organizationId,
                 deviceEui,
                 storageId,
-                sectionId,
+                zoneId,
                 sensorType,
                 value,
                 unit,

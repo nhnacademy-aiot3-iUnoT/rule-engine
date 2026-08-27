@@ -22,7 +22,7 @@ public record SensorLatestResponse(
                 payload.organizationId(),
                 payload.deviceEui(),
                 payload.storageId(),
-                payload.sectionId(),
+                payload.zoneId(),
                 payload.sensorType(),
                 payload.value(),
                 payload.unit(),

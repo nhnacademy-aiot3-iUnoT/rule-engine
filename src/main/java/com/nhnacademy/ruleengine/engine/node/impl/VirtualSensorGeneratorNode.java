@@ -4,6 +4,7 @@ import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorPayload;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
+import com.nhnacademy.ruleengine.engine.dto.virtual.SensorValue;
 import com.nhnacademy.ruleengine.engine.dto.virtual.VirtualSensorConfig;
 import com.nhnacademy.ruleengine.engine.node.AbstractNode;
 import lombok.extern.slf4j.Slf4j;
@@ -22,17 +23,8 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
     private static final String OUTPUT_PORT = "out";
 
-    private final double tempMin;
-    private final double tempMax;
-    private final double humidityMin;
-    private final double humidityMax;
-    private final double illuminationMin;
-    private final double illuminationMax;
-    private final double doorOpenProbability;
-    private final long measurementInterval;
-    private final Long organizationId;
-    private final Long storageId;
-    private final Long zoneId;
+    private final Map<SensorType, SensorValue> sensorValueMap;
+    private final Long measurementInterval;
     private final String deviceEui;
 
     // 실제 door 센서처럼 "상태가 바뀔 때만" 이벤트를 전송하기 위해 마지막으로 전송한 상태를 기억한다.
@@ -52,21 +44,10 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
                 "가상 센서 설정은 필수입니다."
         );
 
-        tempMin = config.temperatureMin();
-        tempMax = config.temperatureMax();
-        humidityMin = config.humidityMin();
-        humidityMax = config.humidityMax();
-        illuminationMin = config.illuminationMin();
-        illuminationMax = config.illuminationMax();
-        doorOpenProbability = config.doorOpenProbability();
+        sensorValueMap = sensorConfig.virtualSensorValues().valueMap();
         measurementInterval = config.measurementIntervalSeconds();
-        organizationId = config.organizationId();
-        storageId = config.storageId();
-        zoneId = config.zoneId();
         deviceEui = config.deviceEui();
 
-
-        validateConfig();
         addOutputPort(OUTPUT_PORT);
     }
 
@@ -96,19 +77,19 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     protected void onProcess(Message message) {
         String measuredAt = Instant.now().toString();
 
-        publish(SensorType.TEMPERATURE,
-                randomBetween(tempMin, tempMax),
-                measuredAt);
+        for (SensorType sensorType : SensorType.values()) {
+            SensorValue sensorValue = sensorValueMap.get(sensorType);
+            if (sensorValue != null) {
+                double generatedValue = generateValue(sensorValue);
 
-        publish(SensorType.HUMIDITY,
-                randomBetween(humidityMin, humidityMax),
-                measuredAt);
+                if (sensorType == SensorType.DOOR) {
+                    publishDoorIfChanged(generatedValue, measuredAt);
+                    continue;
+                }
 
-        publishDoorIfChanged(measuredAt);
-
-        publish(SensorType.ILLUMINATION,
-                randomBetween(illuminationMin, illuminationMax),
-                measuredAt);
+                publish(sensorType, generatedValue, measuredAt);
+            }
+        }
 
         log.debug("[{}] 가상 센서 데이터 생성", getId());
     }
@@ -135,16 +116,12 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
     /**
      * 실제 door 센서처럼 상태가 바뀔 때만 이벤트를 전송한다.
      * <p>
-     * 매 tick마다 doorOpenProbability 확률로 "열림" 여부를 다시 뽑아보고,
+     * 매 tick마다 door 센서에 설정된 확률로 "열림" 여부를 다시 뽑아보고,
      * 직전에 전송했던 상태와 같으면 아무것도 보내지 않는다(실제 센서가 상태 변화 없을 때
      * 아무 데이터도 보내지 않는 것과 동일한 동작).
      * 값이 달라진 경우에만 publish하고 마지막 상태를 갱신한다.
      */
-    private void publishDoorIfChanged(String measuredAt) {
-        double nextDoorValue = ThreadLocalRandom.current().nextDouble() < doorOpenProbability
-                ? 1.0
-                : 0.0;
-
+    private void publishDoorIfChanged(double nextDoorValue, String measuredAt) {
         if (Double.compare(nextDoorValue, lastDoorValue) == 0) {
             return;
         }
@@ -154,31 +131,32 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
         publish(SensorType.DOOR, nextDoorValue, measuredAt);
     }
 
+    private double generateValue(SensorValue sensorValue) {
+        return switch (sensorValue.mode()) {
+            case FIXED -> sensorValue.fixedValue();
+            case RANGE -> randomBetween(sensorValue.min(), sensorValue.max());
+            case PROBABILITY -> ThreadLocalRandom.current().nextDouble() < sensorValue.probability()
+                    ? 1.0
+                    : 0.0;
+        };
+    }
+
+    // 위치(조직/저장소/구역)는 여기서 채우지 않는다. 다음 노드가 deviceEui로 인벤토리에 물어본다.
     private void publish(SensorType sensorType, double value, String measuredAt) {
         SensorPayload sensorPayload = new SensorPayload(
-                organizationId,
+                null,
                 deviceEui,
-                storageId,
-                zoneId,
+                null,
+                null,
                 sensorType.value(),
                 value,
                 sensorType.unit(),
                 measuredAt
         );
 
-        String topic = String.format(
-                "%d/%d/%d/%s/%s",
-                organizationId,
-                storageId,
-                zoneId,
-                sanitize(deviceEui),
-                sanitize(sensorType.value())
-        );
-
         send(
                 OUTPUT_PORT,
                 new Message(Map.of(
-                        MessageFields.TOPIC, topic,
                         MessageFields.SENSOR_PAYLOAD, sensorPayload
                 ))
         );
@@ -189,40 +167,5 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
             return min;
         }
         return ThreadLocalRandom.current().nextDouble(min, max);
-    }
-
-    private void validateConfig() {
-        if (tempMin > tempMax) {
-            throw new IllegalArgumentException("tempMin은 tempMax보다 클 수 없습니다.");
-        }
-        if (humidityMin > humidityMax) {
-            throw new IllegalArgumentException("humidityMin은 humidityMax보다 클 수 없습니다.");
-        }
-        if(illuminationMin > illuminationMax) {
-            throw new IllegalArgumentException("illuminationMin은 illuminationMax보다 클 수 없습니다.");
-        }
-        if (doorOpenProbability < 0 || doorOpenProbability > 1) {
-            throw new IllegalArgumentException("doorOpenProbability는 0 이상 1 이하여야 합니다.");
-        }
-        if (measurementInterval <= 0) {
-            throw new IllegalArgumentException("measurementInterval은 1초 이상이어야 합니다.");
-        }
-
-        requirePositive(organizationId, "organizationId");
-        requirePositive(storageId, "storageId");
-        requirePositive(zoneId, "zoneId");
-        if (deviceEui == null || deviceEui.isBlank()) {
-            throw new IllegalArgumentException("deviceEui는 비어 있을 수 없습니다.");
-        }
-    }
-
-    private void requirePositive(Long value, String fieldName) {
-        if (value == null || value <= 0) {
-            throw new IllegalArgumentException(fieldName + "는 양수여야 합니다.");
-        }
-    }
-
-    private String sanitize(String value) {
-        return value.trim().replaceAll("[\\s/]+", "_");
     }
 }

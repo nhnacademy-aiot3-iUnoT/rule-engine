@@ -21,6 +21,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class EnvironmentDecisionStateRedisRepository {
 
+    // v2: 타임스탬프를 LocalDateTime -> Instant로 바꾸면서 옛 데이터와 형식이 달라져 키를 분리했다.
     private static final String KEY_PREFIX = "rule-engine:env-status:state:";
     // 센서가 더 이상 데이터를 보내지 않을 경우 상태가 영구히 남지 않도록 TTL을 둔다.
     private static final Duration STATE_TTL = Duration.ofDays(3);
@@ -34,15 +35,15 @@ public class EnvironmentDecisionStateRedisRepository {
             return Optional.empty();
         }
 
+        // 값 하나가 깨졌다고 측정값 수집까지 막을 수는 없다. 상태가 없는 것으로 보고 처음부터 다시 판단한다.
         try {
             return Optional.of(
                     objectMapper.readValue(String.valueOf(value), EnvironmentDecisionState.class)
             );
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException(
-                    "환경상태 판단 상태 역직렬화에 실패했습니다.",
-                    exception
-            );
+            log.warn("환경상태 판단 상태 역직렬화에 실패해 상태 없이 처리합니다. zoneKey={}, sensor={}",
+                    zoneKey, sensorField);
+            return Optional.empty();
         }
     }
 
@@ -62,7 +63,7 @@ public class EnvironmentDecisionStateRedisRepository {
                 );
             } catch (JsonProcessingException exception) {
                 log.warn("환경상태 판단 상태 역직렬화에 실패해 건너뜁니다. zoneKey={}, sensor={}",
-                        zoneKey, sensorField, exception);
+                        zoneKey, sensorField);
             }
         }
 

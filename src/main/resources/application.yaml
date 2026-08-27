@@ -46,6 +46,10 @@ rule-engine:
       lease-duration: 10s
       renew-interval: 3s
 
+  daily-rollup:
+    # 원본 보관 기간(2일) 안에서 넉넉하게 돌도록 자정 직후에 어제치를 적재한다.
+    cron: "0 10 0 * * *"
+
   mqtt:
     external:
       broker-url: tcp://10.116.64.13:1883
@@ -59,6 +63,7 @@ influx-db:
   org: ${INFLUX_ORG}
   bucket: ${INFLUX_BUCKET}
   measurement: ${INFLUX_MEASUREMENT}
+  summary-bucket: ${INFLUX_SUMMARY_BUCKET:sensor-daily}
 
 server:
   port: ${SERVER_PORT:10406}
@@ -80,3 +85,13 @@ notification:
     client-id: ${KAKAOTALK_REST_API_KET}
     api-base-url: https://kapi.kakao.com
     access-token: ${KAKAOTALK_ACCESS_TOKEN}
+
+security:
+  jwt:
+    access-token-ttl: 30m
+    allowed-algorithms:
+      - RS256
+    issuer: account-api
+    key-id: account-key-001
+    audiences:
+      - rule-engine

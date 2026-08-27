@@ -3,24 +3,32 @@ package com.nhnacademy.ruleengine.engine.controller;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryQueryRequest;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorHistoryResponse;
 import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorLatestResponse;
+import com.nhnacademy.ruleengine.engine.service.OrganizationAccessService;
 import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
+import com.nhnacademy.ruleengine.global.security.AccountUUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/rule-engine")
+@RequestMapping("/api/rule-engine/organizations/{organization-id}")
 public class SensorDataQueryController {
 
     private final SensorInfluxService sensorInfluxService;
+    private final OrganizationAccessService organizationAccessService;
 
-    @GetMapping("/zones/{zoneId}/sensor-data/latest")
+    @GetMapping("/zones/{zone-id}/sensor-data/latest")
     public ApiResponse<List<SensorLatestResponse>> findLatestByZone(
-            @PathVariable Long zoneId
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "zone-id") Long zoneId,
+            @AccountUUID UUID accountUuid
     ) {
+        organizationAccessService.verifyZone(accountUuid, organizationId, zoneId);
+
         return ApiResponse.success(
                 sensorInfluxService.findLatestByZone(zoneId)
                         .stream()
@@ -29,11 +37,15 @@ public class SensorDataQueryController {
         );
     }
 
-    @GetMapping("/zones/{zoneId}/sensor-data/history")
+    @GetMapping("/zones/{zone-id}/sensor-data/history")
     public ApiResponse<List<SensorHistoryResponse>> findHistoryByZone(
-            @PathVariable Long zoneId,
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "zone-id") Long zoneId,
+            @AccountUUID UUID accountUuid,
             @ModelAttribute SensorHistoryQueryRequest request
     ) {
+        organizationAccessService.verifyZone(accountUuid, organizationId, zoneId);
+
         return ApiResponse.success(
                 sensorInfluxService.findHistoryByZone(
                         zoneId,
@@ -45,28 +57,35 @@ public class SensorDataQueryController {
         );
     }
 
-    @GetMapping("/storages/{storageId}/sensor-data/latest")
+    @GetMapping("/storages/{storage-id}/sensor-data/latest")
     public ApiResponse<List<SensorLatestResponse>> findLatestByStorage(
-            @PathVariable Long storageId
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "storage-id") Long storageId,
+            @AccountUUID UUID accountUuid
     ) {
+        organizationAccessService.verifyOrganization(accountUuid, organizationId);
+
         return ApiResponse.success(
-                sensorInfluxService.findLatestByStorage(storageId)
+                sensorInfluxService.findLatestByStorage(organizationId, storageId)
                         .stream()
                         .map(SensorLatestResponse::from)
                         .toList()
         );
     }
 
-    @GetMapping("/organizations/{organizationId}/sensor-data/latest")
+    @GetMapping("/sensor-data/latest")
     public ApiResponse<List<SensorLatestResponse>> findLatestByOrganization(
-            @PathVariable Long organizationId,
+            @AccountUUID UUID accountUuid,
+            @PathVariable(name = "organization-id") Long organizationId,
             @RequestParam(required = false) String sensorType
     ) {
+        organizationAccessService.verifyOrganization(accountUuid, organizationId);
+
         return ApiResponse.success(
                 sensorInfluxService.findLatestByOrganization(
-                        organizationId,
-                        sensorType
-                )
+                                organizationId,
+                                sensorType
+                        )
                         .stream()
                         .map(SensorLatestResponse::from)
                         .toList()

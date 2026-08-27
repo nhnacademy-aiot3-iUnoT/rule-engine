@@ -38,9 +38,7 @@ public class ThresholdRuleCommand implements EnvironmentRuleCommand {
     @Override
     public Optional<RuleResultDto> evaluate(SensorPayload sensorPayload) {
         ThresholdPolicyDto thresholdPolicy = thresholdPolicyService.getThresholdPolicy(
-                sensorPayload.organizationId(),
-                sensorPayload.storageId(),
-                sensorPayload.sectionId()
+                sensorPayload.zoneId()
         );
 
         String sensorType = sensorPayload.sensorType();
@@ -48,11 +46,11 @@ public class ThresholdRuleCommand implements EnvironmentRuleCommand {
 
         if (range.isEmpty()) {
             log.info(
-                    "[{}] 임계값 설정이 없어 검사를 건너뜁니다. organizationId={}, storageId={}, sectionId={}, sensorType={}, deviceEui={}",
+                    "[{}] 임계값 설정이 없어 검사를 건너뜁니다. organizationId={}, storageId={}, zoneId={}, sensorType={}, deviceEui={}",
                     getClass().getSimpleName(),
                     sensorPayload.organizationId(),
                     sensorPayload.storageId(),
-                    sensorPayload.sectionId(),
+                    sensorPayload.zoneId(),
                     sensorType,
                     sensorPayload.deviceEui()
             );

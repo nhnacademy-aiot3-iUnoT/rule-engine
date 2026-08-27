@@ -18,3 +18,7 @@ management:
     export:
       zipkin:
         endpoint: ${ZIPKIN_ENDPOINT}
+
+security:
+  jwt:
+    jwk-set-uri: http://team1-account-1:10413/.well-known/jwks.json

@@ -6,11 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.engine.constants.MessageFields;
 import com.nhnacademy.ruleengine.engine.core.Message;
 import com.nhnacademy.ruleengine.engine.dto.sensor.ExternalSensorMessage;
+import com.nhnacademy.ruleengine.engine.exception.ConnectionException;
 import com.nhnacademy.ruleengine.engine.node.ProtocolNode;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,19 +42,38 @@ public class MqttSubscriberNode extends ProtocolNode {
     }
 
     @Override
-    protected void connect() throws Exception {
-        String brokerUrl = (String) getConfig(BROKER_URL);
-        String clientId = (String) getConfig(CLIENT_ID);
-        subscriptionTopic = (String) getConfig(TOPIC);
-        subscriptionQos = resolveQos(getConfig(QOS));
+    protected void connect() throws ConnectionException {
+        try {
+            String brokerUrl = (String) getConfig(BROKER_URL);
+            String clientId = (String) getConfig(CLIENT_ID);
+            subscriptionTopic = (String) getConfig(TOPIC);
+            subscriptionQos = resolveQos(getConfig(QOS));
 
-        closeClient();
-        client = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
-        client.setCallback(createCallback());
-        client.connect(createConnectOptions());
-        subscribe();
+            closeClient();
 
-        log.info("[{}] MQTT 구독 성공: topic={}, qos={}", getId(), subscriptionTopic, subscriptionQos);
+            client = new MqttClient(
+                    brokerUrl,
+                    clientId,
+                    new MemoryPersistence()
+            );
+
+            client.setCallback(createCallback());
+            client.connect(createConnectOptions());
+            subscribe();
+
+            log.info(
+                    "[{}] MQTT 구독 성공: topic={}, qos={}",
+                    getId(),
+                    subscriptionTopic,
+                    subscriptionQos
+            );
+
+        } catch (MqttException e) {
+            throw new ConnectionException(
+                    "MQTT 브로커 연결에 실패했습니다.",
+                    e
+            );
+        }
     }
 
     private MqttCallbackExtended createCallback() {

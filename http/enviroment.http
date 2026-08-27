@@ -1,0 +1,10 @@
+@host = http://localhost:10406
+
+### 저장소 최근 7일 리포트
+GET {{host}}/api/rule-engine/internal/storages/1/daily-summaries
+
+### 저장소 기간 지정 리포트
+GET {{host}}/api/rule-engine/internal/storages/1/daily-summaries?from=2026-08-21&to=2026-08-21
+
+### 하루 요약 수동 적재 (테스트용)
+POST {{host}}/api/rule-engine/internal/daily-summary-rollups?date=2026-08-21
