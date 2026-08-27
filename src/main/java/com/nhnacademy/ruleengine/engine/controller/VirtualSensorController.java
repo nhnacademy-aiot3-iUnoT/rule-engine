@@ -17,19 +17,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/rule-engine/organizations/{organizationId}/storages/{storageId}/zones")
+@RequestMapping("/api/rule-engine/organizations/{organization-id}/storages/{storage-id}/zones")
 @RequiredArgsConstructor
 public class VirtualSensorController {
 
     private final VirtualSensorService virtualSensorService;
     private final OrganizationAccessService organizationAccessService;
 
-    @PostMapping("/{zoneId}/virtual-sensor")
+    @PostMapping("/{zone-id}/virtual-sensor")
     public ApiResponse<VirtualSensorCreateResponse> createVirtualSensor(
             @AccountUUID UUID accountUuid,
-            @PathVariable Long organizationId,
-            @PathVariable Long storageId,
-            @PathVariable Long zoneId,
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "storage-id") Long storageId,
+            @PathVariable(name = "zone-id") Long zoneId,
             @Valid @RequestBody VirtualSensorCreateRequest request
     ) {
         organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
@@ -45,61 +45,59 @@ public class VirtualSensorController {
     }
 
 
-    @PutMapping("/{zoneId}/virtual-sensor")
+    @PutMapping("/{zone-id}/virtual-sensor")
     public ApiResponse<VirtualSensorUpdateResponse> updateVirtualSensor(
             @AccountUUID UUID accountUuid,
-            @PathVariable Long organizationId,
-            @PathVariable Long storageId,
-            @PathVariable Long zoneId,
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "storage-id") Long storageId,
+            @PathVariable(name = "zone-id") Long zoneId,
             @Valid @RequestBody VirtualSensorUpdateRequest request
     ) {
         organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
 
-        VirtualSensorUpdateResponse response = virtualSensorService.updateVirtualSensor(organizationId, storageId, zoneId, request);
+        VirtualSensorUpdateResponse response = virtualSensorService.updateVirtualSensor(zoneId, request);
         return ApiResponse.success(response);
 
     }
 
-    @DeleteMapping("/{zoneId}/virtual-sensor")
+    @DeleteMapping("/{zone-id}/virtual-sensor")
     public ApiResponse<Void> deleteVirtualSensor(
             @AccountUUID UUID accountUuid,
-            @PathVariable Long organizationId,
-            @PathVariable Long storageId,
-            @PathVariable Long zoneId
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "storage-id") Long storageId,
+            @PathVariable(name = "zone-id") Long zoneId
     ) {
         organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
 
-        virtualSensorService.deleteVirtualSensor(organizationId, storageId, zoneId);
+        virtualSensorService.deleteVirtualSensor(zoneId);
         return ApiResponse.successNodata();
     }
 
-    @GetMapping("/{zoneId}/virtual-sensor")
+    @GetMapping("/{zone-id}/virtual-sensor")
     public ApiResponse<VirtualSensorInfoResponse> getVirtualSensor(
             @AccountUUID UUID accountUuid,
-            @PathVariable Long organizationId,
-            @PathVariable Long storageId,
-            @PathVariable Long zoneId
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "storage-id") Long storageId,
+            @PathVariable(name = "zone-id") Long zoneId
     ) {
         organizationAccessService.verifyOrganization(accountUuid, organizationId);
 
-        VirtualSensorInfoResponse response = virtualSensorService.getVirtualSensor(organizationId, storageId, zoneId);
+        VirtualSensorInfoResponse response = virtualSensorService.getVirtualSensor(zoneId);
         return ApiResponse.success(response);
     }
 
 
-    @PutMapping("/{zoneId}/status")
+    @PutMapping("/{zone-id}/status")
     public ApiResponse<Void> changeVirtualSensorStatus(
             @AccountUUID UUID accountUuid,
-            @PathVariable Long organizationId,
-            @PathVariable Long storageId,
-            @PathVariable Long zoneId,
+            @PathVariable(name = "organization-id") Long organizationId,
+            @PathVariable(name = "storage-id") Long storageId,
+            @PathVariable(name = "zone-id") Long zoneId,
             @Valid @RequestBody VirtualSensorStatusRequest request
     ) {
         organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
 
         virtualSensorService.changeFlowStatus(
-                organizationId,
-                storageId,
                 zoneId,
                 request.status()
         );

@@ -12,11 +12,11 @@ public class EnvironmentStatusController {
 
     private final ZoneEnvStatusService zoneEnvStatusService;
 
-    @PostMapping("/{zoneId}/env-status/resolve")
+    @PostMapping("/{zone-id}/env-status/resolve")
     public ApiResponse<Void> resolveEnvStatus(
             @RequestParam Long organizationId,
             @RequestParam Long storageId,
-            @PathVariable Long zoneId
+            @PathVariable(name = "zone-id") Long zoneId
     ){
         zoneEnvStatusService.resolveCriticalStates(organizationId, storageId, zoneId);
         return ApiResponse.successNodata();

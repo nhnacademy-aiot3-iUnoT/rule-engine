@@ -7,10 +7,10 @@ GET {{host}}/api/rule-engine/organizations/1/sensor-data/latest
 GET {{host}}/api/rule-engine/organizations/1/sensor-data/latest?sensorType=temperature
 
 ### 저장소별 최신 센서 데이터 조회
-GET {{host}}/api/rule-engine/storages/1/sensor-data/latest
+GET {{host}}/api/rule-engine/organizations/1/storages/1/sensor-data/latest
 
 ### 구역 센서별 최신데이터 조회
-GET {{host}}/api/rule-engine/zones/1/sensor-data/latest
+GET {{host}}/api/rule-engine/organizations/1/zones/1/sensor-data/latest
 
 ### 구역의 전체 센서 이력 조회
 GET {{host}}/api/rule-engine/zones/5/sensor-data/history?window=30m

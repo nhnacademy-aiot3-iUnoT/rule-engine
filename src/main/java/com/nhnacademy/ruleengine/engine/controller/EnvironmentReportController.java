@@ -26,9 +26,9 @@ public class EnvironmentReportController {
     /**
      * 저장소의 하루 요약을 기간으로 조회한다. 기본은 어제까지의 최근 7일이다.
      */
-    @GetMapping("/internal/storages/{storageId}/daily-summaries")
+    @GetMapping("/internal/storages/{storage-id}/daily-summaries")
     public ApiResponse<List<StorageDailySummary>> findDailySummaries(
-            @PathVariable Long storageId,
+            @PathVariable(name = "storage-id") Long storageId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false)

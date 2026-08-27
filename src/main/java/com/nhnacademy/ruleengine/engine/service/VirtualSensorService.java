@@ -25,7 +25,6 @@ public class VirtualSensorService {
             Long zoneId,
             VirtualSensorCreateRequest request
     ) {
-        // 생성시 검증?
 
         VirtualSensorConfig sensorConfig = VirtualSensorConfig.from(
                 organizationId,
@@ -47,12 +46,9 @@ public class VirtualSensorService {
     }
 
     public VirtualSensorUpdateResponse updateVirtualSensor(
-            Long organizationId,
-            Long storageId,
             Long zoneId,
             VirtualSensorUpdateRequest request
     ) {
-        // 변경시 검증?
         VirtualSensorConfig existing = virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
                 .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND));
 
@@ -68,11 +64,8 @@ public class VirtualSensorService {
     }
 
     public void deleteVirtualSensor(
-            Long organizationId,
-            Long storageId,
             Long zoneId
     ) {
-        // 삭제시 검증?
         virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
                 .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND));
 
@@ -80,24 +73,18 @@ public class VirtualSensorService {
     }
 
     public VirtualSensorInfoResponse getVirtualSensor(
-            Long organizationId,
-            Long storageId,
             Long zoneId
     ) {
-        //정보 조회시 검증?
-        VirtualSensorConfig sensorConfig = virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
-                .orElseThrow(() -> new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND));
-
-        return VirtualSensorInfoResponse.from(
-                sensorConfig,
-                virtualSensorRedisRepository.isActive(zoneId)
-        );
+        return virtualSensorRedisRepository.getVirtualSensorConfig(zoneId)
+                .map(sensorConfig -> VirtualSensorInfoResponse.from(
+                        sensorConfig,
+                        virtualSensorRedisRepository.isActive(zoneId)
+                ))
+                .orElseGet(VirtualSensorInfoResponse::notRegistered);
     }
 
 
     public void changeFlowStatus(
-            Long organizationId,
-            Long storageId,
             Long zoneId,
             VirtualSensorStatus status
     ) {
