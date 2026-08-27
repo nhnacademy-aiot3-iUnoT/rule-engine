@@ -27,4 +27,15 @@ public class CachedZoneLookup {
 
         return zone;
     }
+
+    @Cacheable(cacheNames = CacheConfig.ZONE_LOCATION, key = "#zoneId")
+    public Optional<ResolvedZoneResponse> findLocation(Long zoneId) {
+        Optional<ResolvedZoneResponse> zone = inventoryClient.findZoneLocation(zoneId);
+
+        if (zone.isEmpty()) {
+            log.warn("존재하지 않는 구역입니다. zoneId={}", zoneId);
+        }
+
+        return zone;
+    }
 }

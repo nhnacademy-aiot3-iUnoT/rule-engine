@@ -70,6 +70,18 @@ public class InventoryClient {
         return apiClient.find(url, ResolvedZoneResponse.class);
     }
 
+    // zoneId로 그 구역이 속한 위치(조직/창고/구역)를 조회한다.
+    // 경로의 구역이 요청자의 조직 소속인지 검증할 때 쓴다.
+    // 없는 구역이면 빈 값이고, 인벤토리 장애는 예외로 올라온다.
+    public Optional<ResolvedZoneResponse> findZoneLocation(Long zoneId) {
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl + INVENTORY_URL + "/zones/" + zoneId + "/location")
+                .encode()
+                .toUriString();
+
+        return apiClient.find(url, ResolvedZoneResponse.class);
+    }
+
     // 계정 UUID로 소속 조직과 조직 역할을 조회한다.
     // 조직에 속하지 않은 계정이면 빈 값이고, 인벤토리 장애는 예외로 올라온다.
     public Optional<MemberOrganizationResponse> findMemberOrganization(UUID accountUuid) {

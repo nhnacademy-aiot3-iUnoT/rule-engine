@@ -32,7 +32,7 @@ public class VirtualSensorController {
             @PathVariable(name = "zone-id") Long zoneId,
             @Valid @RequestBody VirtualSensorCreateRequest request
     ) {
-        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
+        organizationAccessService.verifyZoneOwnerOrBoss(accountUuid, organizationId, zoneId);
 
         VirtualSensorCreateResponse response = virtualSensorService.createVirtualSensor(
                 organizationId,
@@ -53,7 +53,7 @@ public class VirtualSensorController {
             @PathVariable(name = "zone-id") Long zoneId,
             @Valid @RequestBody VirtualSensorUpdateRequest request
     ) {
-        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
+        organizationAccessService.verifyZoneOwnerOrBoss(accountUuid, organizationId, zoneId);
 
         VirtualSensorUpdateResponse response = virtualSensorService.updateVirtualSensor(zoneId, request);
         return ApiResponse.success(response);
@@ -67,7 +67,7 @@ public class VirtualSensorController {
             @PathVariable(name = "storage-id") Long storageId,
             @PathVariable(name = "zone-id") Long zoneId
     ) {
-        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
+        organizationAccessService.verifyZoneOwnerOrBoss(accountUuid, organizationId, zoneId);
 
         virtualSensorService.deleteVirtualSensor(zoneId);
         return ApiResponse.successNodata();
@@ -80,7 +80,7 @@ public class VirtualSensorController {
             @PathVariable(name = "storage-id") Long storageId,
             @PathVariable(name = "zone-id") Long zoneId
     ) {
-        organizationAccessService.verifyOrganization(accountUuid, organizationId);
+        organizationAccessService.verifyZone(accountUuid, organizationId, zoneId);
 
         VirtualSensorInfoResponse response = virtualSensorService.getVirtualSensor(zoneId);
         return ApiResponse.success(response);
@@ -95,7 +95,7 @@ public class VirtualSensorController {
             @PathVariable(name = "zone-id") Long zoneId,
             @Valid @RequestBody VirtualSensorStatusRequest request
     ) {
-        organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId);
+        organizationAccessService.verifyZoneOwnerOrBoss(accountUuid, organizationId, zoneId);
 
         virtualSensorService.changeFlowStatus(
                 zoneId,

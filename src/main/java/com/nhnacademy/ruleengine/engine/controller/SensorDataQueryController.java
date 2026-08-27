@@ -27,7 +27,7 @@ public class SensorDataQueryController {
             @PathVariable(name = "zone-id") Long zoneId,
             @AccountUUID UUID accountUuid
     ) {
-        organizationAccessService.verifyOrganization(accountUuid, organizationId);
+        organizationAccessService.verifyZone(accountUuid, organizationId, zoneId);
 
         return ApiResponse.success(
                 sensorInfluxService.findLatestByZone(zoneId)
@@ -44,7 +44,7 @@ public class SensorDataQueryController {
             @AccountUUID UUID accountUuid,
             @ModelAttribute SensorHistoryQueryRequest request
     ) {
-        organizationAccessService.verifyOrganization(accountUuid, organizationId);
+        organizationAccessService.verifyZone(accountUuid, organizationId, zoneId);
 
         return ApiResponse.success(
                 sensorInfluxService.findHistoryByZone(

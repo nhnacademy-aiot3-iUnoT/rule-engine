@@ -1,5 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
+import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.OrganizationRole;
 import com.nhnacademy.ruleengine.engine.exception.OrganizationAccessDeniedException;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -20,6 +22,7 @@ import java.util.UUID;
 public class OrganizationAccessService {
 
     private final CachedMemberOrganizationLookup memberOrganizationLookup;
+    private final CachedZoneLookup zoneLookup;
 
     /**
      * 계정의 소속 조직과 역할을 조회한다. 소속 조직이 없으면 거부한다.
@@ -66,6 +69,29 @@ public class OrganizationAccessService {
     }
 
     /**
+     * 경로의 구역이 요청한 조직의 것인지까지 검증한다.
+     * 조직만 맞추면 남의 조직 구역 번호로 조회가 뚫리므로, 구역을 다루는 요청에 쓴다.
+     */
+    public MemberOrganizationResponse verifyZone(UUID accountUuid, Long organizationId, Long zoneId) {
+        MemberOrganizationResponse membership = verifyOrganization(accountUuid, organizationId);
+
+        verifyZoneBelongsTo(accountUuid, organizationId, zoneId);
+
+        return membership;
+    }
+
+    /**
+     * 구역 검증에 더해 조직 보스/오너만 허용한다. 구역의 상태를 바꾸는 요청에 쓴다.
+     */
+    public MemberOrganizationResponse verifyZoneOwnerOrBoss(UUID accountUuid, Long organizationId, Long zoneId) {
+        MemberOrganizationResponse membership = verifyOwnerOrBoss(accountUuid, organizationId);
+
+        verifyZoneBelongsTo(accountUuid, organizationId, zoneId);
+
+        return membership;
+    }
+
+    /**
      * 소속 조직 검증에 더해, 허용된 조직 역할인지까지 검증한다.
      */
     public MemberOrganizationResponse verifyRole(
@@ -87,5 +113,33 @@ public class OrganizationAccessService {
         }
 
         return membership;
+    }
+
+    // 구역이 어느 조직 것인지는 인벤토리만 아는 정보라, 캐시된 내부 API 조회로 확인한다.
+    // 없는 구역도 조직 자원 여부를 알 수 없으므로 거부한다(fail-closed).
+    private void verifyZoneBelongsTo(UUID accountUuid, Long organizationId, Long zoneId) {
+        ResolvedZoneResponse location = zoneLookup.findLocation(zoneId)
+                .orElseThrow(() -> {
+                    log.warn(
+                            "존재하지 않는 구역이라 요청을 거부합니다. accountUuid={}, organizationId={}, zoneId={}",
+                            accountUuid,
+                            organizationId,
+                            zoneId
+                    );
+
+                    return new OrganizationAccessDeniedException(ErrorCode.ZONE_ACCESS_DENIED);
+                });
+
+        if (!Objects.equals(location.organizationId(), organizationId)) {
+            log.warn(
+                    "다른 조직의 구역에 접근을 시도했습니다. accountUuid={}, 요청 organizationId={}, zoneId={}, 구역 organizationId={}",
+                    accountUuid,
+                    organizationId,
+                    zoneId,
+                    location.organizationId()
+            );
+
+            throw new OrganizationAccessDeniedException(ErrorCode.ZONE_ACCESS_DENIED);
+        }
     }
 }
