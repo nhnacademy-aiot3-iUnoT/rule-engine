@@ -63,7 +63,7 @@ public class VirtualSensorService {
             throw new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_CONFIG_NOT_FOUND);
         }
 
-        return VirtualSensorUpdateResponse.from(true);
+        return VirtualSensorUpdateResponse.from(updated);
     }
 
     public void deleteVirtualSensor(
