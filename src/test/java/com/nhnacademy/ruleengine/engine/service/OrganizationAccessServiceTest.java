@@ -1,5 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
+import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.OrganizationRole;
 import com.nhnacademy.ruleengine.engine.exception.ApiException;
@@ -27,8 +28,15 @@ class OrganizationAccessServiceTest {
 
     private static final Long ORGANIZATION_ID = 7L;
 
+    private static final Long ZONE_ID = 11L;
+
+    private static final Long STORAGE_ID = 3L;
+
     @Mock
     private CachedMemberOrganizationLookup memberOrganizationLookup;
+
+    @Mock
+    private CachedZoneLookup zoneLookup;
 
     @InjectMocks
     private OrganizationAccessService organizationAccessService;
@@ -81,45 +89,6 @@ class OrganizationAccessServiceTest {
 
         // then
         assertEquals(ErrorCode.MEMBER_ORG_NOT_FOUND, exception.getErrorCode());
-    }
-
-    @Test
-    @DisplayName("허용된 역할이면 통과한다")
-    void verifyRole() {
-        // given
-        stubMembership(OrganizationRole.ORG_OWNER);
-
-        // when
-        MemberOrganizationResponse membership = organizationAccessService.verifyRole(
-                ACCOUNT_UUID,
-                ORGANIZATION_ID,
-                OrganizationRole.ORG_BOSS,
-                OrganizationRole.ORG_OWNER
-        );
-
-        // then
-        assertEquals(OrganizationRole.ORG_OWNER, membership.organizationRole());
-    }
-
-    @Test
-    @DisplayName("허용되지 않은 역할이면 거부한다")
-    void verifyRoleDeniesUnlistedRole() {
-        // given
-        stubMembership(OrganizationRole.ORG_MEMBER);
-
-        // when
-        OrganizationAccessDeniedException exception = assertThrows(
-                OrganizationAccessDeniedException.class,
-                () -> organizationAccessService.verifyRole(
-                        ACCOUNT_UUID,
-                        ORGANIZATION_ID,
-                        OrganizationRole.ORG_BOSS,
-                        OrganizationRole.ORG_OWNER
-                )
-        );
-
-        // then
-        assertEquals(ErrorCode.ORGANIZATION_ROLE_FORBIDDEN, exception.getErrorCode());
     }
 
     @Test
@@ -191,6 +160,76 @@ class OrganizationAccessServiceTest {
         assertThrows(
                 ApiException.class,
                 () -> organizationAccessService.verifyOrganization(ACCOUNT_UUID, ORGANIZATION_ID)
+        );
+    }
+
+    @Test
+    @DisplayName("구역이 소속 조직의 것이면 통과한다")
+    void verifyZone() {
+        // given
+        stubMembership(OrganizationRole.ORG_MEMBER);
+        stubZoneLocation(ORGANIZATION_ID);
+
+        // when
+        MemberOrganizationResponse membership =
+                organizationAccessService.verifyZone(ACCOUNT_UUID, ORGANIZATION_ID, ZONE_ID);
+
+        // then
+        assertEquals(ORGANIZATION_ID, membership.organizationId());
+    }
+
+    @Test
+    @DisplayName("소속 조직은 맞아도 다른 조직의 구역이면 거부한다")
+    void verifyZoneDeniesOtherOrganizationZone() {
+        // given
+        stubMembership(OrganizationRole.ORG_MEMBER);
+        stubZoneLocation(99L);
+
+        // when
+        OrganizationAccessDeniedException exception = assertThrows(
+                OrganizationAccessDeniedException.class,
+                () -> organizationAccessService.verifyZone(ACCOUNT_UUID, ORGANIZATION_ID, ZONE_ID)
+        );
+
+        // then
+        assertEquals(ErrorCode.ZONE_ACCESS_DENIED, exception.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 구역이면 거부한다")
+    void verifyZoneDeniesUnknownZone() {
+        // given
+        stubMembership(OrganizationRole.ORG_MEMBER);
+        when(zoneLookup.findLocation(ZONE_ID)).thenReturn(Optional.empty());
+
+        // when
+        OrganizationAccessDeniedException exception = assertThrows(
+                OrganizationAccessDeniedException.class,
+                () -> organizationAccessService.verifyZone(ACCOUNT_UUID, ORGANIZATION_ID, ZONE_ID)
+        );
+
+        // then
+        assertEquals(ErrorCode.ZONE_ACCESS_DENIED, exception.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("구역 조회가 실패하면 통과시키지 않고 예외를 그대로 올린다")
+    void verifyZoneFailsClosed() {
+        // given
+        stubMembership(OrganizationRole.ORG_MEMBER);
+        when(zoneLookup.findLocation(ZONE_ID))
+                .thenThrow(new ApiException(ErrorCode.EXTERNAL_API_ERROR, "호출 실패"));
+
+        // when & then
+        assertThrows(
+                ApiException.class,
+                () -> organizationAccessService.verifyZone(ACCOUNT_UUID, ORGANIZATION_ID, ZONE_ID)
+        );
+    }
+
+    private void stubZoneLocation(Long organizationId) {
+        when(zoneLookup.findLocation(ZONE_ID)).thenReturn(
+                Optional.of(new ResolvedZoneResponse(organizationId, STORAGE_ID, ZONE_ID))
         );
     }
 

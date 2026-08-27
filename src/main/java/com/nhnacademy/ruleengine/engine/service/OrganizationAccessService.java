@@ -1,5 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
+import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.OrganizationRole;
 import com.nhnacademy.ruleengine.engine.exception.OrganizationAccessDeniedException;
@@ -8,23 +9,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.UUID;
 
-/**
- * JWT에서 뽑은 계정 UUID로 인벤토리에 소속 조직을 물어보고, 요청한 조직/역할과 맞는지 검증한다.
- * 인벤토리 호출이 실패하면 예외가 그대로 올라가 요청이 거부된다(fail-closed).
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrganizationAccessService {
 
     private final CachedMemberOrganizationLookup memberOrganizationLookup;
+    private final CachedZoneLookup zoneLookup;
 
-    /**
-     * 계정의 소속 조직과 역할을 조회한다. 소속 조직이 없으면 거부한다.
-     */
-    public MemberOrganizationResponse getMembership(UUID accountUuid) {
+
+    // 로그인된 계정의 조직과 역활을 조회
+    private MemberOrganizationResponse getMembership(UUID accountUuid) {
         return memberOrganizationLookup.find(accountUuid)
                 .orElseThrow(() -> {
                     log.warn("소속 조직이 없어 요청을 거부합니다. accountUuid={}", accountUuid);
@@ -32,9 +30,7 @@ public class OrganizationAccessService {
                 });
     }
 
-    /**
-     * 요청한 조직이 계정의 소속 조직과 같은지 검증한다.
-     */
+    // 요청한 조직이 계정의 소속 조직과 같은지 검증
     public MemberOrganizationResponse verifyOrganization(UUID accountUuid, Long organizationId) {
         MemberOrganizationResponse membership = getMembership(accountUuid);
 
@@ -52,10 +48,7 @@ public class OrganizationAccessService {
         return membership;
     }
 
-    /**
-     * 조직 보스/오너만 허용한다. 생성·수정·삭제처럼 상태를 바꾸는 요청에 쓴다.
-     * 일반 조직원(ORG_MEMBER)은 조회만 할 수 있다.
-     */
+   // 조직의 오너 혹은 보스인지 검증
     public MemberOrganizationResponse verifyOwnerOrBoss(UUID accountUuid, Long organizationId) {
         return verifyRole(
                 accountUuid,
@@ -65,10 +58,18 @@ public class OrganizationAccessService {
         );
     }
 
-    /**
-     * 소속 조직 검증에 더해, 허용된 조직 역할인지까지 검증한다.
-     */
-    public MemberOrganizationResponse verifyRole(
+    // 해당구역이 해당 사용자의 조직의 구역인지 검증
+    public MemberOrganizationResponse verifyZone(UUID accountUuid, Long organizationId, Long zoneId) {
+        MemberOrganizationResponse membership = verifyOrganization(accountUuid, organizationId);
+
+        verifyZoneBelongsTo(accountUuid, organizationId, zoneId);
+
+        return membership;
+    }
+
+
+    // 조직 및 역활 검증
+    private MemberOrganizationResponse verifyRole(
             UUID accountUuid,
             Long organizationId,
             OrganizationRole... allowedRoles
@@ -88,4 +89,31 @@ public class OrganizationAccessService {
 
         return membership;
     }
+
+    private void verifyZoneBelongsTo(UUID accountUuid, Long organizationId, Long zoneId) {
+        ResolvedZoneResponse location = zoneLookup.findLocation(zoneId)
+                .orElseThrow(() -> {
+                    log.warn(
+                            "존재하지 않는 구역이라 요청을 거부합니다. accountUuid={}, organizationId={}, zoneId={}",
+                            accountUuid,
+                            organizationId,
+                            zoneId
+                    );
+
+                    return new OrganizationAccessDeniedException(ErrorCode.ZONE_ACCESS_DENIED);
+                });
+
+        if (!Objects.equals(location.organizationId(), organizationId)) {
+            log.warn(
+                    "다른 조직의 구역에 접근을 시도했습니다. accountUuid={}, 요청 organizationId={}, zoneId={}, 구역 organizationId={}",
+                    accountUuid,
+                    organizationId,
+                    zoneId,
+                    location.organizationId()
+            );
+
+            throw new OrganizationAccessDeniedException(ErrorCode.ZONE_ACCESS_DENIED);
+        }
+    }
+
 }

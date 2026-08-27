@@ -6,18 +6,16 @@ import com.nhnacademy.ruleengine.engine.dto.virtual.request.VirtualSensorUpdateR
 import java.util.Objects;
 
 // 가상 센서 Flow 실행에 필요한 설정을 명확한 타입으로 전달한다.
+// 어느 구역에서 측정되는지는 설정에 담지 않는다. 실제 센서와 똑같이 deviceEui를 구역에 등록해야
+// 위치가 정해지고, 위치는 데이터를 만들 때마다 인벤토리에서 조회한다.
 public record VirtualSensorConfig(
         Long organizationId,
-        Long storageId,
-        Long zoneId,
         String deviceEui,
         VirtualSensorValues virtualSensorValues,
         Long measurementIntervalSeconds
 ) {
     public VirtualSensorConfig {
         requirePositive(organizationId, "organizationId");
-        requirePositive(storageId, "storageId");
-        requirePositive(zoneId, "zoneId");
 
         if (deviceEui == null || deviceEui.isBlank()) {
             throw new IllegalArgumentException("deviceEui는 비어 있을 수 없습니다.");
@@ -35,16 +33,12 @@ public record VirtualSensorConfig(
 
     public static VirtualSensorConfig from(
             Long organizationId,
-            Long storageId,
-            Long zoneId,
             VirtualSensorCreateRequest request
     ) {
         Objects.requireNonNull(request, "가상 센서 설정은 필수입니다.");
 
         return new VirtualSensorConfig(
                 organizationId,
-                storageId,
-                zoneId,
                 request.deviceEui(),
                 request.virtualSensorValues(),
                 request.measurementIntervalSeconds()
@@ -55,15 +49,16 @@ public record VirtualSensorConfig(
         Objects.requireNonNull(existing, "기존 가상 센서 설정은 필수입니다.");
         Objects.requireNonNull(request, "변경할 가상 센서 설정은 필수입니다.");
 
-
         return new VirtualSensorConfig(
                 existing.organizationId(),
-                existing.storageId(),
-                existing.zoneId(),
                 existing.deviceEui(),
                 request.virtualSensorValues(),
                 request.measurementIntervalSeconds() != null ? request.measurementIntervalSeconds() : existing.measurementIntervalSeconds()
         );
+    }
+
+    public boolean ownedBy(Long organizationId) {
+        return this.organizationId != null && this.organizationId.equals(organizationId);
     }
 
     private static void requirePositive(Long value, String fieldName) {

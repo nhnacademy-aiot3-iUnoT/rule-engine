@@ -25,9 +25,6 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
     private final Map<SensorType, SensorValue> sensorValueMap;
     private final Long measurementInterval;
-    private final Long organizationId;
-    private final Long storageId;
-    private final Long zoneId;
     private final String deviceEui;
 
     // 실제 door 센서처럼 "상태가 바뀔 때만" 이벤트를 전송하기 위해 마지막으로 전송한 상태를 기억한다.
@@ -49,9 +46,6 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
 
         sensorValueMap = sensorConfig.virtualSensorValues().valueMap();
         measurementInterval = config.measurementIntervalSeconds();
-        organizationId = config.organizationId();
-        storageId = config.storageId();
-        zoneId = config.zoneId();
         deviceEui = config.deviceEui();
 
         addOutputPort(OUTPUT_PORT);
@@ -147,31 +141,22 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
         };
     }
 
+    // 위치(조직/저장소/구역)는 여기서 채우지 않는다. 다음 노드가 deviceEui로 인벤토리에 물어본다.
     private void publish(SensorType sensorType, double value, String measuredAt) {
         SensorPayload sensorPayload = new SensorPayload(
-                organizationId,
+                null,
                 deviceEui,
-                storageId,
-                zoneId,
+                null,
+                null,
                 sensorType.value(),
                 value,
                 sensorType.unit(),
                 measuredAt
         );
 
-        String topic = String.format(
-                "%d/%d/%d/%s/%s",
-                organizationId,
-                storageId,
-                zoneId,
-                sanitize(deviceEui),
-                sanitize(sensorType.value())
-        );
-
         send(
                 OUTPUT_PORT,
                 new Message(Map.of(
-                        MessageFields.TOPIC, topic,
                         MessageFields.SENSOR_PAYLOAD, sensorPayload
                 ))
         );
@@ -182,9 +167,5 @@ public class VirtualSensorGeneratorNode extends AbstractNode {
             return min;
         }
         return ThreadLocalRandom.current().nextDouble(min, max);
-    }
-
-    private String sanitize(String value) {
-        return value.trim().replaceAll("[\\s/]+", "_");
     }
 }

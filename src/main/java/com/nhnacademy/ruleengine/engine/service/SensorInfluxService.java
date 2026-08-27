@@ -84,17 +84,20 @@ public class SensorInfluxService {
     }
 
     /**
-     * 특정 창고에 속한 모든 구역의 센서별 최신 데이터를 조회한다.
+     * 조직에 속한 특정 창고의 모든 구역 센서별 최신 데이터를 조회한다.
      * <p>
      * 실제 창고 존재 여부는 검증하지 않는다.
-     * 조회 결과가 없으면 빈 목록을 반환한다.
+     * 다른 조직의 창고를 요청하면 조회 자체가 조직 범위로 걸러져 빈 목록이 된다.
      */
     public List<SensorPayload> findLatestByStorage(
+            Long organizationId,
             Long storageId
     ) {
+        validatePositiveId(organizationId, ORGANIZATION_ID);
         validatePositiveId(storageId, STORAGE_ID);
 
         return sensorInfluxRepository.findLatestByStorage(
+                organizationId,
                 storageId
         );
     }
