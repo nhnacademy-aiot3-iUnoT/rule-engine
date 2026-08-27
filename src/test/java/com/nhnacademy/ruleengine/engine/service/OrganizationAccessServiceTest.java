@@ -92,45 +92,6 @@ class OrganizationAccessServiceTest {
     }
 
     @Test
-    @DisplayName("허용된 역할이면 통과한다")
-    void verifyRole() {
-        // given
-        stubMembership(OrganizationRole.ORG_OWNER);
-
-        // when
-        MemberOrganizationResponse membership = organizationAccessService.verifyRole(
-                ACCOUNT_UUID,
-                ORGANIZATION_ID,
-                OrganizationRole.ORG_BOSS,
-                OrganizationRole.ORG_OWNER
-        );
-
-        // then
-        assertEquals(OrganizationRole.ORG_OWNER, membership.organizationRole());
-    }
-
-    @Test
-    @DisplayName("허용되지 않은 역할이면 거부한다")
-    void verifyRoleDeniesUnlistedRole() {
-        // given
-        stubMembership(OrganizationRole.ORG_MEMBER);
-
-        // when
-        OrganizationAccessDeniedException exception = assertThrows(
-                OrganizationAccessDeniedException.class,
-                () -> organizationAccessService.verifyRole(
-                        ACCOUNT_UUID,
-                        ORGANIZATION_ID,
-                        OrganizationRole.ORG_BOSS,
-                        OrganizationRole.ORG_OWNER
-                )
-        );
-
-        // then
-        assertEquals(ErrorCode.ORGANIZATION_ROLE_FORBIDDEN, exception.getErrorCode());
-    }
-
-    @Test
     @DisplayName("보스는 상태를 바꾸는 요청을 할 수 있다")
     void verifyOwnerOrBossAllowsBoss() {
         // given

@@ -22,7 +22,7 @@ public class OrganizationAccessService {
 
 
     // 로그인된 계정의 조직과 역활을 조회
-    public MemberOrganizationResponse getMembership(UUID accountUuid) {
+    private MemberOrganizationResponse getMembership(UUID accountUuid) {
         return memberOrganizationLookup.find(accountUuid)
                 .orElseThrow(() -> {
                     log.warn("소속 조직이 없어 요청을 거부합니다. accountUuid={}", accountUuid);
@@ -69,7 +69,7 @@ public class OrganizationAccessService {
 
 
     // 조직 및 역활 검증
-    public MemberOrganizationResponse verifyRole(
+    private MemberOrganizationResponse verifyRole(
             UUID accountUuid,
             Long organizationId,
             OrganizationRole... allowedRoles
