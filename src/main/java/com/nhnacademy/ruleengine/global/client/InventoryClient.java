@@ -1,6 +1,7 @@
 package com.nhnacademy.ruleengine.global.client;
 
 import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
+import com.nhnacademy.ruleengine.engine.dto.ZoneActivationResponse;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.ThresholdSpecResponse;
@@ -81,6 +82,17 @@ public class InventoryClient {
                 .toUriString();
 
         return apiClient.find(url, ResolvedZoneResponse.class);
+    }
+
+    // 구역이 지금 운영 중인지 조회한다. 구역이 비활성이거나 저장소가 비활성이면 active는 false다.
+    // 없는 구역이면 빈 값이고, 인벤토리 장애는 예외로 올라온다.
+    public Optional<ZoneActivationResponse> findZoneActivation(Long zoneId) {
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl + INVENTORY_URL + "/zones/" + zoneId + "/activation")
+                .encode()
+                .toUriString();
+
+        return apiClient.find(url, ZoneActivationResponse.class);
     }
 
     // 계정 UUID로 소속 조직과 조직 역할을 조회한다.

@@ -14,8 +14,8 @@ import java.util.Optional;
 /**
  * deviceEui로 센서가 설치된 위치(조직/저장소/구역)를 채워 넣는다.
  * <p>
- * 아직 구역에 등록되지 않은 기기의 데이터는 어디에 쌓아야 할지 알 수 없으므로 버린다.
- * 구역에 등록되면 조회 캐시가 만료되는 대로 저절로 다시 흐른다.
+ * 아직 구역에 등록되지 않았거나 구역/저장소가 비활성인 기기의 데이터는 갈 곳이 없으므로 버린다.
+ * 구역에 등록되거나 다시 활성이 되면 조회 캐시가 만료되는 대로 저절로 다시 흐른다.
  */
 @Slf4j
 public class SensorZoneResolveNode extends AbstractNode {
@@ -43,11 +43,11 @@ public class SensorZoneResolveNode extends AbstractNode {
             return;
         }
 
-        Optional<ResolvedZoneResponse> resolvedZone = zoneResolver.resolve(payload.deviceEui());
+        Optional<ResolvedZoneResponse> resolvedZone = zoneResolver.resolveActive(payload.deviceEui());
 
         if (resolvedZone.isEmpty()) {
             log.debug(
-                    "[{}] 구역에 등록되지 않은 기기라 데이터를 버립니다. deviceEui={}",
+                    "[{}] 구역에 등록되지 않았거나 비활성 구역의 기기라 데이터를 버립니다. deviceEui={}",
                     getId(),
                     payload.deviceEui()
             );

@@ -104,6 +104,10 @@ public class VirtualSensorService {
         getOwnedConfig(organizationId, deviceEui);
 
         if (status == VirtualSensorStatus.ACTIVE) {
+            if (!registeredZoneActive(deviceEui)) {
+                throw new VirtualSensorFlowException(ErrorCode.VIRTUAL_SENSOR_ZONE_INACTIVE);
+            }
+
             virtualSensorRedisRepository.activate(deviceEui);
             return;
         }
@@ -119,11 +123,22 @@ public class VirtualSensorService {
                 .map(ResolvedZoneResponse::zoneId)
                 .orElse(null);
 
+        // 구역이나 저장소가 비활성이면 Coordinator가 Flow를 내리므로, 화면에도 실제로 도는 상태를 보여준다.
+        boolean active = virtualSensorRedisRepository.isActive(config.deviceEui())
+                && (registeredZoneId == null || zoneResolver.isZoneActive(registeredZoneId));
+
         return VirtualSensorInfoResponse.from(
                 config,
-                virtualSensorRedisRepository.isActive(config.deviceEui()),
+                active,
                 registeredZoneId
         );
+    }
+
+    // 구역에 등록하지 않은 가상 센서는 비활성 구역에 묶여 있지 않으므로 활성화를 막지 않는다.
+    private boolean registeredZoneActive(String deviceEui) {
+        return zoneResolver.resolve(deviceEui)
+                .map(zone -> zoneResolver.isZoneActive(zone.zoneId()))
+                .orElse(true);
     }
 
     private VirtualSensorConfig getOwnedConfig(Long organizationId, String deviceEui) {
