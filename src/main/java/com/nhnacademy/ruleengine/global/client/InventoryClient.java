@@ -4,6 +4,7 @@ import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.ThresholdSpecResponse;
+import com.nhnacademy.ruleengine.engine.dto.notification.EnvironmentEventCreateRequest;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto.ThresholdRange;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
@@ -102,6 +103,15 @@ public class InventoryClient {
                 .toUriString();
 
         apiClient.put(url);
+    }
+
+    // 웹에 알림을 발송한다
+    public void createEnvironmentEvent(EnvironmentEventCreateRequest request) {
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl + INVENTORY_URL + "/environment-events")
+                .encode()
+                .toUriString();
+        apiClient.post(url, request);
     }
 
     private Map<String, ThresholdRange> toRanges(Long zoneId, List<ThresholdSpecResponse> specs) {
