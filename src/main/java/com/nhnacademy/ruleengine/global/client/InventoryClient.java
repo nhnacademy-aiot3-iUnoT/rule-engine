@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.client;
+package com.nhnacademy.ruleengine.global.client;
 
 import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;

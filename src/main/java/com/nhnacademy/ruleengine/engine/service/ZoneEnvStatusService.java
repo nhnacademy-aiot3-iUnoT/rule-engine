@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.client.InventoryClient;
+import com.nhnacademy.ruleengine.global.client.InventoryClient;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentDecisionState;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorKeys;
