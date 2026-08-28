@@ -121,8 +121,8 @@ class EnvironmentStatusDecisionNodeTest {
     }
 
     @Test
-    @DisplayName("CRITICAL 상태에서는 정상값이 들어와도 상태가 유지된다")
-    void criticalStaysOnNormalValue() {
+    @DisplayName("CRITICAL 상태에서 정상값이 들어와도 임계시간 전이면 상태가 유지된다")
+    void criticalStaysWhileRecoveryPending() {
         when(repository.find(anyString(), anyString()))
                 .thenReturn(Optional.of(state(EnvStatus.CRITICAL, BASE, BASE, BASE)));
 
@@ -134,11 +134,86 @@ class EnvironmentStatusDecisionNodeTest {
                 () -> assertEquals(EnvStatus.CRITICAL, saved.state()),
                 () -> assertEquals(BASE, saved.firstViolatedAt()),
                 () -> assertEquals(BASE, saved.lastAlertAt()),
+                // 회복 대기 시작 시각을 기록한다.
+                () -> assertEquals(BASE.plus(Duration.ofMinutes(1)), saved.firstNormalAt()),
                 () -> assertEquals(BASE.plus(Duration.ofMinutes(1)), saved.lastMeasuredAt())
         );
 
-        // 자동 해제가 없으므로 회복 이벤트를 보내지 않는다.
         verify(connection, never()).deliver(any(Message.class));
+    }
+
+    @Test
+    @DisplayName("CRITICAL 상태에서 임계시간 동안 정상이 유지되면 NORMAL로 해제된다")
+    void criticalRecoversAfterDuration() {
+        when(repository.find(anyString(), anyString()))
+                .thenReturn(Optional.of(state(EnvStatus.CRITICAL, BASE, BASE, BASE.plus(Duration.ofMinutes(1)), BASE.plus(Duration.ofMinutes(5)))));
+
+        node.process(messageOf(createRuleResult(false, DURATION_MINUTES, at(31))));
+
+        EnvironmentDecisionState saved = capturedState();
+        EnvironmentEventDecisionDto event = capturedEvent();
+
+        assertAll(
+                () -> assertEquals(EnvStatus.NORMAL, saved.state()),
+                () -> assertNull(saved.firstViolatedAt()),
+                () -> assertNull(saved.firstNormalAt()),
+                () -> assertEquals(BASE.plus(Duration.ofMinutes(31)), saved.lastMeasuredAt()),
+                () -> assertEquals(EnvStatus.CRITICAL, event.previousStatus()),
+                () -> assertEquals(EnvStatus.NORMAL, event.currentStatus()),
+                () -> assertEquals(EnvironmentEventReason.STATUS_CHANGED, event.reason())
+        );
+    }
+
+    @Test
+    @DisplayName("회복 대기중에 다시 위반이 들어오면 회복 시작 시각이 초기화된다")
+    void recoveryResetOnViolation() {
+        when(repository.find(anyString(), anyString()))
+                .thenReturn(Optional.of(state(EnvStatus.CRITICAL, BASE, BASE.plus(Duration.ofMinutes(10)), BASE.plus(Duration.ofMinutes(10)), BASE.plus(Duration.ofMinutes(10)))));
+
+        node.process(messageOf(createRuleResult(true, DURATION_MINUTES, at(10))));
+
+        EnvironmentDecisionState saved = capturedState();
+
+        assertAll(
+                () -> assertEquals(EnvStatus.CRITICAL, saved.state()),
+                () -> assertNull(saved.firstNormalAt())
+        );
+
+        verify(connection, never()).deliver(any(Message.class));
+    }
+
+    @Test
+    @DisplayName("임계시간 조건이 없으면 정상값 하나로 바로 NORMAL로 해제된다")
+    void criticalRecoversImmediatelyWithoutDuration() {
+        when(repository.find(anyString(), anyString()))
+                .thenReturn(Optional.of(state(EnvStatus.CRITICAL, BASE, BASE, BASE)));
+
+        node.process(messageOf(createRuleResult(false, null, at(1))));
+
+        EnvironmentDecisionState saved = capturedState();
+        EnvironmentEventDecisionDto event = capturedEvent();
+
+        assertAll(
+                () -> assertEquals(EnvStatus.NORMAL, saved.state()),
+                () -> assertEquals(EnvStatus.CRITICAL, event.previousStatus()),
+                () -> assertEquals(EnvStatus.NORMAL, event.currentStatus()),
+                () -> assertEquals(EnvironmentEventReason.STATUS_CHANGED, event.reason())
+        );
+    }
+
+    @Test
+    @DisplayName("WARNING 상태에서 정상값이 들어오면 바로 NORMAL로 해제된다")
+    void warningRecoversImmediately() {
+        when(repository.find(anyString(), anyString()))
+                .thenReturn(Optional.of(state(EnvStatus.WARNING, BASE, null, BASE)));
+
+        node.process(messageOf(createRuleResult(false, DURATION_MINUTES, at(1))));
+
+        assertAll(
+                () -> assertEquals(EnvStatus.NORMAL, capturedState().state()),
+                () -> assertEquals(EnvStatus.WARNING, capturedEvent().previousStatus()),
+                () -> assertEquals(EnvStatus.NORMAL, capturedEvent().currentStatus())
+        );
     }
 
     @Test
@@ -263,7 +338,17 @@ class EnvironmentStatusDecisionNodeTest {
             Instant lastAlertAt,
             Instant lastMeasuredAt
     ) {
-        return new EnvironmentDecisionState(status, firstViolatedAt, lastAlertAt, lastMeasuredAt);
+        return state(status, firstViolatedAt, lastAlertAt, null, lastMeasuredAt);
+    }
+
+    private static EnvironmentDecisionState state(
+            EnvStatus status,
+            Instant firstViolatedAt,
+            Instant lastAlertAt,
+            Instant firstNormalAt,
+            Instant lastMeasuredAt
+    ) {
+        return new EnvironmentDecisionState(status, firstViolatedAt, lastAlertAt, firstNormalAt, lastMeasuredAt);
     }
 
 

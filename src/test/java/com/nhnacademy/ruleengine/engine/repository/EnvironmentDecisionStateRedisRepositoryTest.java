@@ -56,7 +56,7 @@ class EnvironmentDecisionStateRedisRepositoryTest {
     @DisplayName("저장한 상태를 그대로 다시 읽을 수 있다")
     void saveAndFindRoundTrip(){
         EnvironmentDecisionState state =
-                new EnvironmentDecisionState(EnvStatus.CRITICAL, MEASURED_AT, MEASURED_AT, MEASURED_AT);
+                new EnvironmentDecisionState(EnvStatus.CRITICAL, MEASURED_AT, MEASURED_AT, null, MEASURED_AT);
 
         repository.save(ZONE_KEY, SENSOR_FIELD, state);
 
@@ -158,10 +158,10 @@ class EnvironmentDecisionStateRedisRepositoryTest {
     }
 
     private EnvironmentDecisionState normalState() {
-        return new EnvironmentDecisionState(EnvStatus.NORMAL, null, null, MEASURED_AT);
+        return new EnvironmentDecisionState(EnvStatus.NORMAL, null, null, null, MEASURED_AT);
     }
 
     private EnvironmentDecisionState criticalState() {
-        return new EnvironmentDecisionState(EnvStatus.CRITICAL, MEASURED_AT, MEASURED_AT, MEASURED_AT);
+        return new EnvironmentDecisionState(EnvStatus.CRITICAL, MEASURED_AT, MEASURED_AT, null, MEASURED_AT);
     }
 }

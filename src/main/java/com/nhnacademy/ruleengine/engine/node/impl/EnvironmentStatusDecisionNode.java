@@ -21,7 +21,7 @@ import java.util.Optional;
 @Slf4j
 public class EnvironmentStatusDecisionNode extends AbstractNode {
 
-    // decide()의 결과: 다음 상태와, 발행할 이벤트(없으면 null)
+    // 발행할 이벤트
     private record Transition(
             EnvironmentDecisionState nextState,
             EnvironmentEventDecisionDto event
@@ -30,7 +30,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
 
     private static final String INPUT_PORT = "in";
     private static final String OUTPUT_PORT = "out";
-    private static final int ALERT_INTERVAL = 1;  //lastAlertAt 타임 갱신주기
+    private static final int ALERT_INTERVAL = 1;  // 재알림 주기
 
     // 외부 장치/게이트웨이의 시계가 앞서있는 경우, 미래 타임스탬프 하나가 상태를 영구히 막아버리는 것을 방지한다.
     private static final Duration FUTURE_TOLERANCE = Duration.ofMinutes(1);
@@ -137,22 +137,12 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
 
         EnvStatus previousStatus = oldState == null ? EnvStatus.NORMAL : oldState.state(); // 이전 상태불러오기
 
+        Integer durationMinutes = ruleResult.durationMinutes(); // 임계시간 불러오기
+
         // 정상 결과인경우
         if (!ruleResult.violated()) {
-            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.NORMAL, null, null, measuredAt);
-            if (previousStatus == EnvStatus.NORMAL) {
-                return new Transition(next, null); // Normal 상태 유지인경우 event 생성안함
-            }
-
-            // CRITICAL + 정상값 → 계속 CRITICAL
-            if (previousStatus == EnvStatus.CRITICAL) {
-                return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
-            }
-
-            return new Transition(next, createEventDecision(previousStatus, EnvStatus.NORMAL, EnvironmentEventReason.STATUS_CHANGED));
+            return decideRecovery(oldState, previousStatus, durationMinutes, measuredAt);
         }
-
-        Integer durationMinutes = ruleResult.durationMinutes(); // 임계시간 불러오기
 
         // 임계시간 조건이 없는경우 NORMAL -> CRITICAL 로 변경
         if (durationMinutes == null || durationMinutes <= 0) {
@@ -162,21 +152,59 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
         // 임계시간 조건이 있는경우 NORMAL -> WARNING -> CRITICAL로 변경
         return decideDurationBasedViolation(oldState, previousStatus, durationMinutes, measuredAt);
     }
+    // CRITICAL상태 에서 durationMinutes 동안 정상이 유지되어야 NORMAL로 해제한다.
+    private Transition decideRecovery(
+            EnvironmentDecisionState oldState,
+            EnvStatus previousStatus,
+            Integer durationMinutes,
+            Instant measuredAt
+    ) {
+        EnvironmentDecisionState normal =
+                new EnvironmentDecisionState(EnvStatus.NORMAL, null, null, null, measuredAt);
+
+        // Normal 상태 유지인경우 event 생성안함
+        if (previousStatus == EnvStatus.NORMAL) {
+            return new Transition(normal, null);
+        }
+
+        // WARNING은 아직 알림이 나가지 않은 상태라 정상값 하나로 바로 해제한다.
+        // CRITICAL도 임계시간 조건이 없으면 즉시 해제한다.
+        if (previousStatus != EnvStatus.CRITICAL || durationMinutes == null || durationMinutes <= 0) {
+            return new Transition(normal, createEventDecision(previousStatus, EnvStatus.NORMAL, EnvironmentEventReason.STATUS_CHANGED));
+        }
+
+        // CRITICAL + 정상값 → 정상이 임계시간만큼 유지되면 NORMAL로 해제
+        Instant firstNormalAt = oldState.firstNormalAt() == null ? measuredAt : oldState.firstNormalAt();
+
+        if (Duration.between(firstNormalAt, measuredAt).toMinutes() >= durationMinutes) {
+            return new Transition(normal, createEventDecision(previousStatus, EnvStatus.NORMAL, EnvironmentEventReason.STATUS_CHANGED));
+        }
+
+        // 아직 회복 대기중이면 CRITICAL을 유지하고 회복 시작 시각만 기록한다.
+        EnvironmentDecisionState next = new EnvironmentDecisionState(
+                oldState.state(),
+                oldState.firstViolatedAt(),
+                oldState.lastAlertAt(),
+                firstNormalAt,
+                measuredAt
+        );
+        return new Transition(next, null);
+    }
 
     // 위반 지속시간 조건이 없는 경우 즉시 CRITICAL
     private Transition decideInstantViolation(EnvironmentDecisionState oldState, EnvStatus previousStatus, Instant measuredAt) {
         // 최초 CRITICAL 상태 변화시 다음노드로 전송
         if (oldState == null || oldState.state() != EnvStatus.CRITICAL) {
-            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.CRITICAL, null, measuredAt, measuredAt);
+            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.CRITICAL, null, measuredAt, null, measuredAt);
             return new Transition(next, createEventDecision(previousStatus, EnvStatus.CRITICAL, EnvironmentEventReason.STATUS_CHANGED));
         }
 
         // 이미 CRITICAL이면 ALERT_INTERVAL마다 반복 알림
         if (Duration.between(oldState.lastAlertAt(), measuredAt).toMinutes() >= ALERT_INTERVAL) {
-            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.CRITICAL, null, measuredAt, measuredAt);
+            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.CRITICAL, null, measuredAt, null, measuredAt);
             return new Transition(next, createEventDecision(previousStatus, EnvStatus.CRITICAL, EnvironmentEventReason.CRITICAL_REPEATED));
         }
-        return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
+        return new Transition(continueViolation(oldState, measuredAt), null);
     }
 
     // 위반 지속시간 조건이 있는 경우 NORMAL -> WARNING -> CRITICAL 순으로 전이
@@ -188,7 +216,7 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
     ) {
         // 첫 위반 발생 또는 상태가 NORMAL일 때 WARNING으로 진입
         if (oldState == null || oldState.state() == EnvStatus.NORMAL) {
-            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.WARNING, measuredAt, null, measuredAt);
+            EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.WARNING, measuredAt, null, null, measuredAt);
             return new Transition(next, createEventDecision(previousStatus, EnvStatus.WARNING, EnvironmentEventReason.STATUS_CHANGED));
         }
 
@@ -196,19 +224,19 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
         if (oldState.state() == EnvStatus.WARNING) {
             long elapsedMinutes = Duration.between(oldState.firstViolatedAt(), measuredAt).toMinutes();
             if (elapsedMinutes >= durationMinutes) {
-                EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.CRITICAL, oldState.firstViolatedAt(), measuredAt, measuredAt);
+                EnvironmentDecisionState next = new EnvironmentDecisionState(EnvStatus.CRITICAL, oldState.firstViolatedAt(), measuredAt, null, measuredAt);
                 return new Transition(next, createEventDecision(previousStatus, EnvStatus.CRITICAL, EnvironmentEventReason.STATUS_CHANGED));
             }
-            return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
+            return new Transition(continueViolation(oldState, measuredAt), null);
         }
 
         // 기존 상태가 CRITICAL인 경우, ALERT_INTERVAL마다 반복 알림
         long elapsedMinutes = Duration.between(oldState.lastAlertAt(), measuredAt).toMinutes();
         if (elapsedMinutes >= ALERT_INTERVAL) {
-            EnvironmentDecisionState next = new EnvironmentDecisionState(oldState.state(), oldState.firstViolatedAt(), measuredAt, measuredAt);
+            EnvironmentDecisionState next = new EnvironmentDecisionState(oldState.state(), oldState.firstViolatedAt(), measuredAt, null, measuredAt);
             return new Transition(next, createEventDecision(previousStatus, EnvStatus.CRITICAL, EnvironmentEventReason.CRITICAL_REPEATED));
         }
-        return new Transition(updateLastMeasuredAt(oldState, measuredAt), null);
+        return new Transition(continueViolation(oldState, measuredAt), null);
     }
 
     private EnvironmentEventDecisionDto createEventDecision(
@@ -219,10 +247,11 @@ public class EnvironmentStatusDecisionNode extends AbstractNode {
         return new EnvironmentEventDecisionDto(previousStatus, currentStatus, reason);
     }
 
-    private EnvironmentDecisionState updateLastMeasuredAt(
+    // 위반이 이어지는 경우. 측정시각만 갱신하고, 회복 대기 시작 시각은 초기화한다.
+    private EnvironmentDecisionState continueViolation(
             EnvironmentDecisionState oldState,
             Instant measuredAt
     ) {
-        return new EnvironmentDecisionState(oldState.state(), oldState.firstViolatedAt(), oldState.lastAlertAt(), measuredAt);
+        return new EnvironmentDecisionState(oldState.state(), oldState.firstViolatedAt(), oldState.lastAlertAt(), null, measuredAt);
     }
 }

@@ -7,6 +7,7 @@ public record EnvironmentDecisionState(
         EnvStatus state,
         Instant firstViolatedAt,
         Instant lastAlertAt,
+        Instant firstNormalAt,
         Instant lastMeasuredAt
 ) {
 }

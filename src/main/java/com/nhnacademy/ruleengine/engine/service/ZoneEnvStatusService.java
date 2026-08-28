@@ -69,6 +69,7 @@ public class ZoneEnvStatusService {
                             EnvStatus.NORMAL,
                             null,
                             null,
+                            null,
                             state.lastMeasuredAt()
                     )
             );

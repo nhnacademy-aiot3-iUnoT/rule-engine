@@ -145,6 +145,7 @@ class ZoneEnvStatusServiceTest {
                 status,
                 null,
                 null,
+                null,
                 Instant.now()
         );
     }
