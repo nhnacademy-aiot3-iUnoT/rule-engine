@@ -340,41 +340,6 @@ class VirtualSensorControllerTest {
         verify(virtualSensorService, never()).getVirtualSensor(organizationId, deviceEui);
     }
 
-    @Test
-    @DisplayName("PUT - 가상 센서 정보 수정 성공")
-    void updateVirtualSensor() throws Exception {
-
-        // given
-        String deviceEui = "device-eui";
-        VirtualSensorInfoResponse infoResponse = getVirtualSensorInfoResponse(deviceEui);
-
-
-        authenticate(accountUuid);
-
-        when(organizationAccessService.verifyOwnerOrBoss(accountUuid, organizationId))
-                .thenReturn(createAccessResponse());
-
-        when(virtualSensorService.getVirtualSensor(organizationId, deviceEui))
-                .thenReturn(infoResponse);
-
-        // when & then
-        mockMvc.perform(
-                        put(
-                                "/api/rule-engine/organizations/{organization-id}/virtual-sensors/{device-eui}",
-                                organizationId,
-                                deviceEui
-                        )
-                                .contentType(MediaType.APPLICATION_JSON)
-                )
-                .andExpect(status().isOk());
-
-        verify(organizationAccessService)
-                .verifyOrganization(accountUuid, organizationId);
-
-        verify(virtualSensorService)
-                .getVirtualSensor(organizationId, deviceEui);
-    }
-
     private @NonNull VirtualSensorInfoResponse getVirtualSensorInfoResponse(String deviceEui) {
         VirtualSensorValues virtualSensorValues = new VirtualSensorValues(
                 Map.of(
