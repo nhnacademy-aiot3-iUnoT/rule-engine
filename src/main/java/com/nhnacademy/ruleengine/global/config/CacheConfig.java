@@ -24,6 +24,8 @@ public class CacheConfig {
 
     public static final String ZONE_LOCATION = "zone-location";
 
+    public static final String ZONE_ACTIVATION = "zone-activation";
+
     private static final Duration DEVICE_ZONE_TTL = Duration.ofMinutes(30);
 
     private static final Duration DEVICE_ZONE_MISS_TTL = Duration.ofMinutes(2);
@@ -38,6 +40,9 @@ public class CacheConfig {
 
     // 없는 구역은 곧 생길 수 있으니 짧게 잡는다.
     private static final Duration ZONE_LOCATION_MISS_TTL = Duration.ofMinutes(2);
+
+    // 구역/저장소를 비활성으로 바꾼 게 곧바로 반영되도록 아주 짧게 잡는다.
+    private static final Duration ZONE_ACTIVATION_TTL = Duration.ofSeconds(30);
 
     @Bean
     public CacheManager cacheManager() {
@@ -74,6 +79,14 @@ public class CacheConfig {
                 Caffeine.newBuilder()
                         .maximumSize(10_000)
                         .expireAfter(Expiry.creating(CacheConfig::zoneLocationTtl))
+                        .build()
+        );
+
+        cacheManager.registerCustomCache(
+                ZONE_ACTIVATION,
+                Caffeine.newBuilder()
+                        .maximumSize(10_000)
+                        .expireAfterWrite(ZONE_ACTIVATION_TTL)
                         .build()
         );
 

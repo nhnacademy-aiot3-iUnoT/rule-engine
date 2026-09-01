@@ -42,7 +42,7 @@ class SensorZoneResolveNodeTest {
     @Test
     @DisplayName("구역에 등록된 기기면 위치를 채워서 넘긴다")
     void fillsLocation() throws InterruptedException {
-        when(zoneResolver.resolve(DEVICE_EUI))
+        when(zoneResolver.resolveActive(DEVICE_EUI))
                 .thenReturn(Optional.of(new ResolvedZoneResponse(1L, 2L, 3L)));
 
         node.process(message());
@@ -63,7 +63,7 @@ class SensorZoneResolveNodeTest {
     @Test
     @DisplayName("구역에 등록되지 않은 기기의 데이터는 버린다")
     void dropsUnregisteredDevice() {
-        when(zoneResolver.resolve(DEVICE_EUI)).thenReturn(Optional.empty());
+        when(zoneResolver.resolveActive(DEVICE_EUI)).thenReturn(Optional.empty());
 
         node.process(message());
 

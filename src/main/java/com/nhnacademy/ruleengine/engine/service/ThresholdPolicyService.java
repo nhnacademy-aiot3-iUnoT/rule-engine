@@ -1,7 +1,7 @@
 package com.nhnacademy.ruleengine.engine.service;
 
 
-import com.nhnacademy.ruleengine.engine.client.InventoryClient;
+import com.nhnacademy.ruleengine.global.client.InventoryClient;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
 import com.nhnacademy.ruleengine.global.config.CacheConfig;
 import lombok.RequiredArgsConstructor;

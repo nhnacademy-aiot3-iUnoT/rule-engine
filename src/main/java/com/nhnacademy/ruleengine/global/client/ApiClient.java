@@ -1,4 +1,4 @@
-package com.nhnacademy.ruleengine.engine.client;
+package com.nhnacademy.ruleengine.global.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
