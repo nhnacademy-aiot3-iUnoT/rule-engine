@@ -1,4 +1,3 @@
-
 package com.nhnacademy.ruleengine.engine.controller;
 
 import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
@@ -15,21 +14,16 @@ import com.nhnacademy.ruleengine.engine.exception.VirtualSensorFlowException;
 import com.nhnacademy.ruleengine.engine.service.OrganizationAccessService;
 import com.nhnacademy.ruleengine.engine.service.VirtualSensorService;
 import com.nhnacademy.ruleengine.global.exception.ErrorCode;
-import org.jspecify.annotations.NonNull;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,18 +31,25 @@ import static com.nhnacademy.ruleengine.engine.dto.sensor.SensorType.TEMPERATURE
 import static com.nhnacademy.ruleengine.engine.dto.virtual.GenerationMode.RANGE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.subsectionWithPath;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(VirtualSensorController.class)
-class VirtualSensorControllerTest {
+class VirtualSensorControllerTest extends RestDocsSupport {
 
     private final UUID accountUuid = UUID.randomUUID();
     private final Long organizationId = 1L;
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -58,11 +59,6 @@ class VirtualSensorControllerTest {
 
     @MockitoBean
     private OrganizationAccessService organizationAccessService;
-
-    @AfterEach
-    void clearSecurityContext() {
-        SecurityContextHolder.clearContext();
-    }
 
     @Test
     @DisplayName("POST - 가상센서 생성 성공")
@@ -95,7 +91,25 @@ class VirtualSensorControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andDo(document("virtual-sensor-create",
+                        pathParameters(
+                                parameterWithName("organization-id").description("조직 ID")
+                        ),
+                        requestFields(
+                                fieldWithPath("deviceEui").description("가상센서 디바이스 EUI"),
+                                fieldWithPath("measurementIntervalSeconds").description("측정 주기(초)"),
+                                subsectionWithPath("virtualSensorValues")
+                                        .description("센서 종류별 값 생성 설정")
+                        ),
+                        responseFields(
+                                fieldWithPath("success").description("성공 여부"),
+                                fieldWithPath("data.deviceEui").description("생성된 가상센서 디바이스 EUI"),
+                                fieldWithPath("error").type(JsonFieldType.OBJECT)
+                                        .description("에러 정보(성공 시 null)").optional(),
+                                fieldWithPath("timestamp").description("응답 생성 시각")
+                        )
+                ));
 
         verify(organizationAccessService)
                 .verifyOwnerOrBoss(accountUuid, organizationId);
@@ -130,7 +144,18 @@ class VirtualSensorControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andDo(document("virtual-sensor-create-forbidden",
+                        responseFields(
+                                fieldWithPath("success").description("성공 여부(false)"),
+                                fieldWithPath("data").type(JsonFieldType.OBJECT)
+                                        .description("응답 데이터(실패 시 null)").optional(),
+                                fieldWithPath("error.code").description("에러 코드"),
+                                fieldWithPath("error.message").description("에러 메시지"),
+                                fieldWithPath("error.fieldErrors").description("필드별 에러 목록"),
+                                fieldWithPath("timestamp").description("응답 생성 시각")
+                        )
+                ));
 
         verify(organizationAccessService)
                 .verifyOwnerOrBoss(accountUuid, organizationId);
@@ -217,8 +242,11 @@ class VirtualSensorControllerTest {
         // given
         authenticate(accountUuid);
 
+        when(organizationAccessService.verifyOrganization(accountUuid, organizationId))
+                .thenReturn(createAccessResponse());
+
         when(virtualSensorService.getVirtualSensors(organizationId))
-                .thenReturn(Collections.emptyList());
+                .thenReturn(List.of(getVirtualSensorInfoResponse("device-eui")));
 
         // when & then
         mockMvc.perform(
@@ -228,7 +256,25 @@ class VirtualSensorControllerTest {
                         )
                                 .contentType(MediaType.APPLICATION_JSON)
                 )
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andDo(document("virtual-sensor-list",
+                        pathParameters(
+                                parameterWithName("organization-id").description("조직 ID")
+                        ),
+                        responseFields(
+                                fieldWithPath("success").description("성공 여부"),
+                                fieldWithPath("data[].registered").description("구역 센서로 등록되었는지 여부"),
+                                fieldWithPath("data[].deviceEui").description("디바이스 EUI"),
+                                fieldWithPath("data[].measurementIntervalSeconds").description("측정 주기(초)"),
+                                subsectionWithPath("data[].virtualSensorValues")
+                                        .description("센서 종류별 값 생성 설정"),
+                                fieldWithPath("data[].status").description("가상센서 상태(ACTIVE/INACTIVE)"),
+                                fieldWithPath("data[].zoneId").description("등록된 구역 ID(미등록이면 null)").optional(),
+                                fieldWithPath("error").type(JsonFieldType.OBJECT)
+                                        .description("에러 정보(성공 시 null)").optional(),
+                                fieldWithPath("timestamp").description("응답 생성 시각")
+                        )
+                ));
     }
 
     @Test
@@ -263,28 +309,7 @@ class VirtualSensorControllerTest {
 
         authenticate(accountUuid);
 
-        VirtualSensorValues virtualSensorValues = new VirtualSensorValues(
-                Map.of(
-                        TEMPERATURE,
-                        new SensorValue(
-                                RANGE,
-                                15.0,
-                                25.0,
-                                null,
-                                null
-                        )
-                )
-        );
-
-        VirtualSensorInfoResponse infoResponse =
-                new VirtualSensorInfoResponse(
-                        true,
-                        deviceEui,
-                        30L,
-                        virtualSensorValues,
-                        VirtualSensorStatus.ACTIVE,
-                        1L
-                );
+        VirtualSensorInfoResponse infoResponse = getVirtualSensorInfoResponse(deviceEui);
 
         when(organizationAccessService.verifyOrganization(accountUuid, organizationId))
                 .thenReturn(createAccessResponse());
@@ -301,7 +326,26 @@ class VirtualSensorControllerTest {
                         )
                                 .contentType(MediaType.APPLICATION_JSON)
                 )
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andDo(document("virtual-sensor-detail",
+                        pathParameters(
+                                parameterWithName("organization-id").description("조직 ID"),
+                                parameterWithName("device-eui").description("가상센서 디바이스 EUI")
+                        ),
+                        responseFields(
+                                fieldWithPath("success").description("성공 여부"),
+                                fieldWithPath("data.registered").description("구역 센서로 등록되었는지 여부"),
+                                fieldWithPath("data.deviceEui").description("디바이스 EUI"),
+                                fieldWithPath("data.measurementIntervalSeconds").description("측정 주기(초)"),
+                                subsectionWithPath("data.virtualSensorValues")
+                                        .description("센서 종류별 값 생성 설정"),
+                                fieldWithPath("data.status").description("가상센서 상태(ACTIVE/INACTIVE)"),
+                                fieldWithPath("data.zoneId").description("등록된 구역 ID(미등록이면 null)").optional(),
+                                fieldWithPath("error").type(JsonFieldType.OBJECT)
+                                        .description("에러 정보(성공 시 null)").optional(),
+                                fieldWithPath("timestamp").description("응답 생성 시각")
+                        )
+                ));
 
         verify(organizationAccessService)
                 .verifyOrganization(accountUuid, organizationId);
@@ -340,7 +384,7 @@ class VirtualSensorControllerTest {
         verify(virtualSensorService, never()).getVirtualSensor(organizationId, deviceEui);
     }
 
-    private @NonNull VirtualSensorInfoResponse getVirtualSensorInfoResponse(String deviceEui) {
+    private VirtualSensorInfoResponse getVirtualSensorInfoResponse(String deviceEui) {
         VirtualSensorValues virtualSensorValues = new VirtualSensorValues(
                 Map.of(
                         TEMPERATURE,
@@ -354,7 +398,7 @@ class VirtualSensorControllerTest {
                 )
         );
 
-        VirtualSensorInfoResponse infoResponse = new VirtualSensorInfoResponse(
+        return new VirtualSensorInfoResponse(
                 true,
                 deviceEui,
                 30L,
@@ -362,7 +406,6 @@ class VirtualSensorControllerTest {
                 VirtualSensorStatus.ACTIVE,
                 1L
         );
-        return infoResponse;
     }
 
     private MemberOrganizationResponse createAccessResponse() {
@@ -392,21 +435,4 @@ class VirtualSensorControllerTest {
                 new VirtualSensorValues(values)
         );
     }
-
-    private void authenticate(UUID accountUuid) {
-
-        Jwt jwt = Jwt.withTokenValue("token")
-                .header("alg", "RS256")
-                .subject(accountUuid.toString())
-                .build();
-
-        JwtAuthenticationToken authentication =
-                new JwtAuthenticationToken(jwt);
-
-        authentication.setAuthenticated(true);
-
-        SecurityContextHolder.getContext()
-                .setAuthentication(authentication);
-    }
 }
-
