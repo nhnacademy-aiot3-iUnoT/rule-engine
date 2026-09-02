@@ -1,6 +1,6 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.client.InventoryClient;
+import com.nhnacademy.ruleengine.global.client.InventoryClient;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.environment.EnvironmentDecisionState;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorKeys;
@@ -50,32 +50,6 @@ public class ZoneEnvStatusService {
         return Optional.of(zoneStatus);
     }
 
-    public void resolveCriticalStates(
-            Long organizationId,
-            Long storageId,
-            Long zoneId
-    ) {
-        String zoneKey = SensorKeys.zoneOf(organizationId, storageId, zoneId);
-
-        decisionStateRepository.findSensorStatesByZone(zoneKey).forEach((sensorField, state) -> {
-            if (state.state() != EnvStatus.CRITICAL) {
-                return;
-            }
-
-            decisionStateRepository.save(
-                    zoneKey,
-                    sensorField,
-                    new EnvironmentDecisionState(
-                            EnvStatus.NORMAL,
-                            null,
-                            null,
-                            state.lastMeasuredAt()
-                    )
-            );
-        });
-
-        reportZoneStatus(organizationId, storageId, zoneId);
-    }
     private EnvStatus worstOf(Map<String, EnvironmentDecisionState> states) {
         return states.values().stream()
                 .map(EnvironmentDecisionState::state)

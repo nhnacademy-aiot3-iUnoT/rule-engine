@@ -3,6 +3,8 @@ package com.nhnacademy.ruleengine.engine.controller;
 import com.nhnacademy.ruleengine.engine.dto.environment.DailySummaryRollupResponse;
 import com.nhnacademy.ruleengine.engine.dto.environment.StorageDailySummary;
 import com.nhnacademy.ruleengine.engine.dto.environment.ZoneDailySummary;
+import com.nhnacademy.ruleengine.engine.dto.sensor.query.SensorLatestResponse;
+import com.nhnacademy.ruleengine.engine.service.SensorInfluxService;
 import com.nhnacademy.ruleengine.engine.service.StorageDailySummaryArchiveService;
 import com.nhnacademy.ruleengine.global.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,25 @@ public class EnvironmentReportController {
     private static final int DEFAULT_PERIOD_DAYS = 7;
 
     private final StorageDailySummaryArchiveService storageDailySummaryArchiveService;
+    private final SensorInfluxService sensorInfluxService;
 
+
+/**
+     * 저장소의 구역별 센서 최신값을 조회한다.
+     * 인벤토리가 환경 현황을 만들 때 서버끼리 호출하는 경로라 사용자 인증을 요구하지 않는다.
+     */
+    @GetMapping("/internal/storages/{storage-id}/sensor-data/latest")
+    public ApiResponse<List<SensorLatestResponse>> findLatestSensors(
+            @PathVariable(name = "storage-id") Long storageId,
+            @RequestParam(name = "organizationId") Long organizationId
+    ) {
+        return ApiResponse.success(
+                sensorInfluxService.findLatestByStorage(organizationId, storageId)
+                        .stream()
+                        .map(SensorLatestResponse::from)
+                        .toList()
+        );
+    }
 
     /**
      * 저장소의 하루 요약을 기간으로 조회한다. 기본은 어제까지의 최근 7일이다.

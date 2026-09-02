@@ -44,11 +44,11 @@ public class SensorTransformService {
         }
 
         Optional<ResolvedZoneResponse> resolvedZone =
-                zoneResolver.resolve(externalMessage.devEui());
+                zoneResolver.resolveActive(externalMessage.devEui());
 
         if (resolvedZone.isEmpty()) {
             log.warn(
-                    "구역 정보를 찾을 수 없어 메시지를 버립니다. devEui={}",
+                    "구역 정보가 없거나 비활성 구역이라 메시지를 버립니다. devEui={}",
                     externalMessage.devEui()
             );
 

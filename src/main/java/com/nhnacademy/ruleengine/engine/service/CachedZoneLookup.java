@@ -1,7 +1,8 @@
 package com.nhnacademy.ruleengine.engine.service;
 
-import com.nhnacademy.ruleengine.engine.client.InventoryClient;
+import com.nhnacademy.ruleengine.global.client.InventoryClient;
 import com.nhnacademy.ruleengine.engine.dto.ResolvedZoneResponse;
+import com.nhnacademy.ruleengine.engine.dto.ZoneActivationResponse;
 import com.nhnacademy.ruleengine.global.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,11 @@ public class CachedZoneLookup {
         }
 
         return zone;
+    }
+
+    @Cacheable(cacheNames = CacheConfig.ZONE_ACTIVATION, key = "#zoneId")
+    public Optional<ZoneActivationResponse> findActivation(Long zoneId) {
+        return inventoryClient.findZoneActivation(zoneId);
     }
 
     @Cacheable(cacheNames = CacheConfig.ZONE_LOCATION, key = "#zoneId")
