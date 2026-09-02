@@ -64,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/actuator/health", "/actuator/health/**", "/actuator/serviceregistry", "/actuator/prometheus"
                         ).permitAll()
+                        .requestMatchers("/docs/**").permitAll()
                         .requestMatchers("/api/rule-engine/internal/**").permitAll()
                         .anyRequest().authenticated()
                 );
