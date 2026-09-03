@@ -12,14 +12,44 @@ import java.util.List;
 public class RabbitMqConfig {
 
     public static final String SENSOR_EXCHANGE = "iunot.sensor_exchange";
+    public static final String CACHE_EXCHANGE = "iunot.cache_exchange";
+
+    private static final String CACHE_INVALIDATION_QUEUE_PREFIX = "iunot.cache.invalidation.queue.";
 
     private static final String SENSOR_NORMALIZED_QUEUE_PREFIX = "iunot.sensor.normalized.queue.";
     private static final String SENSOR_NORMALIZED_ROUTING_KEY_PREFIX = "iunot.sensor.normalized.";
     public static final int SENSOR_NORMALIZED_PARTITION_COUNT = 2;
 
-    // 로컬/테스트 환경을 운영과 같은 브로커에서 격리하기 위한 큐/라우팅 키 접미사
     @Value("${rule-engine.rabbitmq.queue-suffix:}")
     private String queueSuffix;
+
+    @Bean
+    public FanoutExchange cacheExchange() {
+        return new FanoutExchange(
+                CACHE_EXCHANGE + queueSuffix,
+                true,
+                false
+        );
+    }
+
+    @Bean
+    public Queue cacheInvalidationQueue(RedundancyProperties redundancyProperties) {
+        return QueueBuilder
+                .nonDurable(cacheInvalidationQueueName(redundancyProperties.instanceId()))
+                .autoDelete()
+                .exclusive()
+                .build();
+    }
+
+    @Bean
+    public Binding cacheInvalidationBinding(
+            FanoutExchange cacheExchange,
+            Queue cacheInvalidationQueue
+    ) {
+        return BindingBuilder
+                .bind(cacheInvalidationQueue)
+                .to(cacheExchange);
+    }
 
     @Bean
     public DirectExchange sensorExchange() {
@@ -63,6 +93,10 @@ public class RabbitMqConfig {
 
     public String normalizedQueueName(int partition) {
         return SENSOR_NORMALIZED_QUEUE_PREFIX + partition + queueSuffix;
+    }
+
+    public String cacheInvalidationQueueName(String instanceId) {
+        return CACHE_INVALIDATION_QUEUE_PREFIX + instanceId + queueSuffix;
     }
 
     public String[] allNormalizedQueueNames() {
