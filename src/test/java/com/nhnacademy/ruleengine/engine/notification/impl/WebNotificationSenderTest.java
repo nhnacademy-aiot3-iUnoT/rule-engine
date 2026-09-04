@@ -80,33 +80,27 @@ class WebNotificationSenderTest {
     }
 
     @Test
-    @DisplayName("정상 복귀 이벤트는 NORMAL 위반유형으로 발송한다")
-    void normalRecovery() {
+    @DisplayName("정상 복귀 이벤트는 발송하지 않는다")
+    void normalRecoveryIsSkipped() {
         sender.send(request("temperature", ViolationType.NORMAL, EnvStatus.NORMAL, 22.0, 18.0, 26.0), preference());
 
-        EnvironmentEventCreateRequest captured = capturedRequest();
-
-        assertAll(
-                () -> assertEquals(ViolationType.NORMAL, captured.breachType()),
-                () -> assertEquals(BigDecimal.valueOf(22.0), captured.detectedValue()),
-                () -> assertEquals(BigDecimal.valueOf(26.0), captured.thresholdValue())
-        );
+        verify(inventoryClient, never()).createEnvironmentEvent(any());
     }
 
     @Test
-    @DisplayName("문 센서 이벤트는 DOOR 환경유형으로 발송한다")
-    void door() {
+    @DisplayName("문 열림 이벤트는 발송하지 않는다")
+    void doorOpenIsSkipped() {
         sender.send(request("door", ViolationType.OPEN, EnvStatus.CRITICAL, 1.0, null, null), preference());
 
-        EnvironmentEventCreateRequest captured = capturedRequest();
+        verify(inventoryClient, never()).createEnvironmentEvent(any());
+    }
 
-        assertAll(
-                () -> assertEquals(EnvironmentType.DOOR, captured.environmentType()),
-                () -> assertEquals(ViolationType.OPEN, captured.breachType()),
-                () -> assertEquals(BigDecimal.valueOf(1.0), captured.detectedValue()),
-                // 문은 임계값 개념이 없어 닫힘(0)을 기준값으로 보낸다.
-                () -> assertEquals(BigDecimal.ZERO, captured.thresholdValue())
-        );
+    @Test
+    @DisplayName("문 닫힘 이벤트는 발송하지 않는다")
+    void doorClosedIsSkipped() {
+        sender.send(request("door", ViolationType.CLOSED, EnvStatus.NORMAL, 0.0, null, null), preference());
+
+        verify(inventoryClient, never()).createEnvironmentEvent(any());
     }
 
     @Test
