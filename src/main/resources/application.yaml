@@ -81,10 +81,6 @@ notification:
   telegram:
     bot-token: ${TELEGRAM_BOT_TOKEN}
     api-base-url: https://api.telegram.org
-  kakao-talk:
-    client-id: ${KAKAOTALK_REST_API_KET}
-    api-base-url: https://kapi.kakao.com
-    access-token: ${KAKAOTALK_ACCESS_TOKEN}
 
 security:
   jwt:

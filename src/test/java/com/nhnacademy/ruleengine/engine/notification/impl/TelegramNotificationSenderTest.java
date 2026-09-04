@@ -46,7 +46,7 @@ class TelegramNotificationSenderTest {
     }
 
     @Test
-    void channel은_NotificationChannel_KAKAO_반환() {
+    void channel은_NotificationChannel_TELEGRAM_반환() {
         assertEquals(NotificationChannel.TELEGRAM, telegramNotificationSender.channel());
     }
 
