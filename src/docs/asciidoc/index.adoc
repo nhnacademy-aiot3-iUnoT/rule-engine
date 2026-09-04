@@ -1,0 +1,113 @@
+= Rule Engine API 문서
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toclevels: 2
+:sectlinks:
+:sectnums:
+
+[[overview]]
+== 개요
+
+모든 응답은 아래 공통 형식(`ApiResponse`)으로 감싸진다.
+
+[cols="2,1,5"]
+|===
+| 필드 | 타입 | 설명
+
+| `success` | boolean | 처리 성공 여부
+| `data` | object/array | 실제 응답 데이터 (실패 시 `null`)
+| `error` | object | 에러 정보 `{code, message, fieldErrors}` (성공 시 `null`)
+| `timestamp` | string | 응답 생성 시각
+|===
+
+인증이 필요한 API 는 `Authorization: Bearer <JWT>` 헤더를 요구한다.
+`/api/rule-engine/internal/**` 경로는 서버 간 호출용이라 사용자 인증을 요구하지 않는다.
+
+[[sensor-data]]
+== 센서 데이터 조회
+
+[[sensor-data-zone-latest]]
+=== 구역 센서 최신값 조회
+
+`GET /api/rule-engine/organizations/{organization-id}/zones/{zone-id}/sensor-data/latest`
+
+operation::zone-sensor-latest[snippets='path-parameters,http-request,response-fields,http-response']
+
+접근 권한이 없는 구역이면 `403` 이 반환된다.
+
+operation::zone-sensor-latest-forbidden[snippets='http-response,response-fields']
+
+[[sensor-data-zone-history]]
+=== 구역 센서 이력 조회
+
+`GET /api/rule-engine/organizations/{organization-id}/zones/{zone-id}/sensor-data/history`
+
+operation::zone-sensor-history[snippets='path-parameters,query-parameters,http-request,response-fields,http-response']
+
+[[sensor-data-storage-latest]]
+=== 저장소 센서 최신값 조회
+
+`GET /api/rule-engine/organizations/{organization-id}/storages/{storage-id}/sensor-data/latest`
+
+operation::storage-sensor-latest[snippets='path-parameters,http-request,response-fields,http-response']
+
+[[sensor-data-organization-latest]]
+=== 조직 센서 최신값 조회
+
+`GET /api/rule-engine/organizations/{organization-id}/sensor-data/latest`
+
+operation::organization-sensor-latest[snippets='path-parameters,query-parameters,http-request,response-fields,http-response']
+
+[[virtual-sensor]]
+== 가상 센서
+
+[[virtual-sensor-create]]
+=== 가상 센서 생성
+
+`POST /api/rule-engine/organizations/{organization-id}/virtual-sensors`
+
+operation::virtual-sensor-create[snippets='path-parameters,request-fields,http-request,response-fields,http-response']
+
+권한(OWNER/BOSS)이 없으면 `403` 이 반환된다.
+
+operation::virtual-sensor-create-forbidden[snippets='http-response,response-fields']
+
+[[virtual-sensor-list]]
+=== 조직의 가상 센서 목록 조회
+
+`GET /api/rule-engine/organizations/{organization-id}/virtual-sensors`
+
+operation::virtual-sensor-list[snippets='path-parameters,http-request,response-fields,http-response']
+
+[[virtual-sensor-detail]]
+=== 가상 센서 단건 조회
+
+`GET /api/rule-engine/organizations/{organization-id}/virtual-sensors/{device-eui}`
+
+operation::virtual-sensor-detail[snippets='path-parameters,http-request,response-fields,http-response']
+
+[[environment-report]]
+== 환경 리포트 (내부 API)
+
+[[environment-report-storage-latest]]
+=== 저장소 구역별 센서 최신값 조회
+
+`GET /api/rule-engine/internal/storages/{storage-id}/sensor-data/latest`
+
+operation::internal-storage-sensor-latest[snippets='path-parameters,query-parameters,http-request,response-fields,http-response']
+
+[[environment-report-daily-summaries]]
+=== 저장소 하루 요약 조회
+
+`GET /api/rule-engine/internal/storages/{storage-id}/daily-summaries`
+
+operation::internal-storage-daily-summaries[snippets='path-parameters,query-parameters,http-request,response-fields,http-response']
+
+[[environment-report-rollup]]
+=== 하루 요약 수동 적재
+
+`POST /api/rule-engine/internal/daily-summary-rollups`
+
+operation::internal-daily-summary-rollup[snippets='query-parameters,http-request,response-fields,http-response']
