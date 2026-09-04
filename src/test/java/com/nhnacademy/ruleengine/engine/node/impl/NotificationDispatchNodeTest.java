@@ -36,7 +36,7 @@ class NotificationDispatchNodeTest {
     NotificationSender telegramSender;
 
     @Mock
-    NotificationSender kakaoNotificationSender;
+    NotificationSender webSender;
 
     NotificationDispatchNode node;
     FlowProcessingCompletion completion;
@@ -46,7 +46,7 @@ class NotificationDispatchNodeTest {
         node = new NotificationDispatchNode(
                 "notification-dispatch",
                 preferenceService,
-                List.of(telegramSender, kakaoNotificationSender)
+                List.of(telegramSender, webSender)
         );
 
         completion = new FlowProcessingCompletion();
@@ -57,7 +57,7 @@ class NotificationDispatchNodeTest {
         Message message = new Message(Map.of(), completion);
 
         node.process(message);
-        verifyNoInteractions(preferenceService, telegramSender, kakaoNotificationSender);
+        verifyNoInteractions(preferenceService, telegramSender, webSender);
         completion.await(Duration.ofMillis(100));
     }
 
@@ -70,7 +70,7 @@ class NotificationDispatchNodeTest {
                 .thenReturn(List.of());
         node.process(message);
         verify(preferenceService).findPreferences(1L, 2L, 3L);
-        verifyNoInteractions(telegramSender, kakaoNotificationSender);
+        verifyNoInteractions(telegramSender, webSender);
         completion.await(Duration.ofMillis(100));
     }
 
@@ -93,7 +93,7 @@ class NotificationDispatchNodeTest {
         node.process(message);
         verify(preferenceService).findPreferences(1L, 2L, 3L);
         verify(telegramSender, never()).send(any(), any());
-        verify(kakaoNotificationSender, never()).send(any(), any());
+        verify(webSender, never()).send(any(), any());
     }
 
     @Test
@@ -139,9 +139,9 @@ class NotificationDispatchNodeTest {
                                 1L,
                                 2L,
                                 3L,
-                                NotificationChannel.KAKAO,
+                                NotificationChannel.WEB,
                                 false,
-                                "test-kakao-receiver-id")
+                                null)
                         )
                 );
         when(telegramSender.channel()).thenReturn(NotificationChannel.TELEGRAM);
@@ -149,13 +149,20 @@ class NotificationDispatchNodeTest {
         node.process(message);
         verify(preferenceService).findPreferences(1L, 2L, 3L);
         verify(telegramSender).send(any(NotificationRequest.class), any(NotificationPreference.class));
-        verify(kakaoNotificationSender, never()).send(any(), any());
+        verify(webSender, never()).send(any(), any());
     }
 
     @Test
     void sender가_없는_채널이면_예외_없이_skip(){
         EnvironmentStatusEventDto event = event(EnvStatus.CRITICAL);
         Message message = message(event);
+
+        // WEB sender가 등록되지 않은 노드
+        NotificationDispatchNode telegramOnlyNode = new NotificationDispatchNode(
+                "notification-dispatch",
+                preferenceService,
+                List.of(telegramSender)
+        );
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
                 .thenReturn(List.of(
@@ -169,13 +176,12 @@ class NotificationDispatchNodeTest {
                                         "7501086554")
                 ));
         when(telegramSender.channel()).thenReturn(NotificationChannel.TELEGRAM);
-        when(kakaoNotificationSender.channel()).thenReturn(NotificationChannel.KAKAO);
 
-        assertDoesNotThrow(()-> node.process(message));
+        assertDoesNotThrow(()-> telegramOnlyNode.process(message));
 
         verify(preferenceService).findPreferences(1L, 2L, 3L);
         verify(telegramSender, never()).send(any(), any());
-        verify(kakaoNotificationSender, never()).send(any(), any());
+        verify(webSender, never()).send(any(), any());
     }
 
     @Test
@@ -199,9 +205,9 @@ class NotificationDispatchNodeTest {
                                         1L,
                                         2L,
                                         3L,
-                                        NotificationChannel.KAKAO,
+                                        NotificationChannel.WEB,
                                         false,
-                                        "test-kakao-receiver-id")
+                                        null)
                         )
                 );
 
@@ -210,7 +216,7 @@ class NotificationDispatchNodeTest {
         node.process(message);
         verify(preferenceService).findPreferences(1L, 2L, 3L);
         verify(telegramSender).send(any(), any());
-        verify(kakaoNotificationSender, never()).send(any(), any());
+        verify(webSender, never()).send(any(), any());
     }
 
     @Test
@@ -228,25 +234,25 @@ class NotificationDispatchNodeTest {
                                         true,
                                         "7501086554");
 
-        NotificationPreference kakaoPreference = new NotificationPreference(
+        NotificationPreference webPreference = new NotificationPreference(
                                         1L,
                                         1L,
                                         2L,
                                         3L,
-                                        NotificationChannel.KAKAO,
+                                        NotificationChannel.WEB,
                                         true,
-                                        "test-kakao-receiver-id");
+                                        null);
 
         when(preferenceService.findPreferences(1L, 2L, 3L))
-                .thenReturn(List.of(telegramPreference, kakaoPreference));
+                .thenReturn(List.of(telegramPreference, webPreference));
 
         when(telegramSender.channel()).thenReturn(NotificationChannel.TELEGRAM);
-        when(kakaoNotificationSender.channel()).thenReturn(NotificationChannel.KAKAO);
+        when(webSender.channel()).thenReturn(NotificationChannel.WEB);
 
         doThrow(new RuntimeException("telegram fail")).when(telegramSender).send(any(NotificationRequest.class), eq(telegramPreference));
 
         assertDoesNotThrow(() -> node.process(message));
-        verify(kakaoNotificationSender).send(any(NotificationRequest.class), eq(kakaoPreference));
+        verify(webSender).send(any(NotificationRequest.class), eq(webPreference));
         verify(telegramSender).send(any(NotificationRequest.class), eq(telegramPreference));
     }
 
