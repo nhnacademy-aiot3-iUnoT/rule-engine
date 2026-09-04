@@ -15,8 +15,7 @@ public class NotificationPreferenceService {
     ) {
         return List.of(
                 new NotificationPreference(1L, organizationId, storageId, zoneId, NotificationChannel.WEB, true, null),
-                new NotificationPreference(1L, organizationId, storageId, zoneId, NotificationChannel.TELEGRAM, true, "7501086554"),
-                new NotificationPreference(1L, organizationId, storageId, zoneId, NotificationChannel.KAKAO, false, "test-kakao-receiver-id")
+                new NotificationPreference(1L, organizationId, storageId, zoneId, NotificationChannel.TELEGRAM, true, "7501086554")
         );
     }
 
