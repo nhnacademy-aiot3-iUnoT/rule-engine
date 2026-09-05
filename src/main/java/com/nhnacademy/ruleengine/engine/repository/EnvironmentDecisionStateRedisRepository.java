@@ -86,6 +86,12 @@ public class EnvironmentDecisionStateRedisRepository {
         }
     }
 
+    // 구역이 비활성/종료되면 인벤토리가 환경 상태를 NORMAL로 되돌린다.
+    // 판정 상태가 남아 있으면 다시 켰을 때 상태 전이가 일어나지 않으므로 함께 지운다.
+    public void deleteByZone(String zoneKey) {
+        redisTemplate.delete(getStateKey(zoneKey));
+    }
+
     private String getStateKey(String zoneKey) {
         return KEY_PREFIX + zoneKey;
     }

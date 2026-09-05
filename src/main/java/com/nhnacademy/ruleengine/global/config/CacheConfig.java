@@ -26,6 +26,9 @@ public class CacheConfig {
 
     public static final String ZONE_ACTIVATION = "zone-activation";
 
+    // Caffeine 캐시가 아니라 Redis에 저장된 환경상태 판단 상태를 지우라는 신호다.
+    public static final String ZONE_DECISION_STATE = "zone-decision-state";
+
     private static final Duration DEVICE_ZONE_TTL = Duration.ofMinutes(30);
 
     private static final Duration DEVICE_ZONE_MISS_TTL = Duration.ofMinutes(2);
