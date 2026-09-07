@@ -6,6 +6,7 @@ import com.nhnacademy.ruleengine.engine.dto.environment.EnvStatus;
 import com.nhnacademy.ruleengine.engine.dto.inventory.MemberOrganizationResponse;
 import com.nhnacademy.ruleengine.engine.dto.inventory.ThresholdSpecResponse;
 import com.nhnacademy.ruleengine.engine.dto.notification.EnvironmentEventCreateRequest;
+import com.nhnacademy.ruleengine.engine.dto.notification.NotificationPreference;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto;
 import com.nhnacademy.ruleengine.engine.dto.rule.ThresholdPolicyDto.ThresholdRange;
 import com.nhnacademy.ruleengine.engine.dto.sensor.SensorType;
@@ -31,6 +32,10 @@ public class InventoryClient {
     private static final String INVENTORY_URL = "/api/core/internal";
 
     private static final ParameterizedTypeReference<ApiResponse<List<ThresholdSpecResponse>>> THRESHOLD_SPEC_LIST =
+            new ParameterizedTypeReference<>() {
+            };
+
+    private static final ParameterizedTypeReference<ApiResponse<List<NotificationPreference>>> NOTIFICATION_PREFERENCE_LIST =
             new ParameterizedTypeReference<>() {
             };
 
@@ -104,6 +109,26 @@ public class InventoryClient {
                 .toUriString();
 
         return apiClient.find(url, MemberOrganizationResponse.class);
+    }
+
+    // 해당 조직/창고/구역의 알림을 켜 둔 조직원의 수신 채널을 조회한다.
+    // 설정한 사람이 아무도 없으면 빈 목록이고, 인벤토리 장애는 예외로 올라온다.
+    public List<NotificationPreference> findNotificationReceivers(
+            Long organizationId,
+            Long storageId,
+            Long zoneId
+    ) {
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl + INVENTORY_URL + "/notifications/receivers")
+                .queryParam("organization-id", organizationId)
+                .queryParam("storage-id", storageId)
+                .queryParam("zone-id", zoneId)
+                .encode()
+                .toUriString();
+
+        List<NotificationPreference> preferences = apiClient.get(url, NOTIFICATION_PREFERENCE_LIST);
+
+        return preferences == null ? List.of() : preferences;
     }
 
     // 구역의 환경 상태를 갱신한다.

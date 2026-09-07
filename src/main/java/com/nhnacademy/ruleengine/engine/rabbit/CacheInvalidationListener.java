@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.ruleengine.global.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.nhnacademy.ruleengine.engine.repository.EnvironmentDecisionStateRedisRepository;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -28,11 +29,18 @@ public class CacheInvalidationListener {
 
     private final ObjectMapper objectMapper;
     private final CacheManager cacheManager;
+    private final EnvironmentDecisionStateRedisRepository decisionStateRepository;
 
     @RabbitListener(queues = "#{cacheInvalidationQueue.name}")
     public void onCacheInvalidation(String rawPayload) {
         CacheInvalidationMessage message = deserialize(rawPayload);
         if (message == null) {
+            return;
+        }
+
+        // 환경상태 판단 상태는 Caffeine 캐시가 아니라 Redis에 있어서 따로 처리한다.
+        if (CacheConfig.ZONE_DECISION_STATE.equals(message.cacheName())) {
+            evictDecisionState(message);
             return;
         }
 
@@ -49,6 +57,16 @@ public class CacheInvalidationListener {
         }
 
         evict(cache, message, keyParser);
+    }
+
+    private void evictDecisionState(CacheInvalidationMessage message) {
+        if (message.key() == null || message.key().isBlank()) {
+            log.warn("판단 상태를 지울 구역 키가 없습니다.");
+            return;
+        }
+
+        decisionStateRepository.deleteByZone(message.key());
+        log.info("구역의 환경상태 판단 상태를 초기화했습니다. zoneKey={}", message.key());
     }
 
     private void evict(Cache cache, CacheInvalidationMessage message, Function<String, Object> keyParser) {
