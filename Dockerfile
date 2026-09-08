@@ -13,6 +13,10 @@ RUN ./mvnw clean package -DskipTests -B
 
 # 2. 실행 전용 이미지 (JRE만, 빌드도구 없어서 이미지 크기 작음)
 FROM eclipse-temurin:21-jre
+
+# 컨테이너 기본 타임존. JVM 이 TZ 를 읽어 LocalDateTime.now() 가 KST 로 동작한다.
+ENV TZ=Asia/Seoul
+
 WORKDIR /app
 
 # 헬스체크/디버깅용 curl 설치, 이후 캐시 삭제해서 이미지 용량 절약
